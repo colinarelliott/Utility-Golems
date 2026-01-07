@@ -7,7 +7,8 @@ import net.minecraft.util.Identifier;
 
 public enum GolemType {
     LAPIS("lapis_golem", "textures/entity/lapis_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
-    REDSTONE("redstone_golem", "textures/entity/redstone_golem.png", CopperGolemEntity.createCopperGolemAttributes());
+    REDSTONE("redstone_golem", "textures/entity/redstone_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
+    EMERALD("emerald_golem", "textures/entity/emerald_golem.png", CopperGolemEntity.createCopperGolemAttributes());
 
     private final String name;
     private final String texturePath;
