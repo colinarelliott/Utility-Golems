@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "utility-golems",
+	"version": "${version}",
+	"name": "Utility Golems",
+	"description": "A mod that extends copper golem functionality to add more golems with more purposes!",
+	"authors": [
+		"colinarelliott (RehdPanda)"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/colinarelliott/Utility-Golems"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/utility-golems/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"rehdpanda.utilitygolems.UGInit"
+		],
+		"client":[
+			"rehdpanda.utilitygolems.client.UGClient"
+		],
+		"fabric-datagen": [
+			"rehdpanda.utilitygolems.UtilityGolemsDataGenerator"
+		]
+	},
+	"mixins": [
+		"utility-golems.mixins.json"
+	],
+	"client": [
+		"rehdpanda.utilitygolems.UGClient"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
