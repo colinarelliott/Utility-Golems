@@ -4,5 +4,8 @@
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
 - Lapis Golem (Digging and Building) *[WIP]*
+  - Give the lapis golem a pickaxe and it will dig then deposit items in a chest.
 - Redstone Golem (Timing and Redstone Automation) *[WIP]*
 - Emerald Golem (Villager Trading Automation) *[WIP]*
+  - Give the emerald golem items to trade and it will sell them to villagers.
+  - Deposits profit into nearby chests.
