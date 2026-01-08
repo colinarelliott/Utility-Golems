@@ -53,7 +53,6 @@ public class UGInit implements ModInitializer {
                     entityType
             );
         }
-        GolemPatterns.registerCallbacks();
         LOGGER.info("Utility Golems registered: " + GOLEM_TYPES.keySet());
     }
 }

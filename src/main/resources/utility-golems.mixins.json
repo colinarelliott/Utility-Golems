@@ -2,9 +2,11 @@
 	"required": true,
 	"package": "rehdpanda.utilitygolems.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"ExampleMixin"
-	],
+ "mixins": [
+                "ExampleMixin",
+                "CarvedPumpkinMixin",
+                "BlockMixin"
+        ],
 	"injectors": {
 		"defaultRequire": 1
 	},
