@@ -9,9 +9,30 @@ import java.util.function.Consumer;
 /// DESCRIBES THE VARIOUS TYPES OF GOLEM
 
 public enum GolemType {
-    LAPIS("lapis_golem", "Lapis Golem", "textures/entity/lapis_golem.png", createAttributes(), GolemAI::initLapisGoals),
-    REDSTONE("redstone_golem", "Redstone Golem", "textures/entity/redstone_golem.png", createAttributes(), GolemAI::initRedstoneGoals),
-    EMERALD("emerald_golem", "Emerald Golem", "textures/entity/emerald_golem.png", createAttributes(), GolemAI::initEmeraldGoals);
+    LAPIS("lapis_golem", "Lapis Golem", "textures/entity/lapis_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 20.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.25),
+            GolemAI::initLapisGoals),
+    REDSTONE("redstone_golem", "Redstone Golem", "textures/entity/redstone_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
+            GolemAI::initRedstoneGoals),
+    EMERALD("emerald_golem", "Emerald Golem", "textures/entity/emerald_golem.png",
+            baseAttributes()
+                    //POSSIBLE ATTRIBUTES
+                    .add(EntityAttributes.MAX_HEALTH, 30.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 2.0)
+                    .add(EntityAttributes.FOLLOW_RANGE, 16.0)
+                    .add(EntityAttributes.KNOCKBACK_RESISTANCE, 0.5)
+                    .add(EntityAttributes.ARMOR, 2.0)
+                    .add(EntityAttributes.ARMOR_TOUGHNESS, 1.0)
+                    .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2)
+                    .add(EntityAttributes.ATTACK_SPEED, 1.0)
+                    .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2),
+            GolemAI::initEmeraldGoals);
 
     private final String name;
     private final String friendlyName;
@@ -27,7 +48,7 @@ public enum GolemType {
         this.aiInitializer = aiInitializer;
     }
 
-    private static DefaultAttributeContainer.Builder createAttributes() {
+    private static DefaultAttributeContainer.Builder baseAttributes() {
         return CopperGolemEntity.createCopperGolemAttributes()
                 .add(EntityAttributes.TEMPT_RANGE, 10.0);
     }

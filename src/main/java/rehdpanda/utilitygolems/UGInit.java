@@ -53,7 +53,7 @@ public class UGInit implements ModInitializer {
 
             // Register in the global registry
             Registry.register(
-                    Registries.ENTITY_TYPE, // <-- this works in Fabric 1.21+ NO IT DOESN"T
+                    Registries.ENTITY_TYPE,
                     Identifier.of(MOD_ID, type.getName()),
                     entityType
             );

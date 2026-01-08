@@ -54,6 +54,26 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
+        ItemStack playerStack = player.getStackInHand(hand);
+        if (this.golemType == GolemType.LAPIS && isPickaxe(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
         if (!player.getEntityWorld().isClient()) {
             player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
                 (syncId, playerInventory, p) -> new GolemInventoryScreenHandler(syncId, playerInventory, this.inventory, this),
@@ -62,6 +82,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
         return ActionResult.SUCCESS;
+    }
+
+    private boolean isPickaxe(ItemStack stack) {
+        return stack.isOf(Items.WOODEN_PICKAXE) || stack.isOf(Items.STONE_PICKAXE) ||
+                stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.DIAMOND_PICKAXE) ||
+                stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.GOLDEN_PICKAXE);
     }
 
     @Override
@@ -84,8 +110,6 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         ItemStack item = ItemStack.EMPTY;
         if (golemType == GolemType.REDSTONE) {
             item = new ItemStack(Items.REDSTONE);
-        } else if (golemType == GolemType.LAPIS) {
-            item = new ItemStack(Items.IRON_PICKAXE);
         } else if (golemType == GolemType.EMERALD) {
             item = new ItemStack(Items.EMERALD);
         }
