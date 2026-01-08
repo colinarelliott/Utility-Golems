@@ -6,16 +6,18 @@ import net.minecraft.util.Identifier;
 /// DESCRIBES THE VARIOUS TYPES OF GOLEM
 
 public enum GolemType {
-    LAPIS("lapis_golem", "textures/entity/lapis_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
-    REDSTONE("redstone_golem", "textures/entity/redstone_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
-    EMERALD("emerald_golem", "textures/entity/emerald_golem.png", CopperGolemEntity.createCopperGolemAttributes());
+    LAPIS("lapis_golem", "Lapis Golem", "textures/entity/lapis_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
+    REDSTONE("redstone_golem", "Redstone Golem", "textures/entity/redstone_golem.png", CopperGolemEntity.createCopperGolemAttributes()),
+    EMERALD("emerald_golem", "Emerald Golem", "textures/entity/emerald_golem.png", CopperGolemEntity.createCopperGolemAttributes());
 
     private final String name;
+    private final String friendlyName;
     private final String texturePath;
     private final DefaultAttributeContainer.Builder attributes;
 
-    GolemType(String name, String texturePath, DefaultAttributeContainer.Builder attributes) {
+    GolemType(String name, String friendlyName, String texturePath, DefaultAttributeContainer.Builder attributes) {
         this.name = name;
+        this.friendlyName = friendlyName;
         this.texturePath = texturePath;
         this.attributes = attributes;
     }
@@ -26,6 +28,10 @@ public enum GolemType {
 
     public String getName() {
         return this.name;
+    }
+
+    public String getFriendlyName() {
+        return this.friendlyName;
     }
 
     public Identifier getTexture() {

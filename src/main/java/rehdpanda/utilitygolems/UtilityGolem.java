@@ -14,6 +14,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.recipe.Ingredient;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.LocalDifficulty;
@@ -38,6 +39,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public SimpleInventory getInventory() {
         return this.inventory;
+    }
+
+    @Override
+    public Text getDisplayName() {
+        if (this.hasCustomName()) {
+            return super.getDisplayName();
+        }
+        return Text.literal(this.golemType.getFriendlyName());
     }
 
     @Override
