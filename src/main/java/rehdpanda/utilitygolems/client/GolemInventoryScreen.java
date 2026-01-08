@@ -7,6 +7,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import rehdpanda.utilitygolems.GolemInventoryScreenHandler;
 
+/// DRAWS THE INVENTORY SCREEN FOR GOLEMS
+
 public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHandler> {
     private static final Identifier TEXTURE = Identifier.of("minecraft", "textures/gui/container/dispenser.png");
 

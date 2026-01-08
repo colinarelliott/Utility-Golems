@@ -8,6 +8,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 
+/// HANDLES INVENTORY SCREEN FOR GOLEMS
+
 public class GolemInventoryScreenHandler extends ScreenHandler {
     private final Inventory inventory;
     private final UtilityGolem golem;

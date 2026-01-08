@@ -34,6 +34,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;
+        if (this.golemType != null) {
+            this.golemType.initGoals(this);
+        }
     }
 
     @Override
@@ -105,16 +108,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.goalSelector.add(2, new WanderAroundGoal(this, 1.0D));
         this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F));
 
-        if (golemType == GolemType.LAPIS) {
-            // Lapis golems are attracted to pickaxes
-            this.goalSelector.add(1, new TemptGoal(this, 1.2D, Ingredient.ofItems(
-                    Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE
-            ), false));
-        } else if (golemType == GolemType.EMERALD) {
-            // Emerald golems follow villagers and are attracted to emeralds
-            this.goalSelector.add(1, new TemptGoal(this, 1.2D, Ingredient.ofItems(Items.EMERALD), false));
-            this.goalSelector.add(2, new LookAtEntityGoal(this, VillagerEntity.class, 8.0F));
+        if (this.golemType != null) {
+            this.golemType.initGoals(this);
         }
+    }
+
+    public net.minecraft.entity.ai.goal.GoalSelector getGoalSelector() {
+        return this.goalSelector;
     }
 
     public ItemStack getHeldItem() {
