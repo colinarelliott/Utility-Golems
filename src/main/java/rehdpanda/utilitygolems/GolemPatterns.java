@@ -47,6 +47,7 @@ public class GolemPatterns {
         BlockPos spawnPos = result.translate(0, 0, 0).getBlockPos();
         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), world, type);
         golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
+        golem.initialize(world, world.getLocalDifficulty(spawnPos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
         world.spawnEntity(golem);
 
         // Remove blocks used in the pattern

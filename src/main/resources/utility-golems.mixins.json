@@ -3,7 +3,6 @@
 	"package": "rehdpanda.utilitygolems.mixin",
 	"compatibilityLevel": "JAVA_21",
  "mixins": [
-                "ExampleMixin",
                 "CarvedPumpkinMixin",
                 "BlockMixin"
         ],
