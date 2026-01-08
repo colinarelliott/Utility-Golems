@@ -104,9 +104,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     protected void initGoals() {
-        super.initGoals();
+        this.goalSelector.add(0, new SwimGoal(this));
         this.goalSelector.add(2, new WanderAroundGoal(this, 1.0D));
         this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F));
+        this.goalSelector.add(4, new LookAroundGoal(this));
 
         if (this.golemType != null) {
             this.golemType.initGoals(this);
