@@ -1,0 +1,1 @@
+package rehdpanda.utilitygolems; import net.minecraft.block.BlockRenderType; public class CheckEnum { public static void main(String[] args) { for (BlockRenderType type : BlockRenderType.values()) { System.out.println(type.name()); } } }

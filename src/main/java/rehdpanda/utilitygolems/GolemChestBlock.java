@@ -15,6 +15,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
 import net.minecraft.world.World;
 import net.minecraft.world.BlockView;
 import net.minecraft.block.ShapeContext;
@@ -72,8 +74,8 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
             return ActionResult.SUCCESS;
         } else {
             BlockEntity blockEntity = world.getBlockEntity(pos);
-            if (blockEntity instanceof ChestBlockEntity) {
-                player.openHandledScreen((ChestBlockEntity)blockEntity);
+            if (blockEntity instanceof GolemChestBlockEntity) {
+                player.openHandledScreen((GolemChestBlockEntity)blockEntity);
             }
             return ActionResult.CONSUME;
         }

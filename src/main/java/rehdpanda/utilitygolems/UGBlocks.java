@@ -29,7 +29,11 @@ public class UGBlocks {
             Block block = Registry.register(
                     Registries.BLOCK,
                     Identifier.of(UGInit.MOD_ID, name),
-                    new GolemChestBlock(AbstractBlock.Settings.copy(Blocks.CHEST).nonOpaque().registryKey(RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(UGInit.MOD_ID, name))))
+                    new GolemChestBlock(AbstractBlock.Settings.copy(Blocks.CHEST)
+                            .requiresTool()
+                            .strength(2.5f, 12.5f)
+                            .nonOpaque()
+                            .registryKey(RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(UGInit.MOD_ID, name))))
             );
             GOLEM_CHESTS.put(type, block);
             chestBlocks.add(block);
