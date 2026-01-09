@@ -25,6 +25,9 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.LAPIS);
             trySpawnGolem(serverWorld, pos, GolemType.REDSTONE);
             trySpawnGolem(serverWorld, pos, GolemType.EMERALD);
+            trySpawnGolem(serverWorld, pos, GolemType.GOLD);
+            trySpawnGolem(serverWorld, pos, GolemType.AMETHYST);
+            trySpawnGolem(serverWorld, pos, GolemType.NETHERITE);
         }
     }
 
@@ -36,6 +39,12 @@ public class GolemPatterns {
             bottomBlock = Blocks.REDSTONE_BLOCK;
         } else if (type == GolemType.EMERALD) {
             bottomBlock = Blocks.EMERALD_BLOCK;
+        } else if (type == GolemType.GOLD) {
+            bottomBlock = Blocks.GOLD_BLOCK;
+        } else if (type == GolemType.AMETHYST) {
+            bottomBlock = Blocks.AMETHYST_BLOCK;
+        } else if (type == GolemType.NETHERITE) {
+            bottomBlock = Blocks.NETHERITE_BLOCK;
         }
 
         BlockPattern pattern = createGolemPattern(bottomBlock);

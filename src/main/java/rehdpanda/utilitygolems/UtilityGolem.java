@@ -25,6 +25,10 @@ import org.jetbrains.annotations.Nullable;
 /// BASE FOR THE GOLEM EXTENDS THE COPPER GOLEMS,
 /// DEFINES BASIC BEHAVOUR, TYPE AND HELD ITEM
 
+
+import net.minecraft.util.Identifier;
+import net.minecraft.entity.attribute.EntityAttributes;
+
 public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private final GolemType golemType;
@@ -37,6 +41,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (this.golemType != null) {
             this.golemType.initGoals(this);
         }
+        updateAttackDamage();
     }
 
     @Override
@@ -74,6 +79,25 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
+        if (this.golemType == GolemType.NETHERITE && isSword(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
         if (!player.getEntityWorld().isClient()) {
             player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
                 (syncId, playerInventory, p) -> new GolemInventoryScreenHandler(syncId, playerInventory, this.inventory, this),
@@ -90,6 +114,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.GOLDEN_PICKAXE);
     }
 
+    private boolean isSword(ItemStack stack) {
+        return stack.isOf(Items.WOODEN_SWORD) || stack.isOf(Items.STONE_SWORD) ||
+                stack.isOf(Items.IRON_SWORD) || stack.isOf(Items.DIAMOND_SWORD) ||
+                stack.isOf(Items.NETHERITE_SWORD) || stack.isOf(Items.GOLDEN_SWORD);
+    }
+
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
         super.writeCustomData(writeView);
@@ -100,6 +130,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public void readCustomData(net.minecraft.storage.ReadView readView) {
         super.readCustomData(readView);
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
+        updateAttackDamage();
     }
 
     @Override
@@ -117,6 +148,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!item.isEmpty()) {
             this.equipStack(HELD_ITEM_SLOT, item);
             this.equipStack(CopperGolemEntity.POPPY_SLOT, item);
+            updateAttackDamage();
         }
 
         return data;
@@ -138,8 +170,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
     }
 
+
     public net.minecraft.entity.ai.goal.GoalSelector getGoalSelector() {
         return this.goalSelector;
+    }
+
+    public net.minecraft.entity.ai.goal.GoalSelector getTargetSelector() {
+        return this.targetSelector;
     }
 
     public ItemStack getHeldItem() {
@@ -148,5 +185,25 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public void setHeldItem(ItemStack stack) {
         this.equipStack(HELD_ITEM_SLOT, stack);
+        updateAttackDamage();
+    }
+
+    private void updateAttackDamage() {
+        if (this.golemType != GolemType.NETHERITE) return;
+        
+        float baseDamage = 0.5f; // Default low damage
+        ItemStack stack = this.getHeldItem();
+        
+        if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 6.0f;
+        else if (stack.isOf(Items.DIAMOND_SWORD)) baseDamage += 5.0f;
+        else if (stack.isOf(Items.IRON_SWORD)) baseDamage += 3.0f;
+        else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 2.0f;
+        else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 1.5f;
+        else if (stack.isOf(Items.GOLDEN_SWORD)) baseDamage += 4.0f;
+        
+        var instance = this.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
+        if (instance != null) {
+            instance.setBaseValue(baseDamage);
+        }
     }
 }

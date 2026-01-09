@@ -2,16 +2,7 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.ButtonBlock;
-import net.minecraft.block.LeverBlock;
-import net.minecraft.block.FenceGateBlock;
-import net.minecraft.block.DoorBlock;
-import net.minecraft.block.TrapdoorBlock;
-import net.minecraft.entity.ai.goal.FollowMobGoal;
-import net.minecraft.state.property.Properties;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.goal.LookAtEntityGoal;
-import net.minecraft.entity.ai.goal.TemptGoal;
+import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.block.entity.BlockEntity;
@@ -24,6 +15,7 @@ import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.inventory.Inventories;
@@ -37,11 +29,16 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.ai.goal.ActiveTargetGoal;
+import net.minecraft.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.entity.ai.goal.RevengeGoal;
 
 public class GolemAI {
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
-                Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE
+                Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE
         ), false));
         golem.getGoalSelector().add(2, new DepositItemsGoal(golem));
         golem.getGoalSelector().add(3, new DigBlockGoal(golem));
@@ -49,9 +46,7 @@ public class GolemAI {
     }
 
     public static void initRedstoneGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
-        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
-        golem.getGoalSelector().add(3, new ActivateRedstoneGoal(golem));
+        //redstone golem behaviour
     }
 
     public static void initEmeraldGoals(UtilityGolem golem) {
@@ -60,6 +55,18 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DepositItemsGoal(golem));
         golem.getGoalSelector().add(4, new LookAtEntityGoal(golem, VillagerEntity.class, 8.0F));
         golem.getGoalSelector().add(5, new FollowMobGoal(golem, 1.0D, 3.0F, 10.0F));
+    }
+
+    public static void initGoldGoals(UtilityGolem golem) {
+        //gold golem behaviour
+    }
+    public static void initAmethystGoals(UtilityGolem golem) {
+        //amethyst golem behaviour
+    }
+    public static void initNetheriteGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new MeleeAttackGoal(golem, 1.2D, false));
+        golem.getTargetSelector().add(1, new RevengeGoal(golem).setGroupRevenge());
+        golem.getTargetSelector().add(2, new ActiveTargetGoal<>(golem, HostileEntity.class, true));
     }
 
     public static class TradeWithVillagerGoal extends Goal {
@@ -222,11 +229,14 @@ public class GolemAI {
             return false;
         }
 
+        //checks if stack is greater than 8 (PICKAXES COUNT AS FULL STACK BUG)
         private boolean hasFullStack() {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
-                if (!stack.isEmpty() && stack.getCount() >= stack.getMaxCount()) {
+                /// MAKE SURE THE STACK IS NOT A PICKAXE
+                if (!stack.isEmpty() && stack.getCount() >= stack.getMaxCount()/8 && !stack.getName().contains(Text.of("PICKAXE"))
+                ) {
                     return true;
                 }
             }
@@ -390,12 +400,13 @@ public class GolemAI {
             if (hardness < 0) return 200; // Unbreakable
 
             float speed = 1.0f;
-            if (pickaxe.isOf(Items.GOLDEN_PICKAXE)) speed = 12.0f;
-            else if (pickaxe.isOf(Items.NETHERITE_PICKAXE)) speed = 9.0f;
-            else if (pickaxe.isOf(Items.DIAMOND_PICKAXE)) speed = 8.0f;
+            if (pickaxe.isOf(Items.GOLDEN_PICKAXE)) speed = 9.0f;
+            else if (pickaxe.isOf(Items.NETHERITE_PICKAXE)) speed = 12.0f;
+            else if (pickaxe.isOf(Items.DIAMOND_PICKAXE)) speed = 12.0f;
             else if (pickaxe.isOf(Items.IRON_PICKAXE)) speed = 6.0f;
             else if (pickaxe.isOf(Items.STONE_PICKAXE)) speed = 4.0f;
             else if (pickaxe.isOf(Items.WOODEN_PICKAXE)) speed = 2.0f;
+            else if (pickaxe.isOf(Items.COPPER_PICKAXE)) speed = 5.0f;
 
             // Player mining formula is roughly (hardness * 30) / speed if using correct tool
             // We want it slower than player, so let's use a higher multiplier
@@ -429,7 +440,16 @@ public class GolemAI {
 
         private boolean canDig(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
-            return state.isIn(BlockTags.PICKAXE_MINEABLE);
+            return state.isIn( BlockTags.BASE_STONE_OVERWORLD)
+                || state.isIn(BlockTags.BASE_STONE_NETHER)
+                || state.isIn(BlockTags.COAL_ORES)
+                || state.isIn(BlockTags.IRON_ORES)
+                || state.isIn(BlockTags.COPPER_ORES)
+                || state.isIn(BlockTags.GOLD_ORES)
+                || state.isIn(BlockTags.DIAMOND_ORES)
+                || state.isIn(BlockTags.EMERALD_ORES)
+                || state.isIn(BlockTags.LAPIS_ORES)
+                || state.isIn(BlockTags.REDSTONE_ORES);
         }
 
         @Override
@@ -506,97 +526,6 @@ public class GolemAI {
                 }
             }
             targetPos = null;
-        }
-    }
-
-    public static class ActivateRedstoneGoal extends Goal {
-        private final UtilityGolem golem;
-        private BlockPos targetPos;
-        private int cooldown = 0;
-
-        public ActivateRedstoneGoal(UtilityGolem golem) {
-            this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
-        }
-
-        @Override
-        public boolean canStart() {
-            if (cooldown > 0) {
-                cooldown--;
-                return false;
-            }
-            targetPos = findTargetBlock();
-            return targetPos != null;
-        }
-
-        private BlockPos findTargetBlock() {
-            BlockPos pos = golem.getBlockPos();
-            List<BlockPos> potentialTargets = new ArrayList<>();
-            int range = 8;
-            for (int x = -range; x <= range; x++) {
-                for (int y = -2; y <= 2; y++) {
-                    for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
-                        if (isInteractable(p)) {
-                            potentialTargets.add(p);
-                        }
-                    }
-                }
-            }
-            return potentialTargets.stream()
-                    .min(Comparator.comparingDouble(p -> p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ())))
-                    .orElse(null);
-        }
-
-        private boolean isInteractable(BlockPos pos) {
-            BlockState state = golem.getEntityWorld().getBlockState(pos);
-            Block block = state.getBlock();
-            return (block instanceof ButtonBlock || block instanceof LeverBlock || 
-                    block instanceof FenceGateBlock || block instanceof DoorBlock || 
-                    block instanceof TrapdoorBlock) && !isActive(state);
-        }
-
-        private boolean isActive(BlockState state) {
-            if (state.contains(Properties.POWERED)) {
-                return state.get(Properties.POWERED);
-            }
-            if (state.contains(Properties.OPEN)) {
-                return state.get(Properties.OPEN);
-            }
-            if (state.contains(Properties.LIT)) {
-                return state.get(Properties.LIT);
-            }
-            return false;
-        }
-
-        @Override
-        public boolean shouldContinue() {
-            return targetPos != null && isInteractable(targetPos) && golem.getBlockPos().getSquaredDistance(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 64;
-        }
-
-        @Override
-        public void stop() {
-            targetPos = null;
-            cooldown = 40; // 2 second cooldown
-        }
-
-        @Override
-        public void tick() {
-            if (targetPos == null) return;
-
-            double dist = golem.squaredDistanceTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
-            if (dist > 2.0D) {
-                golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
-            } else {
-                golem.getNavigation().stop();
-                golem.getLookControl().lookAt(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
-                BlockState state = golem.getEntityWorld().getBlockState(targetPos);
-                if (isInteractable(targetPos)) {
-                    golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
-                    state.onUse(golem.getEntityWorld(), null, new net.minecraft.util.hit.BlockHitResult(Vec3d.ofCenter(targetPos), net.minecraft.util.math.Direction.UP, targetPos, false));
-                }
-                targetPos = null;
-            }
         }
     }
 }
