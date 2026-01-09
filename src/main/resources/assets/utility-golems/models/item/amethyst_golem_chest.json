@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:chest",
+  "textures": {
+    "layer0": "utilitygolems:item/amethyst_chest"
+  }
+}
