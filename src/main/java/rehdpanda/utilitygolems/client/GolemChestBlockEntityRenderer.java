@@ -32,7 +32,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
 
     static {
         for (GolemType type : GolemType.values()) {
-            TEXTURES.put(type, new SpriteIdentifier(TexturedRenderLayers.CHEST_ATLAS_TEXTURE, Identifier.of("minecraft", "entity/chest/utility-golems/" + type.getName() + "_chest")));
+            TEXTURES.put(type, new SpriteIdentifier(TexturedRenderLayers.CHEST_ATLAS_TEXTURE, Identifier.of(UGInit.MOD_ID, "entity/chest/" + type.getName() + "_chest")));
         }
     }
 
