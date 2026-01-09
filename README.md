@@ -4,19 +4,19 @@
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
 **IMPLEMENTED / PARTIALLY IMPLEMENTED**
-- Lapis Golem (Digging)
+- <code style="color : blue">Lapis Golem</code> (Digging)
   - Give the lapis golem a pickaxe and it will dig then deposit items in a chest.
-- Netherite Golem (Attack / Defend)
+- <code style="color : grey">Netherite Golem</code> (Attack / Defend)
   - Give these golems a sword to increase their attack damage
   - Regardless, these golems will fight any hostile mobs nearby
-- Emerald Golem (Villager Trading Automation) *[WIP]*
+- <code style="color : green">Emerald Golem</code> (Villager Trading Automation) *[WIP]*
   - Give the emerald golem items to trade and it will SELL them to villagers.
   - Deposits profit into nearby chests.
   - BUY is *[WIP]*
 
 **NOT IMPLEMENTED**
-- Redstone Golem (Timing and Redstone Automation) *[WIP]*
-- Gold Golem (Building) *[WIP]*
+- <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
+- <code style="color : yellow">Gold Golem</code> (Building) *[WIP]*
   - Somehow receive a schematic...
   - Takes blocks from chest, builds structure in predetermined position
-- Amethyst Golem (TBD) *[WIP]*
+- <code style="color : purple">Amethyst Golem</code> (TBD) *[WIP]*
