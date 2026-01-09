@@ -2,7 +2,13 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.ButtonBlock;
+import net.minecraft.block.LeverBlock;
+import net.minecraft.block.FenceGateBlock;
+import net.minecraft.block.DoorBlock;
+import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.entity.ai.goal.FollowMobGoal;
+import net.minecraft.state.property.Properties;
 import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.ai.goal.TemptGoal;
@@ -45,6 +51,7 @@ public class GolemAI {
     public static void initRedstoneGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
         golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+        golem.getGoalSelector().add(3, new ActivateRedstoneGoal(golem));
     }
 
     public static void initEmeraldGoals(UtilityGolem golem) {
@@ -499,6 +506,97 @@ public class GolemAI {
                 }
             }
             targetPos = null;
+        }
+    }
+
+    public static class ActivateRedstoneGoal extends Goal {
+        private final UtilityGolem golem;
+        private BlockPos targetPos;
+        private int cooldown = 0;
+
+        public ActivateRedstoneGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (cooldown > 0) {
+                cooldown--;
+                return false;
+            }
+            targetPos = findTargetBlock();
+            return targetPos != null;
+        }
+
+        private BlockPos findTargetBlock() {
+            BlockPos pos = golem.getBlockPos();
+            List<BlockPos> potentialTargets = new ArrayList<>();
+            int range = 8;
+            for (int x = -range; x <= range; x++) {
+                for (int y = -2; y <= 2; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        if (isInteractable(p)) {
+                            potentialTargets.add(p);
+                        }
+                    }
+                }
+            }
+            return potentialTargets.stream()
+                    .min(Comparator.comparingDouble(p -> p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ())))
+                    .orElse(null);
+        }
+
+        private boolean isInteractable(BlockPos pos) {
+            BlockState state = golem.getEntityWorld().getBlockState(pos);
+            Block block = state.getBlock();
+            return (block instanceof ButtonBlock || block instanceof LeverBlock || 
+                    block instanceof FenceGateBlock || block instanceof DoorBlock || 
+                    block instanceof TrapdoorBlock) && !isActive(state);
+        }
+
+        private boolean isActive(BlockState state) {
+            if (state.contains(Properties.POWERED)) {
+                return state.get(Properties.POWERED);
+            }
+            if (state.contains(Properties.OPEN)) {
+                return state.get(Properties.OPEN);
+            }
+            if (state.contains(Properties.LIT)) {
+                return state.get(Properties.LIT);
+            }
+            return false;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetPos != null && isInteractable(targetPos) && golem.getBlockPos().getSquaredDistance(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 64;
+        }
+
+        @Override
+        public void stop() {
+            targetPos = null;
+            cooldown = 40; // 2 second cooldown
+        }
+
+        @Override
+        public void tick() {
+            if (targetPos == null) return;
+
+            double dist = golem.squaredDistanceTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
+            if (dist > 2.0D) {
+                golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
+            } else {
+                golem.getNavigation().stop();
+                golem.getLookControl().lookAt(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
+                BlockState state = golem.getEntityWorld().getBlockState(targetPos);
+                if (isInteractable(targetPos)) {
+                    golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                    state.onUse(golem.getEntityWorld(), null, new net.minecraft.util.hit.BlockHitResult(Vec3d.ofCenter(targetPos), net.minecraft.util.math.Direction.UP, targetPos, false));
+                }
+                targetPos = null;
+            }
         }
     }
 }
