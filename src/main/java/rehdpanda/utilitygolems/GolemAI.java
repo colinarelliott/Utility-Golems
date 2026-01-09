@@ -18,6 +18,7 @@ import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.inventory.Inventories;
@@ -35,7 +36,7 @@ import java.util.Optional;
 public class GolemAI {
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
-                Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE
+                Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE
         ), false));
         golem.getGoalSelector().add(2, new DepositItemsGoal(golem));
         golem.getGoalSelector().add(3, new DigBlockGoal(golem));
@@ -53,6 +54,19 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DepositItemsGoal(golem));
         golem.getGoalSelector().add(4, new LookAtEntityGoal(golem, VillagerEntity.class, 8.0F));
         golem.getGoalSelector().add(5, new FollowMobGoal(golem, 1.0D, 3.0F, 10.0F));
+    }
+
+    public static void initGoldGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
+        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+    }
+    public static void initAmethystGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
+        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+    }
+    public static void initNetheriteGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
+        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
     }
 
     public static class TradeWithVillagerGoal extends Goal {
@@ -215,11 +229,14 @@ public class GolemAI {
             return false;
         }
 
+        //checks if stack is greater than 8 (PICKAXES COUNT AS FULL STACK BUG)
         private boolean hasFullStack() {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
-                if (!stack.isEmpty() && stack.getCount() >= stack.getMaxCount()) {
+                /// MAKE SURE THE STACK IS NOT A PICKAXE
+                if (!stack.isEmpty() && stack.getCount() >= stack.getMaxCount()/8 && !stack.getName().contains(Text.of("PICKAXE"))
+                ) {
                     return true;
                 }
             }
@@ -383,12 +400,13 @@ public class GolemAI {
             if (hardness < 0) return 200; // Unbreakable
 
             float speed = 1.0f;
-            if (pickaxe.isOf(Items.GOLDEN_PICKAXE)) speed = 12.0f;
-            else if (pickaxe.isOf(Items.NETHERITE_PICKAXE)) speed = 9.0f;
-            else if (pickaxe.isOf(Items.DIAMOND_PICKAXE)) speed = 8.0f;
+            if (pickaxe.isOf(Items.GOLDEN_PICKAXE)) speed = 9.0f;
+            else if (pickaxe.isOf(Items.NETHERITE_PICKAXE)) speed = 12.0f;
+            else if (pickaxe.isOf(Items.DIAMOND_PICKAXE)) speed = 12.0f;
             else if (pickaxe.isOf(Items.IRON_PICKAXE)) speed = 6.0f;
             else if (pickaxe.isOf(Items.STONE_PICKAXE)) speed = 4.0f;
             else if (pickaxe.isOf(Items.WOODEN_PICKAXE)) speed = 2.0f;
+            else if (pickaxe.isOf(Items.COPPER_PICKAXE)) speed = 5.0f;
 
             // Player mining formula is roughly (hardness * 30) / speed if using correct tool
             // We want it slower than player, so let's use a higher multiplier
@@ -422,7 +440,16 @@ public class GolemAI {
 
         private boolean canDig(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
-            return state.isIn(BlockTags.PICKAXE_MINEABLE);
+            return state.isIn( BlockTags.BASE_STONE_OVERWORLD)
+                || state.isIn(BlockTags.BASE_STONE_NETHER)
+                || state.isIn(BlockTags.COAL_ORES)
+                || state.isIn(BlockTags.IRON_ORES)
+                || state.isIn(BlockTags.COPPER_ORES)
+                || state.isIn(BlockTags.GOLD_ORES)
+                || state.isIn(BlockTags.DIAMOND_ORES)
+                || state.isIn(BlockTags.EMERALD_ORES)
+                || state.isIn(BlockTags.LAPIS_ORES)
+                || state.isIn(BlockTags.REDSTONE_ORES);
         }
 
         @Override

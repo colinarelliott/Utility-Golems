@@ -32,7 +32,23 @@ public enum GolemType {
                     .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2)
                     .add(EntityAttributes.ATTACK_SPEED, 1.0)
                     .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2),
-            GolemAI::initEmeraldGoals);
+            GolemAI::initEmeraldGoals),
+    GOLD("gold_golem", "Gold Golem", "textures/entity/gold_golem.png",
+         baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
+        GolemAI::initGoldGoals),
+    AMETHYST("amethyst_golem", "Amethyst Golem", "textures/entity/amethyst_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
+            GolemAI::initAmethystGoals),
+    NETHERITE("netherite_golem", "Netherite Golem", "textures/entity/netherite_golem.png",
+    baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
+        GolemAI::initNetheriteGoals);
+
 
     private final String name;
     private final String friendlyName;
