@@ -35,18 +35,19 @@ public enum GolemType {
             GolemAI::initEmeraldGoals),
     GOLD("gold_golem", "Gold Golem", "textures/entity/gold_golem.png",
          baseAttributes()
-                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MAX_HEALTH, 20.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
         GolemAI::initGoldGoals),
     AMETHYST("amethyst_golem", "Amethyst Golem", "textures/entity/amethyst_golem.png",
             baseAttributes()
-                    .add(EntityAttributes.MAX_HEALTH, 5.0)
+                    .add(EntityAttributes.MAX_HEALTH, 15.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
             GolemAI::initAmethystGoals),
     NETHERITE("netherite_golem", "Netherite Golem", "textures/entity/netherite_golem.png",
     baseAttributes()
-                    .add(EntityAttributes.MAX_HEALTH, 5.0)
-                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
         GolemAI::initNetheriteGoals);
 
 

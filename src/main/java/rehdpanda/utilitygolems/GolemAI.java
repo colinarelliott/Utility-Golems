@@ -2,10 +2,7 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.ai.goal.FollowMobGoal;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.goal.LookAtEntityGoal;
-import net.minecraft.entity.ai.goal.TemptGoal;
+import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.block.entity.BlockEntity;
@@ -32,6 +29,11 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.ai.goal.ActiveTargetGoal;
+import net.minecraft.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.entity.ai.goal.RevengeGoal;
 
 public class GolemAI {
     public static void initLapisGoals(UtilityGolem golem) {
@@ -44,8 +46,7 @@ public class GolemAI {
     }
 
     public static void initRedstoneGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
-        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+        //redstone golem behaviour
     }
 
     public static void initEmeraldGoals(UtilityGolem golem) {
@@ -57,16 +58,15 @@ public class GolemAI {
     }
 
     public static void initGoldGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
-        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+        //gold golem behaviour
     }
     public static void initAmethystGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
-        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+        //amethyst golem behaviour
     }
     public static void initNetheriteGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
-        golem.getGoalSelector().add(2, new FollowMobGoal(golem, 1.0D, 3.0F, 7.0F));
+        golem.getGoalSelector().add(1, new MeleeAttackGoal(golem, 1.2D, false));
+        golem.getTargetSelector().add(1, new RevengeGoal(golem).setGroupRevenge());
+        golem.getTargetSelector().add(2, new ActiveTargetGoal<>(golem, HostileEntity.class, true));
     }
 
     public static class TradeWithVillagerGoal extends Goal {
