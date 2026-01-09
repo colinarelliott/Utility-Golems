@@ -1,0 +1,11 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "minecraft:item/chest",
+    "model": {
+      "type": "minecraft:chest",
+      "texture": "utility-golems:entity/chest/amethyst_golem_chest",
+      "openness": 0.0
+    }
+  }
+}

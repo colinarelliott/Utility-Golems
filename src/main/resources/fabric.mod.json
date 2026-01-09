@@ -20,9 +20,6 @@
 		],
 		"client":[
 			"rehdpanda.utilitygolems.client.UGClient"
-		],
-		"fabric-datagen": [
-			"rehdpanda.utilitygolems.UtilityGolemsDataGenerator"
 		]
 	},
 	"mixins": [

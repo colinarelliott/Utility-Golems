@@ -6,6 +6,9 @@ import net.minecraft.util.Identifier;
 
 import java.util.function.Consumer;
 
+import net.minecraft.block.Block;
+import java.util.function.Supplier;
+
 /// DESCRIBES THE VARIOUS TYPES OF GOLEM
 
 public enum GolemType {
@@ -29,7 +32,6 @@ public enum GolemType {
                     .add(EntityAttributes.KNOCKBACK_RESISTANCE, 0.5)
                     .add(EntityAttributes.ARMOR, 2.0)
                     .add(EntityAttributes.ARMOR_TOUGHNESS, 1.0)
-                    .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2)
                     .add(EntityAttributes.ATTACK_SPEED, 1.0)
                     .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2),
             GolemAI::initEmeraldGoals),
@@ -85,6 +87,10 @@ public enum GolemType {
     public Identifier getTexture() {
         Identifier texture = Identifier.of("utility-golems", texturePath);
         return texture;
+    }
+
+    public Block getChestBlock() {
+        return UGBlocks.GOLEM_CHESTS.get(this);
     }
 
     public void initGoals(UtilityGolem golem) {

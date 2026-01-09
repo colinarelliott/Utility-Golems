@@ -32,20 +32,15 @@ public class GolemPatterns {
     }
 
     private static void trySpawnGolem(ServerWorld world, BlockPos pos, GolemType type) {
-        Block bottomBlock = Blocks.LAPIS_BLOCK;
-        if (type == GolemType.LAPIS) {
-            bottomBlock = Blocks.LAPIS_BLOCK;
-        } else if (type == GolemType.REDSTONE) {
-            bottomBlock = Blocks.REDSTONE_BLOCK;
-        } else if (type == GolemType.EMERALD) {
-            bottomBlock = Blocks.EMERALD_BLOCK;
-        } else if (type == GolemType.GOLD) {
-            bottomBlock = Blocks.GOLD_BLOCK;
-        } else if (type == GolemType.AMETHYST) {
-            bottomBlock = Blocks.AMETHYST_BLOCK;
-        } else if (type == GolemType.NETHERITE) {
-            bottomBlock = Blocks.NETHERITE_BLOCK;
-        }
+        Block bottomBlock = switch (type) {
+            case LAPIS -> Blocks.LAPIS_BLOCK;
+            case REDSTONE -> Blocks.REDSTONE_BLOCK;
+            case EMERALD -> Blocks.EMERALD_BLOCK;
+            case GOLD -> Blocks.GOLD_BLOCK;
+            case AMETHYST -> Blocks.AMETHYST_BLOCK;
+            case NETHERITE -> Blocks.NETHERITE_BLOCK;
+            default -> Blocks.LAPIS_BLOCK;
+        };
 
         BlockPattern pattern = createGolemPattern(bottomBlock);
 
@@ -67,6 +62,15 @@ public class GolemPatterns {
                     world.setBlockState(removePos, Blocks.AIR.getDefaultState());
                 }
             }
+        }
+
+        // Spawn associated chest
+        Block chestBlock = type.getChestBlock();
+        if (chestBlock != null) {
+            // Find a suitable place for the chest - let's put it where the bottom block was
+            // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
+            BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();
+            world.setBlockState(bottomPos, chestBlock.getDefaultState());
         }
     }
 }

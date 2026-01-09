@@ -1,10 +1,12 @@
 package rehdpanda.utilitygolems;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.item.ItemGroups;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -23,7 +25,7 @@ import java.util.Map;
 
 public class UGInit implements ModInitializer {
 
-    public static final String MOD_ID = "utilitygolems";
+    public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
@@ -34,6 +36,13 @@ public class UGInit implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Utility Golems initializing...");
+        UGBlocks.register();
+
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
+            for (GolemType type : GolemType.values()) {
+                entries.add(UGBlocks.GOLEM_CHESTS.get(type));
+            }
+        });
 
         // Register all golem types
         for (GolemType type : GolemType.values()) {

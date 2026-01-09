@@ -1,0 +1,14 @@
+{
+  "block.utility-golems.lapis_golem_chest": "Lapis Chest",
+  "block.utility-golems.redstone_golem_chest": "Redstone Chest",
+  "block.utility-golems.emerald_golem_chest": "Emerald Chest",
+  "block.utility-golems.gold_golem_chest": "Gold Chest",
+  "block.utility-golems.amethyst_golem_chest": "Amethyst Chest",
+  "block.utility-golems.netherite_golem_chest": "Netherite Chest",
+  "entity.utility-golems.lapis_golem": "Lapis Golem",
+  "entity.utility-golems.redstone_golem": "Redstone Golem",
+  "entity.utility-golems.emerald_golem": "Emerald Golem",
+  "entity.utility-golems.gold_golem": "Gold Golem",
+  "entity.utility-golems.amethyst_golem": "Amethyst Golem",
+  "entity.utility-golems.netherite_golem": "Netherite Golem"
+}

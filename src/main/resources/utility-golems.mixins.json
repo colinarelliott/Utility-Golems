@@ -3,8 +3,7 @@
 	"package": "rehdpanda.utilitygolems.mixin",
 	"compatibilityLevel": "JAVA_21",
  "mixins": [
-                "CarvedPumpkinMixin",
-                "BlockMixin"
+                "CarvedPumpkinMixin"
         ],
 	"injectors": {
 		"defaultRequire": 1
