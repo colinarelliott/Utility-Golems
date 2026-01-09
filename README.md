@@ -1,6 +1,7 @@
 # Utility Golems
 ### A mod for Minecraft 1.21.11
-<img width="1708" height="960" alt="img" src="https://github.com/user-attachments/assets/3e8741e8-1c06-43f2-8429-3b9040241126" />
+<img height="400" alt="2026-01-08_23 04" src="https://github.com/user-attachments/assets/fbfdc91e-72a4-4d65-a5ee-db7c2fd5a50c" />
+
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
 **IMPLEMENTED / PARTIALLY IMPLEMENTED**
