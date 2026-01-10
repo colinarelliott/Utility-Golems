@@ -1,7 +1,7 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
-<img height="400" alt="2026-01-08_23 04" src="https://github.com/user-attachments/assets/fbfdc91e-72a4-4d65-a5ee-db7c2fd5a50c" />
+<img height="300" alt="2026-01-10_16 42 01" src="https://github.com/user-attachments/assets/ff7c4627-dfcc-4eff-830c-e192b88e66e8" />
 
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
