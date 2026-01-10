@@ -36,3 +36,5 @@
   - Takes a fishing rod from the player and continuously fishes, places findings in nearby chest.
 - <code style="color : gray">Deepslate Golem</code> (Tree Chopping)
   - Automates tree chopping if given an axe
+- <code style="color : brown">Jukebox Golem</code> (Music Player)
+  - Plays music discs inserted and follows the player around

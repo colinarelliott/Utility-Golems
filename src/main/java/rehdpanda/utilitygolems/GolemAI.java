@@ -74,6 +74,18 @@ public class GolemAI {
         golem.getTargetSelector().add(2, new ActiveTargetGoal<>(golem, HostileEntity.class, true));
     }
 
+    public static void initFurnaceGoals(UtilityGolem golem) {}
+
+    public static void initBambooGoals(UtilityGolem golem) {}
+
+    public static void initDiamondGoals(UtilityGolem golem) {}
+
+    public static void initSpongeGoals(UtilityGolem golem) {}
+
+    public static void initDeepslateGoals(UtilityGolem golem) {}
+
+    public static void initJukeboxGoals(UtilityGolem golem) {}
+
     public static class TradeWithVillagerGoal extends Goal {
         private final UtilityGolem golem;
         private VillagerEntity targetVillager;

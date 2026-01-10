@@ -28,6 +28,12 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.GOLD);
             trySpawnGolem(serverWorld, pos, GolemType.AMETHYST);
             trySpawnGolem(serverWorld, pos, GolemType.NETHERITE);
+            trySpawnGolem(serverWorld, pos, GolemType.FURNACE);
+            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO);
+            trySpawnGolem(serverWorld, pos, GolemType.DIAMOND);
+            trySpawnGolem(serverWorld, pos, GolemType.SPONGE);
+            trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE);
+            trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX);
         }
     }
 
@@ -39,6 +45,13 @@ public class GolemPatterns {
             case GOLD -> Blocks.GOLD_BLOCK;
             case AMETHYST -> Blocks.AMETHYST_BLOCK;
             case NETHERITE -> Blocks.NETHERITE_BLOCK;
+            case FURNACE -> Blocks.FURNACE;
+            case DIAMOND -> Blocks.DIAMOND_BLOCK;
+            case SPONGE -> Blocks.SPONGE;
+            case BAMBOO -> Blocks.BAMBOO_BLOCK;
+            //case STRIPPEDBAMBOO -> Blocks.STRIPPED_BAMBOO_BLOCK;
+            case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
+            case JUKEBOX -> Blocks.JUKEBOX;
             default -> Blocks.LAPIS_BLOCK;
         };
 
@@ -66,7 +79,7 @@ public class GolemPatterns {
 
         // Spawn associated chest
         Block chestBlock = type.getChestBlock();
-        if (chestBlock != null) {
+        if (chestBlock != null && golem.getGolemType() != GolemType.FURNACE && golem.getGolemType() != GolemType.JUKEBOX && golem.getGolemType() != GolemType.DEEPSLATE) {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
             BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();

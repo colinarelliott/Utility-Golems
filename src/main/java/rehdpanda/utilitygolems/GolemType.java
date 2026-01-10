@@ -1,4 +1,5 @@
 package rehdpanda.utilitygolems;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -58,7 +59,55 @@ public enum GolemType {
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
         GolemAI::initNetheriteGoals,
             UGBlocks.GOLEM_CHESTS.get("netherite_chest")
-        );
+        ),
+    FURNACE("furnace_golem", "Furnace Golem", "textures/entity/furnace_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            Blocks.CHEST
+    ),
+    BAMBOO("bamboo_golem", "Bamboo Golem", "textures/entity/bamboo_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            UGBlocks.GOLEM_CHESTS.get("bamboo_chest")
+    ),
+    DIAMOND("diamond_golem", "Diamond Golem", "textures/entity/diamond_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            UGBlocks.GOLEM_CHESTS.get("diamond_chest")
+    ),
+    SPONGE("sponge_golem", "Sponge Golem", "textures/entity/sponge_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            Blocks.BARREL
+    ),
+    DEEPSLATE("deepslate_golem", "Deepslate Golem", "textures/entity/deepslate_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            Blocks.CHEST
+    ),
+    JUKEBOX("jukebox_golem", "Jukebox Golem", "textures/entity/jukebox_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetheriteGoals,
+            Blocks.CHEST
+    );
 
 
     private static Object BlockEntityType;
