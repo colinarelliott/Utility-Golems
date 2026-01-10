@@ -1,4 +1,5 @@
 # Utility Golems
+## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
 <img height="400" alt="2026-01-08_23 04" src="https://github.com/user-attachments/assets/fbfdc91e-72a4-4d65-a5ee-db7c2fd5a50c" />
 
@@ -14,10 +15,24 @@
   - Give the emerald golem items to trade and it will SELL them to villagers.
   - Deposits profit into nearby chests.
   - BUY is *[WIP]*
+- <code style="color : purple">Amethyst Golem</code> (TBD)
+  - Breeds animals for the player using provided wheat or other breeding material.
+  - Bug where it uses lots of wheat..
+
 
 **NOT IMPLEMENTED**
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
-- <code style="color : yellow">Gold Golem</code> (Building) *[WIP]*
-  - Somehow receive a schematic...
-  - Takes blocks from chest, builds structure in predetermined position
-- <code style="color : purple">Amethyst Golem</code> (TBD) *[WIP]*
+- <code style="color : yellow">Gold Golem</code> (Piglin Trading) *[WIP]*
+  - Drop gold for piglins, retrieve items in return and put them in chest
+
+**FUTURE PLANS**
+- <code>Furnace Golem</code> (Smelting)
+  - Contains furnace interface, portable.
+- <code style="color : green">Bamboo Golem</code> (Farming)
+  - Hoes the ground, plants seeds provided, harvests and deposits crops.
+- <code style="color : lightblue">Diamond Golem</code> (Building)
+  - Takes blocks from a chest and builds a schematic-defined structure in the world.
+- <code style="color : yellow">Sponge Golem</code> (Fishing)
+  - Takes a fishing rod from the player and continuously fishes, places findings in nearby chest.
+- <code style="color : gray">Deepslate Golem</code> (Tree Chopping)
+  - Automates tree chopping if given an axe
