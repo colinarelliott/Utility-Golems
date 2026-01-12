@@ -6,34 +6,9 @@
       "prefix": "entity/chest/"
     },
     {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/amethyst_golem_chest",
-      "sprite": "utility-golems:entity/chest/amethyst_golem_chest"
-    },
-    {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/emerald_golem_chest",
-      "sprite": "utility-golems:entity/chest/emerald_golem_chest"
-    },
-    {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/gold_golem_chest",
-      "sprite": "utility-golems:entity/chest/gold_golem_chest"
-    },
-    {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/lapis_golem_chest",
-      "sprite": "utility-golems:entity/chest/lapis_golem_chest"
-    },
-    {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/netherite_golem_chest",
-      "sprite": "utility-golems:entity/chest/netherite_golem_chest"
-    },
-    {
-      "type": "single",
-      "resource": "utility-golems:entity/chest/redstone_golem_chest",
-      "sprite": "utility-golems:entity/chest/redstone_golem_chest"
+      "type": "directory",
+      "source": "entity/chest",
+      "prefix": "utility-golems:entity/chest/"
     }
   ]
 }
