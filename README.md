@@ -29,7 +29,9 @@
   - Automates tree chopping if given an axe
   - Can also receive shears for getting leaves
   - Replants saplings in a 64 block radius around its chest.
-
+- <code style="color : green">Bamboo Golem</code> (Farming)
+  - Hoes the ground, plants seeds provided, harvests and deposits crops.
+  - Also give them a water bucket if no water is nearby. Crops need hydration!
 
 **NOT IMPLEMENTED**
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
@@ -37,7 +39,5 @@
   - Drop gold for piglins, retrieve items in return and put them in chest
 
 **FUTURE PLANS**
-- <code style="color : green">Bamboo Golem</code> (Farming)
-  - Hoes the ground, plants seeds provided, harvests and deposits crops.
 - <code style="color : lightblue">Diamond Golem</code> (Building)
   - Takes blocks from a chest and builds a schematic-defined structure in the world.
