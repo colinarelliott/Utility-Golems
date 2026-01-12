@@ -1,8 +1,8 @@
+// java
 package rehdpanda.utilitygolems;
 
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
@@ -15,12 +15,11 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
 import net.minecraft.world.World;
 import net.minecraft.world.BlockView;
 import net.minecraft.block.ShapeContext;
 import org.jetbrains.annotations.Nullable;
+import rehdpanda.utilitygolems.GolemChestBlockEntity;
 
 public class GolemChestBlock extends Block implements BlockEntityProvider {
     public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
@@ -58,6 +57,7 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
         return SHAPE;
     }
 
+    // On Mojang mappings (1.21.11) return MODEL; do not edit net.minecraft sources
     @Override
     public BlockRenderType getRenderType(BlockState state) {
         return BlockRenderType.MODEL;
