@@ -3,6 +3,9 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityTicker;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
@@ -57,7 +60,7 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
         return SHAPE;
     }
 
-    // On Mojang mappings (1.21.11) return MODEL; do not edit net.minecraft sources
+    // For chests, MODEL is used, and the BER handles the rendering
     @Override
     public BlockRenderType getRenderType(BlockState state) {
         return BlockRenderType.MODEL;
@@ -66,6 +69,19 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
     @Override
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new GolemChestBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+        return world.isClient() ? (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY ? (BlockEntityTicker<T>) (BlockEntityTicker<? extends GolemChestBlockEntity>) ChestBlockEntity::clientTick : null) : null;
+    }
+
+    @Override
+    protected boolean onSyncedBlockEvent(BlockState state, World world, BlockPos pos, int type, int data) {
+        super.onSyncedBlockEvent(state, world, pos, type, data);
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+        return blockEntity == null ? false : blockEntity.onSyncedBlockEvent(type, data);
     }
 
     @Override

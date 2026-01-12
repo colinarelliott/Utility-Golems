@@ -25,7 +25,7 @@ public class UGBlocks {
     public static void register() {
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
-            String name = type.getName() + "_chest";
+            String name = type.getName().trim() + "_chest";
             Block block = Registry.register(
                     Registries.BLOCK,
                     Identifier.of(UGInit.MOD_ID, name),

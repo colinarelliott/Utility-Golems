@@ -28,12 +28,53 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.util.Identifier;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.component.type.JukeboxPlayableComponent;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.world.WorldEvents;
+import net.minecraft.item.Item;
+import net.minecraft.registry.Registries;
 
 public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private final GolemType golemType;
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleInventory inventory = new SimpleInventory(9);
+    private int jukeboxCooldown = 0;
+    private ItemStack currentlyPlayingStack = ItemStack.EMPTY;
+    private int burnTime;
+    private int fuelTime;
+    private int cookTime;
+    private int cookTimeTotal;
+
+    private final net.minecraft.screen.PropertyDelegate furnacePropertyDelegate = new net.minecraft.screen.PropertyDelegate() {
+        @Override
+        public int get(int index) {
+            switch (index) {
+                case 0: return UtilityGolem.this.burnTime;
+                case 1: return UtilityGolem.this.fuelTime;
+                case 2: return UtilityGolem.this.cookTime;
+                case 3: return UtilityGolem.this.cookTimeTotal;
+                default: return 0;
+            }
+        }
+
+        @Override
+        public void set(int index, int value) {
+            switch (index) {
+                case 0: UtilityGolem.this.burnTime = value; break;
+                case 1: UtilityGolem.this.fuelTime = value; break;
+                case 2: UtilityGolem.this.cookTime = value; break;
+                case 3: UtilityGolem.this.cookTimeTotal = value; break;
+            }
+        }
+
+        @Override
+        public int size() {
+            return 4;
+        }
+    };
 
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
@@ -42,6 +83,31 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             this.golemType.initGoals(this);
         }
         updateAttackDamage();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (this.jukeboxCooldown > 0) {
+            this.jukeboxCooldown--;
+            if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0) {
+                ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.random.nextInt(24) / 24.0D);
+            }
+        }
+        if (!this.getEntityWorld().isClient() && this.golemType == GolemType.FURNACE) {
+            tickFurnace();
+        }
+    }
+
+    private void tickFurnace() {
+    }
+
+    private boolean canAcceptRecipeOutput(@Nullable net.minecraft.recipe.RecipeEntry<net.minecraft.recipe.SmeltingRecipe> recipe, int maxCount) {
+        return false;
+    }
+
+    private boolean craftRecipe(@Nullable net.minecraft.recipe.RecipeEntry<net.minecraft.recipe.SmeltingRecipe> recipe, int maxCount) {
+        return false;
     }
 
     @Override
@@ -99,10 +165,54 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (!player.getEntityWorld().isClient()) {
-            player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
-                (syncId, playerInventory, p) -> new GolemInventoryScreenHandler(syncId, playerInventory, this.inventory, this),
-                this.getDisplayName()
-            ));
+            if (this.golemType == GolemType.FURNACE) {
+                player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
+                        (syncId, playerInventory, p) -> new GolemFurnaceScreenHandler(syncId, playerInventory, this.inventory, this.furnacePropertyDelegate, this),
+                        this.getDisplayName()
+                ));
+            } else if (this.golemType == GolemType.JUKEBOX) {
+                if (!this.currentlyPlayingStack.isEmpty()) {
+                    // Stop playing and drop the disc
+                    if (!player.getEntityWorld().isClient()) {
+                        player.dropItem(this.currentlyPlayingStack.copy(), false);
+                        this.currentlyPlayingStack = ItemStack.EMPTY;
+                        this.jukeboxCooldown = 0;
+                        // Stop the song on client
+                        player.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
+                    }
+                    return ActionResult.SUCCESS;
+                }
+
+                JukeboxPlayableComponent playable = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+                if (playable != null) {
+                    // Play the music disc
+                    if (!player.getEntityWorld().isClient()) {
+                        playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                            this.currentlyPlayingStack = playerStack.copy();
+                            this.currentlyPlayingStack.setCount(1);
+                            
+                            // Start the song and show "Now Playing"
+                            player.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(playerStack.getItem()));
+                            
+                            // Explicitly show "Now Playing" text for the player who interacted
+                            player.sendMessage(Text.translatable("record.nowPlaying", songEntry.value().description()), true);
+                            
+                            // Set cooldown based on song length
+                            this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                            
+                            if (!player.getAbilities().creativeMode) {
+                                playerStack.decrement(1);
+                            }
+                        });
+                    }
+                    return ActionResult.SUCCESS;
+                }
+            } else {
+                player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
+                        (syncId, playerInventory, p) -> new GolemInventoryScreenHandler(syncId, playerInventory, this.inventory, this),
+                        this.getDisplayName()
+                ));
+            }
             return ActionResult.SUCCESS;
         }
         return ActionResult.SUCCESS;
@@ -124,12 +234,26 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
         super.writeCustomData(writeView);
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
+        if (!this.currentlyPlayingStack.isEmpty()) {
+            writeView.put("PlayingDisc", ItemStack.CODEC, this.currentlyPlayingStack);
+        }
+        writeView.putInt("JukeboxCooldown", this.jukeboxCooldown);
+        writeView.putInt("BurnTime", this.burnTime);
+        writeView.putInt("FuelTime", this.fuelTime);
+        writeView.putInt("CookTime", this.cookTime);
+        writeView.putInt("CookTimeTotal", this.cookTimeTotal);
     }
 
     @Override
     public void readCustomData(net.minecraft.storage.ReadView readView) {
         super.readCustomData(readView);
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
+        readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);
+        this.jukeboxCooldown = readView.getInt("JukeboxCooldown", 0);
+        this.burnTime = readView.getInt("BurnTime", 0);
+        this.fuelTime = readView.getInt("FuelTime", 0);
+        this.cookTime = readView.getInt("CookTime", 0);
+        this.cookTimeTotal = readView.getInt("CookTimeTotal", 0);
         updateAttackDamage();
     }
 

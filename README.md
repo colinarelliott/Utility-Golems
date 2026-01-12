@@ -15,10 +15,14 @@
   - Give the emerald golem items to trade and it will SELL them to villagers.
   - Deposits profit into nearby chests.
   - BUY is *[WIP]*
-- <code style="color : purple">Amethyst Golem</code> (TBD)
+- <code style="color : purple">Amethyst Golem</code> (Breeding)
   - Breeds animals for the player using provided wheat or other breeding material.
   - Bug where it uses lots of wheat..
-
+- <code>Furnace Golem</code> (Smelting) *[WIP]*
+  - Contains furnace interface, portable.
+  - Furnace functionality not complete. *[WIP]*
+- <code style="color : brown">Jukebox Golem</code> (Music Player)
+  - Plays music discs and follows the player around
 
 **NOT IMPLEMENTED**
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
@@ -26,8 +30,6 @@
   - Drop gold for piglins, retrieve items in return and put them in chest
 
 **FUTURE PLANS**
-- <code>Furnace Golem</code> (Smelting)
-  - Contains furnace interface, portable.
 - <code style="color : green">Bamboo Golem</code> (Farming)
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
 - <code style="color : lightblue">Diamond Golem</code> (Building)
@@ -36,5 +38,3 @@
   - Takes a fishing rod from the player and continuously fishes, places findings in nearby chest.
 - <code style="color : gray">Deepslate Golem</code> (Tree Chopping)
   - Automates tree chopping if given an axe
-- <code style="color : brown">Jukebox Golem</code> (Music Player)
-  - Plays music discs inserted and follows the player around

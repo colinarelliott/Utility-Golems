@@ -18,13 +18,13 @@ public enum GolemType {
                     .add(EntityAttributes.MAX_HEALTH, 20.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.25),
             GolemAI::initLapisGoals,
-            UGBlocks.GOLEM_CHESTS.get("lapis_chest")),
+            null),
     REDSTONE("redstone_golem", "Redstone Golem", "textures/entity/redstone_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 5.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
             GolemAI::initRedstoneGoals,
-            UGBlocks.GOLEM_CHESTS.get("redstone_chest")),
+            null),
     EMERALD("emerald_golem", "Emerald Golem", "textures/entity/emerald_golem.png",
             baseAttributes()
                     //POSSIBLE ATTRIBUTES
@@ -38,19 +38,19 @@ public enum GolemType {
                     .add(EntityAttributes.ATTACK_SPEED, 1.0)
                     .add(EntityAttributes.ATTACK_KNOCKBACK, 0.2),
             GolemAI::initEmeraldGoals,
-            UGBlocks.GOLEM_CHESTS.get("emerald_chest")),
+            null),
     GOLD("gold_golem", "Gold Golem", "textures/entity/gold_golem.png",
          baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 20.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
         GolemAI::initGoldGoals,
-            UGBlocks.GOLEM_CHESTS.get("gold_chest")),
+            null),
     AMETHYST("amethyst_golem", "Amethyst Golem", "textures/entity/amethyst_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 15.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3),
             GolemAI::initAmethystGoals,
-            UGBlocks.GOLEM_CHESTS.get("amethyst_chest")),
+            null),
 
     NETHERITE("netherite_golem", "Netherite Golem", "textures/entity/netherite_golem.png",
     baseAttributes()
@@ -58,14 +58,14 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
         GolemAI::initNetheriteGoals,
-            UGBlocks.GOLEM_CHESTS.get("netherite_chest")
+            null
         ),
     FURNACE("furnace_golem", "Furnace Golem", "textures/entity/furnace_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
+            GolemAI::initFurnaceGoals,
             Blocks.CHEST
     ),
     BAMBOO("bamboo_golem", "Bamboo Golem", "textures/entity/bamboo_golem.png",
@@ -73,23 +73,23 @@ public enum GolemType {
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
-            UGBlocks.GOLEM_CHESTS.get("bamboo_chest")
+            GolemAI::initBambooGoals,
+            null
     ),
     DIAMOND("diamond_golem", "Diamond Golem", "textures/entity/diamond_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
-            UGBlocks.GOLEM_CHESTS.get("diamond_chest")
+            GolemAI::initDiamondGoals,
+            null
     ),
     SPONGE("sponge_golem", "Sponge Golem", "textures/entity/sponge_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
+            GolemAI::initSpongeGoals,
             Blocks.BARREL
     ),
     DEEPSLATE("deepslate_golem", "Deepslate Golem", "textures/entity/deepslate_golem.png",
@@ -97,7 +97,7 @@ public enum GolemType {
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
+            GolemAI::initDeepslateGoals,
             Blocks.CHEST
     ),
     JUKEBOX("jukebox_golem", "Jukebox Golem", "textures/entity/jukebox_golem.png",
@@ -105,7 +105,7 @@ public enum GolemType {
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
-            GolemAI::initNetheriteGoals,
+            GolemAI::initJukeboxGoals,
             Blocks.CHEST
     );
 

@@ -1,6 +1,5 @@
 package rehdpanda.utilitygolems;
 
-import com.ibm.icu.impl.Utility;
 import net.minecraft.block.*;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ai.goal.*;
@@ -74,7 +73,10 @@ public class GolemAI {
         golem.getTargetSelector().add(2, new ActiveTargetGoal<>(golem, HostileEntity.class, true));
     }
 
-    public static void initFurnaceGoals(UtilityGolem golem) {}
+    public static void initFurnaceGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F));
+        golem.getGoalSelector().add(2, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
+    }
 
     public static void initBambooGoals(UtilityGolem golem) {}
 
@@ -84,7 +86,59 @@ public class GolemAI {
 
     public static void initDeepslateGoals(UtilityGolem golem) {}
 
-    public static void initJukeboxGoals(UtilityGolem golem) {}
+    public static void initJukeboxGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F));
+        golem.getGoalSelector().add(2, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F));
+    }
+
+    public static class FollowPlayerGoal extends Goal {
+        private final UtilityGolem golem;
+        private PlayerEntity targetPlayer;
+        private final double speed;
+        private final float minDistance;
+        private final float maxDistance;
+
+        public FollowPlayerGoal(UtilityGolem golem, double speed, float minDistance, float maxDistance) {
+            this.golem = golem;
+            this.speed = speed;
+            this.minDistance = minDistance;
+            this.maxDistance = maxDistance;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            List<PlayerEntity> players = golem.getEntityWorld().getEntitiesByClass(PlayerEntity.class, golem.getBoundingBox().expand(maxDistance), player -> true);
+            if (players.isEmpty()) return false;
+            
+            // Find closest player
+            targetPlayer = players.stream()
+                .min(Comparator.comparingDouble(p -> p.squaredDistanceTo(golem)))
+                .orElse(null);
+                
+            return targetPlayer != null && golem.squaredDistanceTo(targetPlayer) > (double)(minDistance * minDistance);
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetPlayer != null && targetPlayer.isAlive() && golem.squaredDistanceTo(targetPlayer) < (double)(maxDistance * maxDistance * 2);
+        }
+
+        @Override
+        public void stop() {
+            targetPlayer = null;
+            golem.getNavigation().stop();
+        }
+
+        @Override
+        public void tick() {
+            if (targetPlayer == null) return;
+            golem.getLookControl().lookAt(targetPlayer, 30.0F, 30.0F);
+            if (golem.squaredDistanceTo(targetPlayer) > (double)(minDistance * minDistance)) {
+                golem.getNavigation().startMovingTo(targetPlayer, speed);
+            }
+        }
+    }
 
     public static class TradeWithVillagerGoal extends Goal {
         private final UtilityGolem golem;

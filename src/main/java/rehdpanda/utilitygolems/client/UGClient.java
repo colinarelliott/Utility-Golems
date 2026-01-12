@@ -20,6 +20,7 @@ public class UGClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         HandledScreens.register(UGInit.GOLEM_SCREEN_HANDLER_TYPE, GolemInventoryScreen::new);
+        HandledScreens.register(UGInit.GOLEM_FURNACE_HANDLER, FurnaceScreen::new);
 
         // Register block entity renderer using the non-deprecated API
         BlockEntityRendererFactories.register(UGBlocks.GOLEM_CHEST_BLOCK_ENTITY, GolemChestBlockEntityRenderer::new);

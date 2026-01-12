@@ -44,11 +44,8 @@ public class UGInit implements ModInitializer {
 
     public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
             Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_inventory"), new ScreenHandlerType<>(GolemInventoryScreenHandler::new, FeatureSet.empty()));
-    /*public static final ScreenHandlerType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
-            new ScreenHandlerType<>(
-                    (syncId, playerInventory) -> null,
-                    FeatureFlags.VANILLA_FEATURES
-            );*/
+    public static final ScreenHandlerType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
+            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_furnace"), new ScreenHandlerType<>(GolemFurnaceScreenHandler::new, FeatureSet.empty()));
 
 
 
@@ -74,6 +71,12 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.NETHERITE_BLOCK);
                                 give(player, Items.REDSTONE_BLOCK);
                                 give(player, Items.AMETHYST_BLOCK);
+                                give(player, Items.DIAMOND_BLOCK);
+                                give(player, Items.BAMBOO_BLOCK);
+                                give(player, Items.FURNACE);
+                                give(player, Items.JUKEBOX);
+                                give(player, Items.SPONGE);
+                                give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
 
                                 return 1;
