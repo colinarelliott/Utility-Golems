@@ -27,6 +27,10 @@ public class UGClient implements ClientModInitializer {
 
         // Register the renderer for all golem types
         for (GolemType type : GolemType.values()) {
+            if (type == GolemType.SPONGE) {
+                EntityRendererRegistry.register(UGInit.GOLEM_TYPES.get(type), SpongeGolemEntityRenderer::new);
+                continue;
+            }
             EntityRendererRegistry.register(
                     UGInit.GOLEM_TYPES.get(type),
                     (EntityRendererFactory.Context ctx) -> new CopperGolemEntityRenderer(ctx) {

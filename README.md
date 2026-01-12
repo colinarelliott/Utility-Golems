@@ -23,6 +23,13 @@
   - Furnace functionality not complete. *[WIP]*
 - <code style="color : brown">Jukebox Golem</code> (Music Player)
   - Plays music discs and follows the player around
+- <code style="color : yellow">Sponge Golem</code> (Fishing)
+  - Takes a fishing rod from the player and continuously fishes, places findings in nearby chest.
+- <code style="color : gray">Deepslate Golem</code> (Tree Chopping)
+  - Automates tree chopping if given an axe
+  - Can also receive shears for getting leaves
+  - Replants saplings in a 64 block radius around its chest.
+
 
 **NOT IMPLEMENTED**
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
@@ -34,7 +41,3 @@
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
 - <code style="color : lightblue">Diamond Golem</code> (Building)
   - Takes blocks from a chest and builds a schematic-defined structure in the world.
-- <code style="color : yellow">Sponge Golem</code> (Fishing)
-  - Takes a fishing rod from the player and continuously fishes, places findings in nearby chest.
-- <code style="color : gray">Deepslate Golem</code> (Tree Chopping)
-  - Automates tree chopping if given an axe

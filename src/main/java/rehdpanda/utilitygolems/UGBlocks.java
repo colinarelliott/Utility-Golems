@@ -25,6 +25,8 @@ public class UGBlocks {
     public static void register() {
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
+            if (type == GolemType.FURNACE || type == GolemType.JUKEBOX) continue;
+
             String name = type.getName().trim() + "_chest";
             Block block = Registry.register(
                     Registries.BLOCK,

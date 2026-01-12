@@ -90,7 +90,7 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initSpongeGoals,
-            Blocks.BARREL
+            null
     ),
     DEEPSLATE("deepslate_golem", "Deepslate Golem", "textures/entity/deepslate_golem.png",
             baseAttributes()
@@ -98,7 +98,7 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initDeepslateGoals,
-            Blocks.CHEST
+            null
     ),
     JUKEBOX("jukebox_golem", "Jukebox Golem", "textures/entity/jukebox_golem.png",
             baseAttributes()
@@ -151,6 +151,9 @@ public enum GolemType {
     }
 
     public Block getChestBlock() {
+        if (targetChestType != null) {
+            return targetChestType;
+        }
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

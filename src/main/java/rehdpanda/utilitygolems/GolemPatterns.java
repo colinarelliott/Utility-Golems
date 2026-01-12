@@ -77,9 +77,8 @@ public class GolemPatterns {
             }
         }
 
-        // Spawn associated chest
         Block chestBlock = type.getChestBlock();
-        if (chestBlock != null && golem.getGolemType() != GolemType.FURNACE && golem.getGolemType() != GolemType.JUKEBOX && golem.getGolemType() != GolemType.DEEPSLATE) {
+        if (chestBlock != null && golem.getGolemType() != GolemType.FURNACE && golem.getGolemType() != GolemType.JUKEBOX) {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
             BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();

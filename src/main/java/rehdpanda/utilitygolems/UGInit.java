@@ -86,7 +86,10 @@ public class UGInit implements ModInitializer {
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
             for (GolemType type : GolemType.values()) {
-                entries.add(UGBlocks.GOLEM_CHESTS.get(type));
+                net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
+                if (chest != null) {
+                    entries.add(chest);
+                }
             }
         });
 

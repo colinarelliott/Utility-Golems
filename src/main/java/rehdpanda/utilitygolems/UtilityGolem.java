@@ -15,6 +15,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.recipe.Ingredient;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.LocalDifficulty;
@@ -35,6 +36,10 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.world.WorldEvents;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import java.util.Optional;
 
 public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
@@ -76,6 +81,23 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
     };
 
+    private static final TrackedData<Optional<BlockPos>> FISHING_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
+
+    @Override
+    protected void initDataTracker(DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(FISHING_TARGET, Optional.empty());
+    }
+
+    public void setFishingTarget(@Nullable BlockPos pos) {
+        this.dataTracker.set(FISHING_TARGET, Optional.ofNullable(pos));
+    }
+
+    @Nullable
+    public BlockPos getFishingTarget() {
+        return (BlockPos)((Optional)this.dataTracker.get(FISHING_TARGET)).orElse(null);
+    }
+
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;
@@ -100,6 +122,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private void tickFurnace() {
+    }
+
+    public void setSearching(boolean searching) {
+        if (searching) {
+            this.swingHand(Hand.MAIN_HAND);
+        }
     }
 
     private boolean canAcceptRecipeOutput(@Nullable net.minecraft.recipe.RecipeEntry<net.minecraft.recipe.SmeltingRecipe> recipe, int maxCount) {
@@ -146,6 +174,82 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (this.golemType == GolemType.NETHERITE && isSword(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.DEEPSLATE && isAxe(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.DEEPSLATE && isShears(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.BAMBOO && isHoe(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack golemStack = this.getHeldItem();
+                ItemStack newStack = playerStack.copy();
+                newStack.setCount(1);
+                this.setHeldItem(newStack);
+                this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                if (!golemStack.isEmpty()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.SPONGE && isFishingRod(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 ItemStack golemStack = this.getHeldItem();
                 ItemStack newStack = playerStack.copy();
@@ -218,17 +322,43 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return ActionResult.SUCCESS;
     }
 
-    private boolean isPickaxe(ItemStack stack) {
+    public static boolean isPickaxe(ItemStack stack) {
         return stack.isOf(Items.WOODEN_PICKAXE) || stack.isOf(Items.STONE_PICKAXE) ||
                 stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.DIAMOND_PICKAXE) ||
-                stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.GOLDEN_PICKAXE);
+                stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.GOLDEN_PICKAXE) ||
+                stack.isOf(Items.COPPER_PICKAXE);
     }
 
-    private boolean isSword(ItemStack stack) {
+    public static boolean isSword(ItemStack stack) {
         return stack.isOf(Items.WOODEN_SWORD) || stack.isOf(Items.STONE_SWORD) ||
                 stack.isOf(Items.IRON_SWORD) || stack.isOf(Items.DIAMOND_SWORD) ||
-                stack.isOf(Items.NETHERITE_SWORD) || stack.isOf(Items.GOLDEN_SWORD);
+                stack.isOf(Items.NETHERITE_SWORD) || stack.isOf(Items.GOLDEN_SWORD) ||
+                stack.isOf(Items.COPPER_SWORD);
     }
+
+    public static boolean isAxe(ItemStack stack) {
+        return stack.isOf(Items.WOODEN_AXE) || stack.isOf(Items.STONE_AXE) ||
+                stack.isOf(Items.IRON_AXE) || stack.isOf(Items.DIAMOND_AXE) ||
+                stack.isOf(Items.NETHERITE_AXE) || stack.isOf(Items.GOLDEN_AXE) ||
+                stack.isOf(Items.COPPER_AXE);
+    }
+
+    public static boolean isHoe(ItemStack stack) {
+        return stack.isOf(Items.WOODEN_HOE) || stack.isOf(Items.STONE_HOE) ||
+                stack.isOf(Items.IRON_HOE) || stack.isOf(Items.DIAMOND_HOE) ||
+                stack.isOf(Items.NETHERITE_HOE) || stack.isOf(Items.GOLDEN_HOE) ||
+                stack.isOf(Items.COPPER_HOE);
+    }
+
+    public static boolean isFishingRod(ItemStack stack) {
+        return stack.isOf(Items.FISHING_ROD);
+    }
+
+    public static boolean isShears(ItemStack stack) {
+        return stack.isOf(Items.SHEARS);
+    }
+
+    private BlockPos chestPos;
 
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
@@ -242,6 +372,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("FuelTime", this.fuelTime);
         writeView.putInt("CookTime", this.cookTime);
         writeView.putInt("CookTimeTotal", this.cookTimeTotal);
+        if (this.chestPos != null) {
+            writeView.putInt("ChestX", this.chestPos.getX());
+            writeView.putInt("ChestY", this.chestPos.getY());
+            writeView.putInt("ChestZ", this.chestPos.getZ());
+        }
     }
 
     @Override
@@ -254,7 +389,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.fuelTime = readView.getInt("FuelTime", 0);
         this.cookTime = readView.getInt("CookTime", 0);
         this.cookTimeTotal = readView.getInt("CookTimeTotal", 0);
+        if (readView.contains("ChestX")) {
+            this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
+        }
         updateAttackDamage();
+    }
+
+    public BlockPos getChestPos() {
+        return chestPos;
+    }
+
+    public void setChestPos(BlockPos chestPos) {
+        this.chestPos = chestPos;
     }
 
     @Override
@@ -285,7 +431,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     protected void initGoals() {
         this.goalSelector.add(0, new SwimGoal(this));
-        this.goalSelector.add(2, new WanderAroundGoal(this, 1.0D));
+        this.goalSelector.add(2, new GolemAI.WanderNearChestGoal(this, 1.0D));
         this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F));
         this.goalSelector.add(4, new LookAroundGoal(this));
 
