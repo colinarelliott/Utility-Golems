@@ -1,7 +1,6 @@
 package rehdpanda.utilitygolems;
 
 import net.minecraft.block.*;
-import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ai.goal.*;
@@ -11,6 +10,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.recipe.Ingredient;
@@ -75,7 +75,7 @@ public class GolemAI {
     public static void initAmethystGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false));
         golem.getGoalSelector().add(2, new WithdrawItemsGoal(golem));
-        golem.getGoalSelector().add(3, new BreedAnimals(golem));
+        golem.getGoalSelector().add(3, new BreedAnimalsGoal(golem));
     }
     
     public static void initNetheriteGoals(UtilityGolem golem) {
@@ -124,9 +124,10 @@ public class GolemAI {
         ), false));
         golem.getGoalSelector().add(2, new WithdrawItemsGoal(golem));
         golem.getGoalSelector().add(3, new PickupItemGoal(golem));
-        golem.getGoalSelector().add(4, new ChopTreeGoal(golem));
-        golem.getGoalSelector().add(5, new ReplantSaplingGoal(golem));
-        golem.getGoalSelector().add(6, new DepositItemsGoal(golem));
+        golem.getGoalSelector().add(4, new DepositItemsGoal(golem));
+        golem.getGoalSelector().add(5, new ChopTreeGoal(golem));
+        golem.getGoalSelector().add(6, new ReplantSaplingGoal(golem));
+        golem.getGoalSelector().add(7, new DepositItemsGoal(golem));
     }
 
     public static void initJukeboxGoals(UtilityGolem golem) {
@@ -543,22 +544,37 @@ public class GolemAI {
 
         private boolean hasCropsToDeposit() {
             SimpleInventory inv = golem.getInventory();
+            List<Item> cropTypes = new ArrayList<>();
+            
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (stack.isEmpty()) continue;
                 if (isCrop(stack)) {
-                    // For Bamboo Golems, carrots and potatoes are seeds, so don't deposit them
-                    if (golem.getGolemType() == GolemType.BAMBOO && isSeed(stack)) {
-                        continue;
+                    // For Bamboo Golems, carrots and potatoes are seeds, so don't deposit them if they are the only type
+                    if (golem.getGolemType() == GolemType.BAMBOO) {
+                        Item item = stack.getItem();
+                        if (!cropTypes.contains(item)) {
+                            cropTypes.add(item);
+                        }
+                        if (isSeed(stack)) {
+                            continue;
+                        }
                     }
                     return true;
                 }
             }
+            
+            // For Bamboo Golems, if we have more than one type of crop/seed, we should deposit the extras
+            if (golem.getGolemType() == GolemType.BAMBOO && cropTypes.size() > 1) {
+                return true;
+            }
+            
             return false;
         }
 
         private boolean isCrop(ItemStack stack) {
-            return stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT);
+            return stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT)
+                    || stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS);
         }
 
         //checks if stack is greater than 8 (PICKAXES COUNT AS FULL STACK BUG)
@@ -633,7 +649,7 @@ public class GolemAI {
         private boolean isInventoryEmpty() {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
-                if (!inv.getStack(i).isEmpty()) return false;
+                if (inv.getStack(i).getCount() > 8) return false;
             }
             return true;
         }
@@ -2139,19 +2155,21 @@ public class GolemAI {
         }
     }
 
-    public static class BreedAnimals extends Goal {
+    public static class BreedAnimalsGoal extends Goal {
         private UtilityGolem golem;
         private AnimalEntity animalA;
         private AnimalEntity animalB;
         private int delay;
+        private long lastBreedTime;
 
-        public BreedAnimals(UtilityGolem golem) {
+        public BreedAnimalsGoal(UtilityGolem golem) {
             this.golem = golem;
             this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
         }
 
         @Override
         public boolean canStart() {
+            if (golem.getEntityWorld().getTime() < lastBreedTime + 6000) return false;
             if (!hasBreedingItem()) return false;
 
             BlockPos chestPos = golem.getChestPos();
@@ -2225,6 +2243,7 @@ public class GolemAI {
         }
 
         private void breed() {
+            lastBreedTime = golem.getEntityWorld().getTime();
             ItemStack food = getBreedingItem();
             if (food.isEmpty()) return;
 
