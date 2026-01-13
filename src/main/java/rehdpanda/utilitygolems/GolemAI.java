@@ -123,10 +123,11 @@ public class GolemAI {
                 Items.NETHERITE_AXE, Items.DIAMOND_AXE, Items.IRON_AXE, Items.GOLDEN_AXE, Items.STONE_AXE, Items.WOODEN_AXE, Items.COPPER_AXE, Items.SHEARS
         ), false));
         golem.getGoalSelector().add(2, new WithdrawItemsGoal(golem));
-        golem.getGoalSelector().add(3, new PickupItemGoal(golem));
-        golem.getGoalSelector().add(4, new DepositItemsGoal(golem));
-        golem.getGoalSelector().add(5, new ChopTreeGoal(golem));
-        golem.getGoalSelector().add(6, new ReplantSaplingGoal(golem));
+        golem.getGoalSelector().add(3, new ChopTreeGoal(golem));
+        golem.getGoalSelector().add(4, new ReplantSaplingGoal(golem));
+        golem.getGoalSelector().add(4, new PickupItemGoal(golem));
+        golem.getGoalSelector().add(5, new DepositItemsGoal(golem));
+        golem.getGoalSelector().add(6, new PickupItemGoal(golem));
         golem.getGoalSelector().add(7, new DepositItemsGoal(golem));
     }
 
