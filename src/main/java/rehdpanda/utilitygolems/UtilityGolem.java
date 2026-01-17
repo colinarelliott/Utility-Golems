@@ -108,6 +108,28 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
+    public void onDeath(net.minecraft.entity.damage.DamageSource source) {
+        super.onDeath(source);
+        if (!this.getEntityWorld().isClient()) {
+            // Drop held items
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                ItemStack stack = this.getEquippedStack(slot);
+                if (!stack.isEmpty()) {
+                    net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
+                }
+            }
+            // Drop inventory items
+            for (int i = 0; i < this.inventory.size(); i++) {
+                ItemStack stack = this.inventory.getStack(i);
+                if (!stack.isEmpty()) {
+                    net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
+                    this.inventory.setStack(i, ItemStack.EMPTY);
+                }
+            }
+        }
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.jukeboxCooldown > 0) {
@@ -116,8 +138,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.random.nextInt(24) / 24.0D);
             }
         }
-        if (!this.getEntityWorld().isClient() && this.golemType == GolemType.FURNACE) {
-            tickFurnace();
+        if (!this.getEntityWorld().isClient()) {
+            if (this.golemType == GolemType.FURNACE) {
+                tickFurnace();
+            }
+
+            // Debug nametag glowing effect
+            if (this.hasCustomName() && "debug".equalsIgnoreCase(this.getCustomName().getString())) {
+                this.setGlowing(true);
+            } else if (this.isGlowing()) {
+                this.setGlowing(false);
+            }
         }
     }
 
@@ -149,6 +180,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return super.getDisplayName();
         }
         return Text.literal(this.golemType.getFriendlyName());
+    }
+
+    public void broadcastDebugMessage(String message) {
+        if (!this.getEntityWorld().isClient() && this.hasCustomName() && "debug".equalsIgnoreCase(this.getCustomName().getString())) {
+            PlayerEntity player = this.getEntityWorld().getClosestPlayer(this, 16.0D);
+            if (player != null) {
+                player.sendMessage(Text.literal("[" + this.getDisplayName().getString() + "] " + message), false);
+            }
+        }
     }
 
     @Override
@@ -430,10 +470,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     protected void initGoals() {
-        this.goalSelector.add(0, new SwimGoal(this));
-        this.goalSelector.add(2, new GolemAI.WanderNearChestGoal(this, 1.0D));
-        this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F));
-        this.goalSelector.add(4, new LookAroundGoal(this));
+        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new SwimGoal(this)));
+        this.goalSelector.add(6, new GolemAI.DebugGoalWrapper(this, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F)));
 
         if (this.golemType != null) {
             this.golemType.initGoals(this);
