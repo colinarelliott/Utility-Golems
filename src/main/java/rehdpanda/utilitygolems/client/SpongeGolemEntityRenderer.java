@@ -18,18 +18,12 @@ import org.joml.Matrix4f;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.util.math.Vec3d;
 
-public class SpongeGolemEntityRenderer extends CopperGolemEntityRenderer {
-    private static final Identifier TEXTURE = GolemType.SPONGE.getTexture();
+public class SpongeGolemEntityRenderer extends UtilityGolemRenderer {
     private static final Identifier BOBBER_TEXTURE = Identifier.ofVanilla("textures/entity/fishing_hook.png");
     private static final RenderLayer BOBBER_LAYER = RenderLayers.entityCutout(BOBBER_TEXTURE);
 
     public SpongeGolemEntityRenderer(EntityRendererFactory.Context ctx) {
-        super(ctx);
-    }
-
-    @Override
-    public Identifier getTexture(CopperGolemEntityRenderState state) {
-        return TEXTURE;
+        super(ctx, GolemType.SPONGE);
     }
 
     @Override

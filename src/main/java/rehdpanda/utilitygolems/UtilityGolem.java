@@ -82,11 +82,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     };
 
     private static final TrackedData<Optional<BlockPos>> FISHING_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
+    private static final TrackedData<Optional<BlockPos>> DEBUG_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
         builder.add(FISHING_TARGET, Optional.empty());
+        builder.add(DEBUG_TARGET, Optional.empty());
     }
 
     public void setFishingTarget(@Nullable BlockPos pos) {
@@ -96,6 +98,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Nullable
     public BlockPos getFishingTarget() {
         return (BlockPos)((Optional)this.dataTracker.get(FISHING_TARGET)).orElse(null);
+    }
+
+    public void setDebugTarget(@Nullable BlockPos pos) {
+        this.dataTracker.set(DEBUG_TARGET, Optional.ofNullable(pos));
+    }
+
+    @Nullable
+    public BlockPos getDebugTarget() {
+        return (BlockPos)((Optional)this.dataTracker.get(DEBUG_TARGET)).orElse(null);
     }
 
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
@@ -134,13 +145,27 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         super.tick();
         if (this.jukeboxCooldown > 0) {
             this.jukeboxCooldown--;
-            if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0) {
+            if (this.jukeboxCooldown == 0 && !this.currentlyPlayingStack.isEmpty()) {
+                // Song finished organically (cooldown reached 0)
+                if (!this.getEntityWorld().isClient()) {
+                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
+                    this.broadcastDebugMessage("Song finished");
+                    this.currentlyPlayingStack = ItemStack.EMPTY;
+                }
+            }
+            if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
                 ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.random.nextInt(24) / 24.0D);
             }
         }
         if (!this.getEntityWorld().isClient()) {
             if (this.golemType == GolemType.FURNACE) {
                 tickFurnace();
+            }
+            if (this.golemType == GolemType.GOLD) {
+                tickGold();
+            }
+            if (this.golemType == GolemType.JUKEBOX) {
+                tickJukebox();
             }
 
             // Debug nametag glowing effect
@@ -153,6 +178,70 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private void tickFurnace() {
+    }
+
+    private void tickJukebox() {
+        if (this.jukeboxCooldown == 0 && this.currentlyPlayingStack.isEmpty()) {
+            // Check inventory for a music disc
+            SimpleInventory inv = this.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty()) {
+                    JukeboxPlayableComponent playable = stack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+                    if (playable != null) {
+                        playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                            this.currentlyPlayingStack = stack.copy();
+                            this.currentlyPlayingStack.setCount(1);
+                            
+                            stack.decrement(1);
+                            
+                            this.broadcastDebugMessage("Autoplay started: " + songEntry.value().description().getString());
+
+                            // Start the song on client
+                            this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
+                            
+                            // Set cooldown based on song length
+                            this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void tickGold() {
+        if (this.age % 20 == 0) {
+            SimpleInventory inv = this.getInventory();
+            int nuggetCount = 0;
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isOf(Items.GOLD_NUGGET)) {
+                    nuggetCount += stack.getCount();
+                }
+            }
+
+            if (nuggetCount >= 9) {
+                // Consume 9 nuggets
+                int toConsume = 9;
+                for (int i = 0; i < inv.size(); i++) {
+                    ItemStack stack = inv.getStack(i);
+                    if (stack.isOf(Items.GOLD_NUGGET)) {
+                        int amount = Math.min(toConsume, stack.getCount());
+                        stack.decrement(amount);
+                        toConsume -= amount;
+                        if (toConsume <= 0) break;
+                    }
+                }
+                // Add 1 ingot
+                ItemStack ingot = new ItemStack(Items.GOLD_INGOT);
+                ItemStack remaining = inv.addStack(ingot);
+                if (!remaining.isEmpty()) {
+                    this.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), remaining));
+                }
+                this.broadcastDebugMessage("Crafted Gold Ingot from 9 nuggets");
+            }
+        }
     }
 
     public void setSearching(boolean searching) {
@@ -319,10 +408,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     // Stop playing and drop the disc
                     if (!player.getEntityWorld().isClient()) {
                         player.dropItem(this.currentlyPlayingStack.copy(), false);
+                        this.broadcastDebugMessage("Stopped playing");
                         this.currentlyPlayingStack = ItemStack.EMPTY;
                         this.jukeboxCooldown = 0;
                         // Stop the song on client
-                        player.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
+                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
                     }
                     return ActionResult.SUCCESS;
                 }
@@ -335,8 +425,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                             this.currentlyPlayingStack = playerStack.copy();
                             this.currentlyPlayingStack.setCount(1);
                             
+                            this.broadcastDebugMessage("Started playing " + songEntry.value().description().getString());
+
                             // Start the song and show "Now Playing"
-                            player.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(playerStack.getItem()));
+                            this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(playerStack.getItem()));
                             
                             // Explicitly show "Now Playing" text for the player who interacted
                             player.sendMessage(Text.translatable("record.nowPlaying", songEntry.value().description()), true);
