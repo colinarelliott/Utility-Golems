@@ -1,40 +1,50 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.ButtonBlock;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.CocoaBlock;
+import net.minecraft.block.CropBlock;
+import net.minecraft.block.HorizontalFacingBlock;
+import net.minecraft.block.JukeboxBlock;
+import net.minecraft.block.LeverBlock;
+import net.minecraft.block.NetherWartBlock;
+import net.minecraft.block.PressurePlateBlock;
+import net.minecraft.block.SweetBerryBushBlock;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.recipe.Ingredient;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.server.command.PlaySoundCommand;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.MusicSound;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.minecraft.entity.ItemEntity;
-
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 import net.minecraft.village.TradedItem;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,16 +52,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.ai.goal.ActiveTargetGoal;
-import net.minecraft.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.entity.ai.goal.RevengeGoal;
-import net.minecraft.world.WorldAccess;
-
 public class GolemAI {
 
-    /// INITIALIZE EACH GOLEM WITH UNIQUE AI
-
+    // Initialize goals for Lapis Golem
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE
@@ -63,6 +66,7 @@ public class GolemAI {
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
     }
 
+    // Initialize goals for Redstone Golem
     public static void initRedstoneGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.REDSTONE), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -70,6 +74,7 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
 
+    // Initialize goals for Emerald Golem
     public static void initEmeraldGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.EMERALD), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new TradeWithVillagerGoal(golem)));
@@ -78,6 +83,7 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.0D, 3.0F, 10.0F)));
     }
 
+    // Initialize goals for Gold Golem
     public static void initGoldGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.GOLD_INGOT, Items.GOLD_NUGGET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -87,6 +93,7 @@ public class GolemAI {
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
     
+    // Initialize goals for Amethyst Golem
     public static void initAmethystGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -94,6 +101,7 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
     
+    // Initialize goals for Netherite Golem
     public static void initNetheriteGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD, Items.COPPER_SWORD
@@ -105,6 +113,7 @@ public class GolemAI {
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
     }
 
+    // Initialize goals for Furnace Golem
     public static void initFurnaceGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -208,7 +217,6 @@ public class GolemAI {
 
         @Override
         public void start() {
-            golem.broadcastDebugMessage("Started " + goalName);
             innerGoal.start();
         }
 
@@ -3248,7 +3256,6 @@ public class GolemAI {
                 itemEntity.setVelocity(velocity);
                 golem.getEntityWorld().spawnEntity(itemEntity);
                 golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
-                golem.broadcastDebugMessage("Offered Gold Ingot to Piglin");
             }
         }
     }
