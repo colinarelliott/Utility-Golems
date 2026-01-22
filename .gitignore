@@ -39,3 +39,9 @@ replay_*.log
 *.hprof
 *.jfr
 /.output.txt
+
+
+/run/
+/gradle/
+/out/
+/classes/
