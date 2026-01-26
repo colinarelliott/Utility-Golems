@@ -18,9 +18,8 @@
 - <code style="color : purple">Amethyst Golem</code> (Breeding)
   - Breeds animals for the player using provided wheat or other breeding material.
   - Bug where it uses lots of wheat..
-- <code>Furnace Golem</code> (Smelting) *[WIP]*
+- <code>Furnace Golem</code> (Smelting)
   - Contains furnace interface, portable.
-  - Furnace functionality not complete. *[WIP]*
 - <code style="color : brown">Jukebox Golem</code> (Music Player)
   - Plays music discs and follows the player around
 - <code style="color : yellow">Sponge Golem</code> (Fishing)
