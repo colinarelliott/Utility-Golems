@@ -69,9 +69,10 @@ public class GolemAI {
 
     // Initialize goals for Redstone Golem
     public static void initRedstoneGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.REDSTONE), false)));
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.REDSTONE, Items.REPEATER), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
-        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new TriggerRedstoneGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new ConnectRedstoneGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new TriggerRedstoneGoal(golem)));
     }
 
     // Initialize goals for Emerald Golem
@@ -1002,7 +1003,7 @@ public class GolemAI {
             }
 
             if (golem.getGolemType() == GolemType.REDSTONE) {
-                if (hasRedstone()) {
+                if (hasRedstoneDust() && hasRepeater()) {
                     return false;
                 }
                 chestPos = golem.getChestPos();
@@ -1231,8 +1232,27 @@ public class GolemAI {
 
         private boolean hasRedstone() {
             SimpleInventory inv = golem.getInventory();
+            boolean hasDust = false;
+            boolean hasRepeater = false;
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.REDSTONE)) hasDust = true;
+                if (inv.getStack(i).isOf(Items.REPEATER)) hasRepeater = true;
+            }
+            return hasDust && hasRepeater;
+        }
+
+        private boolean hasRedstoneDust() {
+            SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isOf(Items.REDSTONE)) return true;
+            }
+            return false;
+        }
+
+        private boolean hasRepeater() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.REPEATER)) return true;
             }
             return false;
         }
@@ -1282,7 +1302,7 @@ public class GolemAI {
                         if (isValidBreedingItem(stack)) return true;
                     }
                     if (golem.getGolemType() == GolemType.REDSTONE) {
-                        if (stack.isOf(Items.REDSTONE)) return true;
+                        if (stack.isOf(Items.REDSTONE) || stack.isOf(Items.REPEATER)) return true;
                     }
                     if (golem.getGolemType() == GolemType.JUKEBOX) {
                         if (stack.get(DataComponentTypes.JUKEBOX_PLAYABLE) != null) return true;
@@ -2732,13 +2752,11 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
-                        BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
                         BlockState bs = golem.getEntityWorld().getBlockState(p);
                         Block block = bs.getBlock();
                         if (block instanceof ButtonBlock ||
                             block instanceof LeverBlock ||
                             block instanceof PressurePlateBlock) {
-                            // Only trigger if within 32 blocks of chest (if chest is known)
                             if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 return p;
                             }
@@ -2760,7 +2778,6 @@ public class GolemAI {
             double verticalDist = Math.abs(dy);
 
             if (horizontalDistSq > 4.0D || verticalDist > 4.0D) {
-                // If it's far vertically, target our current height
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
                     if (verticalDist > 2.0D) {
                         golem.getNavigation().startMovingTo(componentPosition.getX(), golem.getY(), componentPosition.getZ(), 1.2D);
@@ -2782,8 +2799,211 @@ public class GolemAI {
         }
 
         public void interactWithComponent() {
-            BlockPos p =  golem.getBlockPos();
-            BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
+            if (componentPosition == null) return;
+            BlockState state = golem.getEntityWorld().getBlockState(componentPosition);
+            Block block = state.getBlock();
+            if (block instanceof ButtonBlock button) {
+                // Alternative: manually set the state if onUse requires a player
+                golem.getEntityWorld().setBlockState(componentPosition, state.with(ButtonBlock.POWERED, true));
+                golem.getEntityWorld().scheduleBlockTick(componentPosition, block, 20);
+            } else if (block instanceof LeverBlock lever) {
+                golem.getEntityWorld().setBlockState(componentPosition, state.cycle(LeverBlock.POWERED));
+            } else if (block instanceof PressurePlateBlock) {
+                // Golem standing on it already triggers it usually, but we can move him there
+                golem.getNavigation().startMovingTo(componentPosition.getX() + 0.5, componentPosition.getY(), componentPosition.getZ() + 0.5, 1.2D);
+            }
+        }
+    }
+
+    public static class ConnectRedstoneGoal extends Goal {
+        private final UtilityGolem golem;
+        private BlockPos startPos;
+        private BlockPos endPos;
+        private List<BlockPos> path;
+        private int delay;
+
+        public ConnectRedstoneGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (golem.getGolemType() != GolemType.REDSTONE) return false;
+            SimpleInventory inv = golem.getInventory();
+            boolean hasRedstone = false;
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.REDSTONE)) {
+                    hasRedstone = true;
+                    break;
+                }
+            }
+            if (!hasRedstone) return false;
+
+            findComponentsToConnect();
+            return startPos != null && endPos != null;
+        }
+
+        private void findComponentsToConnect() {
+            BlockPos pos = golem.getBlockPos();
+            int range = 16;
+            List<BlockPos> components = new ArrayList<>();
+            for (int x = -range; x <= range; x++) {
+                for (int y = -2; y <= 2; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        BlockState bs = golem.getEntityWorld().getBlockState(p);
+                        if (isRedstoneComponent(bs)) {
+                            components.add(p);
+                        }
+                    }
+                }
+            }
+
+            if (components.size() >= 2) {
+                // Find two components not already connected (simplistic check)
+                for (int i = 0; i < components.size(); i++) {
+                    for (int j = i + 1; j < components.size(); j++) {
+                        BlockPos p1 = components.get(i);
+                        BlockPos p2 = components.get(j);
+                        if (p1.getSquaredDistance(p2) > 4 && p1.getSquaredDistance(p2) < 256) {
+                            if (!areConnected(p1, p2)) {
+                                startPos = p1;
+                                endPos = p2;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private boolean isRedstoneComponent(BlockState state) {
+            Block b = state.getBlock();
+            return b instanceof ButtonBlock || b instanceof LeverBlock || b instanceof PressurePlateBlock || b == Blocks.TNT || b == Blocks.REDSTONE_LAMP || b instanceof net.minecraft.block.DoorBlock;
+        }
+
+        private boolean areConnected(BlockPos p1, BlockPos p2) {
+            // Very basic check: is there redstone dust near p1 that leads towards p2?
+            // For now, let's just assume they are not connected if there is no dust immediately adjacent
+            for (Direction dir : Direction.values()) {
+                if (golem.getEntityWorld().getBlockState(p1.offset(dir)).isOf(Blocks.REDSTONE_WIRE)) return true;
+                if (golem.getEntityWorld().getBlockState(p2.offset(dir)).isOf(Blocks.REDSTONE_WIRE)) return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void start() {
+            delay = 0;
+            path = calculatePath(startPos, endPos);
+        }
+
+        private List<BlockPos> calculatePath(BlockPos start, BlockPos end) {
+            List<BlockPos> p = new ArrayList<>();
+            int x1 = start.getX();
+            int y1 = start.getY();
+            int z1 = start.getZ();
+            int x2 = end.getX();
+            int y2 = end.getY();
+            int z2 = end.getZ();
+
+            int dx = Math.abs(x2 - x1);
+            int dy = Math.abs(y2 - y1);
+            int dz = Math.abs(z2 - z1);
+            int sx = x1 < x2 ? 1 : -1;
+            int sy = y1 < y2 ? 1 : -1;
+            int sz = z1 < z2 ? 1 : -1;
+
+            // Simple Manhattan path
+            int currX = x1;
+            int currY = y1;
+            int currZ = z1;
+
+            // Move one step away from start to not overwrite component
+            if (dx > dz) currX += sx; else currZ += sz;
+
+            while (currX != x2 || currZ != z2) {
+                BlockPos target = new BlockPos(currX, currY, currZ);
+                if (golem.getEntityWorld().getBlockState(target).isReplaceable()) {
+                    p.add(target);
+                } else if (golem.getEntityWorld().getBlockState(target.up()).isReplaceable()) {
+                    currY++;
+                    p.add(target.up());
+                } else if (golem.getEntityWorld().getBlockState(target.down()).isReplaceable()) {
+                    currY--;
+                    p.add(target.down());
+                }
+
+                if (currX != x2 && (currZ == z2 || Math.abs(x2 - currX) > Math.abs(z2 - currZ))) {
+                    currX += sx;
+                } else if (currZ != z2) {
+                    currZ += sz;
+                }
+                
+                if (p.size() > 32) break; // Limit path length
+            }
+            return p;
+        }
+
+        @Override
+        public void tick() {
+            if (path == null || path.isEmpty()) {
+                stop();
+                return;
+            }
+
+            BlockPos target = path.get(0);
+            double distSq = golem.getBlockPos().getSquaredDistance(target);
+
+            if (distSq > 4) {
+                golem.getNavigation().startMovingTo(target.getX(), target.getY(), target.getZ(), 1.2D);
+            } else {
+                golem.getNavigation().stop();
+                golem.getLookControl().lookAt(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
+                if (++delay % 10 == 0) {
+                    placeRedstone(target);
+                    path.remove(0);
+                    // If path is long, we might need a repeater
+                    if (path.size() > 0 && (path.size() % 14 == 0)) {
+                        if (!path.isEmpty()) {
+                            placeRepeater(path.remove(0));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void placeRedstone(BlockPos pos) {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isOf(Items.REDSTONE)) {
+                    if (golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
+                        golem.getEntityWorld().setBlockState(pos, Blocks.REDSTONE_WIRE.getDefaultState());
+                        stack.decrement(1);
+                        golem.getEntityWorld().playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void placeRepeater(BlockPos pos) {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isOf(Items.REPEATER)) {
+                    if (golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
+                        // Direction should be facing towards endPos
+                        Direction facing = Direction.fromHorizontalDegrees(golem.getYaw());
+                        golem.getEntityWorld().setBlockState(pos, Blocks.REPEATER.getDefaultState().with(HorizontalFacingBlock.FACING, facing));
+                        stack.decrement(1);
+                        golem.getEntityWorld().playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        break;
+                    }
+                }
+            }
         }
     }
 
