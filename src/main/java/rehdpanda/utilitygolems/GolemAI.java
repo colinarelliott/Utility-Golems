@@ -15,6 +15,7 @@ import net.minecraft.block.PressurePlateBlock;
 import net.minecraft.block.SweetBerryBushBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.JukeboxPlayableComponent;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.*;
@@ -63,7 +64,6 @@ public class GolemAI {
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DigBlockGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
     }
 
@@ -72,7 +72,6 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.REDSTONE), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new TriggerRedstoneGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
 
     // Initialize goals for Emerald Golem
@@ -98,7 +97,6 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
     
     // Initialize goals for Netherite Golem
@@ -108,7 +106,6 @@ public class GolemAI {
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
         golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
     }
@@ -118,7 +115,6 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
     }
 
@@ -133,13 +129,11 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new RefillBucketGoal(golem)));
-        golem.getGoalSelector().add(7, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
 
     /// AI NOT STARTED
     public static void initDiamondGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.DIAMOND), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WanderAroundFarGoal(golem, 1.0D)));
     }
 
     /// AI IN PROGRESS
@@ -538,7 +532,7 @@ public class GolemAI {
                     !rod.isEmpty() && UtilityGolem.isFishingRod(rod) &&
                     fishingTime < maxFishingTime && !isInventoryFull() &&
                     golem.getBlockPos().getSquaredDistance(waterPos.getX(), waterPos.getY(), waterPos.getZ()) < 400 &&
-                    golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096; // within 64 blocks of chest
+                    golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024; // within 32 blocks of chest
         }
 
         private boolean isInventoryFull() {
@@ -1786,8 +1780,8 @@ public class GolemAI {
                     for (int z = -8; z <= 8; z++) {
                         BlockPos p = pos.add(x, y, z);
                         if (canDig(p)) {
-                            // Only dig if within 64 blocks of chest (if chest is known)
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                            // Only dig if within 32 blocks of chest (if chest is known)
+                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 potentialTargets.add(p);
                             }
                         }
@@ -2198,6 +2192,7 @@ public class GolemAI {
         }
 
         private boolean hasNetherWart() {
+            if (golem.getHeldItem().isOf(Items.NETHER_WART)) return true;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isOf(Items.NETHER_WART)) return true;
@@ -2206,6 +2201,7 @@ public class GolemAI {
         }
 
         private boolean hasCocoaBeans() {
+            if (golem.getHeldItem().isOf(Items.COCOA_BEANS)) return true;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isOf(Items.COCOA_BEANS)) return true;
@@ -2214,6 +2210,7 @@ public class GolemAI {
         }
 
         private boolean hasSeeds() {
+            if (isSeed(golem.getHeldItem())) return true;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (isSeed(inv.getStack(i))) return true;
@@ -2438,11 +2435,17 @@ public class GolemAI {
                                     Direction dir = getDirectionToPlantCocoa(targetPos, logPos);
                                     world.setBlockState(targetPos, seedBlock.getDefaultState().with(CocoaBlock.FACING, dir));
                                     seeds.decrement(1);
+                                    if (seeds.isEmpty() && golem.getHeldItem() == seeds) {
+                                        golem.setHeldItem(ItemStack.EMPTY);
+                                    }
                                     world.playSound(null, targetPos, net.minecraft.sound.SoundEvents.BLOCK_GRASS_PLACE, net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
                                 }
                             } else {
                                 world.setBlockState(plantPos, seedBlock.getDefaultState());
                                 seeds.decrement(1);
+                                if (seeds.isEmpty() && golem.getHeldItem() == seeds) {
+                                    golem.setHeldItem(ItemStack.EMPTY);
+                                }
                                 world.playSound(null, targetPos, net.minecraft.sound.SoundEvents.BLOCK_GRASS_PLACE, net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
                             }
 
@@ -2501,6 +2504,7 @@ public class GolemAI {
         }
 
         private ItemStack getSeeds() {
+            if (isSeed(golem.getHeldItem())) return golem.getHeldItem();
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (isSeed(inv.getStack(i))) return inv.getStack(i);
@@ -2518,6 +2522,7 @@ public class GolemAI {
         }
 
         private ItemStack getStandardSeeds() {
+            if (isSeed(golem.getHeldItem()) && !golem.getHeldItem().isOf(Items.NETHER_WART) && !golem.getHeldItem().isOf(Items.COCOA_BEANS)) return golem.getHeldItem();
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
@@ -2527,6 +2532,7 @@ public class GolemAI {
         }
 
         private ItemStack getNetherWart() {
+            if (golem.getHeldItem().isOf(Items.NETHER_WART)) return golem.getHeldItem();
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isOf(Items.NETHER_WART)) return inv.getStack(i);
@@ -2535,6 +2541,7 @@ public class GolemAI {
         }
 
         private ItemStack getCocoaBeans() {
+            if (golem.getHeldItem().isOf(Items.COCOA_BEANS)) return golem.getHeldItem();
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isOf(Items.COCOA_BEANS)) return inv.getStack(i);
@@ -2731,8 +2738,8 @@ public class GolemAI {
                         if (block instanceof ButtonBlock ||
                             block instanceof LeverBlock ||
                             block instanceof PressurePlateBlock) {
-                            // Only trigger if within 64 blocks of chest (if chest is known)
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                            // Only trigger if within 32 blocks of chest (if chest is known)
+                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 return p;
                             }
                         }
@@ -2814,10 +2821,10 @@ public class GolemAI {
                             && a.canEat() && a.age > 0
                             && b.canEat() && b.age > 0) {
                         
-                        // Only breed if within 64 blocks of chest (if chest is known)
+                        // Only breed if within 32 blocks of chest (if chest is known)
                         if (chestPos != null) {
-                            if (a.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 4096) continue;
-                            if (b.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 4096) continue;
+                            if (a.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024) continue;
+                            if (b.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024) continue;
                         }
 
                         animalA = a;
@@ -2915,6 +2922,9 @@ public class GolemAI {
         private BlockPos currentTreePos;
         private int breakingTime;
         private int maxBreakingTime;
+        private int stuckTicks;
+        private Vec3d lastPos;
+        private final java.util.Map<BlockPos, Long> failedBlocks = new java.util.HashMap<>();
 
         public ChopTreeGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -2930,6 +2940,10 @@ public class GolemAI {
             if (isInventoryFull()) {
                 return false;
             }
+
+            // Cleanup failed blocks older than 30 seconds
+            long now = golem.getEntityWorld().getTime();
+            failedBlocks.entrySet().removeIf(entry -> now - entry.getValue() > 600);
 
             // If it's a deepslate golem, only chop trees if we have an axe AND (we need saplings OR no other tasks are high priority)
 
@@ -3008,7 +3022,7 @@ public class GolemAI {
                 // If the current tree is way too far from the golem (e.g. golem was teleported),
                 // or too far from the chest, reset it.
                 if (currentTreePos.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ()) > 1024 ||
-                    (chestPos != null && currentTreePos.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 4096)) {
+                    (chestPos != null && currentTreePos.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024)) {
                     currentTreePos = null;
                 } else {
                     BlockPos connected = findConnectedTarget(currentTreePos);
@@ -3028,9 +3042,9 @@ public class GolemAI {
                 for (int y = -range; y <= range; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
-                        if (canChop(p)) {
-                            // Only chop if within 64 blocks of chest (if chest is known)
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                        if (canChop(p) && !failedBlocks.containsKey(p)) {
+                            // Only chop if within 32 blocks of chest (if chest is known)
+                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 double distSq = p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ());
                                 // Heavy bias towards logs to prioritize them over leaves
                                 double score = distSq + (isLog(p) ? 0 : 1000.0);
@@ -3060,9 +3074,9 @@ public class GolemAI {
                 for (int y = -searchRange; y <= searchRange; y++) {
                     for (int z = -searchRange; z <= searchRange; z++) {
                         BlockPos p = startPos.add(x, y, z);
-                        if (canChop(p)) {
-                            // Only chop if within 64 blocks of chest (if chest is known)
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                        if (canChop(p) && !failedBlocks.containsKey(p)) {
+                            // Only chop if within 32 blocks of chest (if chest is known)
+                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 double distSq = p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ());
                                 // Heavy bias towards logs to prioritize them over leaves
                                 double score = distSq + (isLog(p) ? 0 : 1000.0);
@@ -3118,19 +3132,25 @@ public class GolemAI {
         @Override
         public void start() {
             breakingTime = 0;
+            stuckTicks = 0;
+            lastPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
         }
 
         @Override
         public boolean shouldContinue() {
             ItemStack tool = golem.getHeldItem();
             return targetPos != null && canChop(targetPos) && !tool.isEmpty() && (UtilityGolem.isAxe(tool) || UtilityGolem.isShears(tool)) &&
-                    breakingTime < maxBreakingTime && golem.getBlockPos().getSquaredDistance(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 400;
+                    breakingTime < maxBreakingTime && golem.getBlockPos().getSquaredDistance(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 400 &&
+                    stuckTicks < 100;
         }
 
         @Override
         public void stop() {
             if (targetPos != null) {
                 golem.getEntityWorld().setBlockBreakingInfo(golem.getId(), targetPos, -1);
+                if (stuckTicks >= 100) {
+                    failedBlocks.put(targetPos, golem.getEntityWorld().getTime());
+                }
             }
             targetPos = null;
         }
@@ -3138,6 +3158,15 @@ public class GolemAI {
         @Override
         public void tick() {
             if (targetPos == null) return;
+
+            // Stuck detection
+            Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+            if (lastPos != null && currentPos.squaredDistanceTo(lastPos) < 0.01 * 0.01) {
+                stuckTicks++;
+            } else {
+                stuckTicks = 0;
+            }
+            lastPos = currentPos;
 
             // Deepslate Golem tool switching logic
             if (golem.getGolemType() == GolemType.DEEPSLATE) {
@@ -3245,6 +3274,9 @@ public class GolemAI {
     public static class ReplantSaplingGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
+        private int stuckTicks;
+        private Vec3d lastPos;
+        private final java.util.Map<BlockPos, Long> failedPositions = new java.util.HashMap<>();
 
         public ReplantSaplingGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -3256,6 +3288,11 @@ public class GolemAI {
             if (getSaplingFromInventory().isEmpty()) {
                 return false;
             }
+
+            // Cleanup failed positions older than 30 seconds
+            long now = golem.getEntityWorld().getTime();
+            failedPositions.entrySet().removeIf(entry -> now - entry.getValue() > 600);
+
             targetPos = findPlantingPos();
             return targetPos != null;
         }
@@ -3279,11 +3316,11 @@ public class GolemAI {
                 for (int z = -range; z <= range; z++) {
                     for (int y = -2; y <= 2; y++) {
                         BlockPos p = pos.add(x, y, z);
-                        if (canPlantAt(p)) {
+                        if (canPlantAt(p) && !failedPositions.containsKey(p)) {
                             // Sparse pattern check: No other saplings within 3 blocks
                             if (isSparse(p)) {
-                                // Only plant if within 64 blocks of chest (if chest is known)
-                                if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                                // Only plant if within 32 blocks of chest (if chest is known)
+                                if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                     return p;
                                 }
                             }
@@ -3320,16 +3357,35 @@ public class GolemAI {
 
         @Override
         public void start() {
+            stuckTicks = 0;
+            lastPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+        }
+
+        @Override
+        public void stop() {
+            if (stuckTicks >= 100 && targetPos != null) {
+                failedPositions.put(targetPos, golem.getEntityWorld().getTime());
+            }
+            targetPos = null;
         }
 
         @Override
         public boolean shouldContinue() {
-            return targetPos != null && canPlantAt(targetPos) && !getSaplingFromInventory().isEmpty();
+            return targetPos != null && canPlantAt(targetPos) && !getSaplingFromInventory().isEmpty() && stuckTicks < 100;
         }
 
         @Override
         public void tick() {
             if (targetPos == null) return;
+
+            // Stuck detection
+            Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+            if (lastPos != null && currentPos.squaredDistanceTo(lastPos) < 0.01 * 0.01) {
+                stuckTicks++;
+            } else {
+                stuckTicks = 0;
+            }
+            lastPos = currentPos;
 
             double dx = golem.getX() - (targetPos.getX() + 0.5);
             double dy = golem.getY() - (targetPos.getY() + 0.5);
@@ -3626,13 +3682,9 @@ public class GolemAI {
                         
                         if (!isFamiliar) return false;
                         
-                        // Only pickup if within 64 blocks of chest (if chest is known)
+                        // Only pickup if within 32 blocks of chest (if chest is known)
                         if (chestPos != null) {
-                            if (golem.getGolemType() == GolemType.GOLD) {
-                                // Gold golems might need to pick up items further from chest as they wander or go to piglins
-                                return item.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 25600; // 160 blocks
-                            }
-                            return item.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096;
+                            return item.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024;
                         }
                         return true;
                     }
@@ -3657,6 +3709,11 @@ public class GolemAI {
 
         @Override
         public void stop() {
+            if (stuckTicks >= 60 && targetItem != null) {
+                // Add to a temporary blacklist for items?
+                // PickupItemGoal already has a cooldown that triggers on stop if stuck.
+                // But it might pick the same item again.
+            }
             targetItem = null;
             if (stuckTicks >= 60) {
                 cooldown = 100; // Longer cooldown if we got stuck
@@ -3667,14 +3724,14 @@ public class GolemAI {
         public void tick() {
             if (targetItem == null) return;
 
-            // Stuck detection: if we are far and not moving much
+            // Stuck detection: if we are not moving much
             Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
             if (currentPos.squaredDistanceTo(lastPos) < 0.01 * 0.01) {
                 stuckTicks++;
             } else {
                 stuckTicks = 0;
-                lastPos = currentPos;
             }
+            lastPos = currentPos;
 
             if (golem.squaredDistanceTo(targetItem) > 1.5D) {
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
@@ -3704,7 +3761,7 @@ public class GolemAI {
 
         public PlayRecordGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setControls(EnumSet.of(Control.LOOK));
         }
 
         @Override
@@ -3714,14 +3771,12 @@ public class GolemAI {
 
         @Override
         public void start() {
-            ItemStack stack = golem.getHeldItem();
-            golem.getEntityWorld().syncWorldEvent(null, net.minecraft.world.WorldEvents.JUKEBOX_STARTS_PLAYING, golem.getBlockPos(), net.minecraft.item.Item.getRawId(stack.getItem()));
-            golem.setSearching(true);
+            // Music is handled by UtilityGolem.tickJukebox() and world events
         }
 
         @Override
         public void stop() {
-            golem.getEntityWorld().syncWorldEvent(null, net.minecraft.world.WorldEvents.JUKEBOX_STOPS_PLAYING, golem.getBlockPos(), 0);
+            // Music stop is handled by UtilityGolem.tick()
             golem.setSearching(false);
         }
 
