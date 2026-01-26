@@ -33,10 +33,9 @@
   - Also give them a water bucket if no water is nearby. Crops need hydration!
 - <code style="color : yellow">Gold Golem</code> (Piglin Trading)
   - Drop gold for piglins, retrieve items in return and put them in chest
-
-**NOT IMPLEMENTED**
-- <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation) *[WIP]*
-
+- <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation)
+  - connect redstone elements when given redstone dust
+  - activate redstone elements nearby
 
 **FUTURE PLANS**
 - <code style="color : lightblue">Diamond Golem</code> (Building)
