@@ -1,1 +1,1 @@
-{ "model": { "type": "minecraft:special", "base": "minecraft:block/chest", "model": { "type": "minecraft:chest", "texture": "utility-golems:entity/chest/bamboo_golem_chest" } } }
+{ "model": { "type": "minecraft:special", "base": "minecraft:item/chest", "model": { "type": "minecraft:chest", "texture": "utility-golems:bamboo_golem_chest" } } }

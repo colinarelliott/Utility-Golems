@@ -26,13 +26,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemChestBlockEntity, GolemChestBlockEntityRenderState> {
-    private static final Map<GolemType, SpriteIdentifier> TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> TEXTURES = new HashMap<>();
     private final ChestBlockModel model;
     private final BlockEntityRendererFactory.Context ctx;
 
     static {
         for (GolemType type : GolemType.values()) {
-            TEXTURES.put(type, new SpriteIdentifier(TexturedRenderLayers.CHEST_ATLAS_TEXTURE, Identifier.of("utility-golems", "entity/chest/" + type.getName() + "_chest")));
+            TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
         }
     }
 
@@ -65,9 +65,8 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         progress = 1.0F - progress;
         progress = 1.0F - progress * progress * progress;
 
-        SpriteIdentifier spriteIdentifier = TEXTURES.getOrDefault(state.golemType, TEXTURES.values().iterator().next());
-        RenderLayer renderLayer = spriteIdentifier.getRenderLayer(RenderLayers::entityCutout);
-        Sprite sprite = ctx.spriteHolder().getSprite(spriteIdentifier);
+        Identifier identifier = TEXTURES.getOrDefault(state.golemType, TEXTURES.values().iterator().next());
+        RenderLayer renderLayer = RenderLayers.entityCutout(identifier);
         
         queue.submitModel(
                 this.model,
@@ -77,7 +76,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
                 state.lightmapCoordinates,
                 OverlayTexture.DEFAULT_UV,
                 -1, // tintedColor
-                sprite, // sprite
+                null, // sprite
                 0, // outlineColor
                 state.crumblingOverlay // crumblingOverlay
         );
