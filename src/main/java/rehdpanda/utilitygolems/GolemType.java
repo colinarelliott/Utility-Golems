@@ -79,7 +79,7 @@ public enum GolemType {
     DIAMOND("diamond_golem", "Diamond Golem", "textures/entity/diamond_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
-                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.2)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initDiamondGoals,
             null

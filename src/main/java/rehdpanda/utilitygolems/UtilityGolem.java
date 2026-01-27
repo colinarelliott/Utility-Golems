@@ -15,6 +15,8 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.passive.CopperGolemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.entity.player.PlayerInventory;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -77,12 +79,52 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private static final TrackedData<Optional<BlockPos>> FISHING_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
     private static final TrackedData<Optional<BlockPos>> DEBUG_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
+    private static final TrackedData<Integer> SELECTED_PATTERN = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> WALL_WIDTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> WALL_LENGTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
         builder.add(FISHING_TARGET, Optional.empty());
         builder.add(DEBUG_TARGET, Optional.empty());
+        builder.add(SELECTED_PATTERN, 0);
+        builder.add(WALL_WIDTH, 3);
+        builder.add(WALL_LENGTH, 3);
+        builder.add(BUILDING_STARTED, false);
+    }
+
+    public void setBuildingStarted(boolean started) {
+        this.dataTracker.set(BUILDING_STARTED, started);
+    }
+
+    public boolean isBuildingStarted() {
+        return this.dataTracker.get(BUILDING_STARTED);
+    }
+
+    public void setBuildPattern(BuildPattern pattern) {
+        this.dataTracker.set(SELECTED_PATTERN, pattern.ordinal());
+    }
+
+    public BuildPattern getBuildPattern() {
+        return BuildPattern.values()[this.dataTracker.get(SELECTED_PATTERN)];
+    }
+
+    public void setWallWidth(int width) {
+        this.dataTracker.set(WALL_WIDTH, width);
+    }
+
+    public int getWallWidth() {
+        return this.dataTracker.get(WALL_WIDTH);
+    }
+
+    public void setWallLength(int length) {
+        this.dataTracker.set(WALL_LENGTH, length);
+    }
+
+    public int getWallLength() {
+        return this.dataTracker.get(WALL_LENGTH);
     }
 
     public void setFishingTarget(@Nullable BlockPos pos) {
@@ -444,10 +486,22 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     return ActionResult.SUCCESS;
                 }
             } else {
-                player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
-                        (syncId, playerInventory, p) -> new GolemInventoryScreenHandler(syncId, playerInventory, this.inventory, this),
-                        this.getDisplayName()
-                ));
+                player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
+                    @Override
+                    public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
+                        return UtilityGolem.this.getId();
+                    }
+
+                    @Override
+                    public Text getDisplayName() {
+                        return UtilityGolem.this.getDisplayName();
+                    }
+
+                    @Override
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                        return new GolemInventoryScreenHandler(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
+                    }
+                });
             }
         }
         return ActionResult.SUCCESS;
@@ -517,6 +571,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
         super.writeCustomData(writeView);
+        writeView.putInt("BuildPattern", this.getBuildPattern().ordinal());
+        writeView.putInt("WallWidth", this.getWallWidth());
+        writeView.putInt("WallLength", this.getWallLength());
+        writeView.putBoolean("BuildingStarted", this.isBuildingStarted());
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.writeData(writeView.get("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         if (!this.currentlyPlayingStack.isEmpty()) {
@@ -537,6 +595,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public void readCustomData(net.minecraft.storage.ReadView readView) {
         super.readCustomData(readView);
+        this.setBuildPattern(BuildPattern.values()[readView.getInt("BuildPattern", 0)]);
+        this.setWallWidth(readView.getInt("WallWidth", 3));
+        this.setWallLength(readView.getInt("WallLength", 3));
+        this.setBuildingStarted(readView.getBoolean("BuildingStarted", false));
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.readData(readView.getReadView("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);
