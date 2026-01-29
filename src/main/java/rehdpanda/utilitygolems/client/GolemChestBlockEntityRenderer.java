@@ -1,5 +1,6 @@
 package rehdpanda.utilitygolems.client;
 
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
@@ -26,19 +27,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemChestBlockEntity, GolemChestBlockEntityRenderState> {
-    private static final Map<GolemType, Identifier> TEXTURES = new HashMap<>();
-    private final ChestBlockModel model;
+    private static final Map<GolemType, Identifier> SINGLE_TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> LEFT_TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> RIGHT_TEXTURES = new HashMap<>();
+    private final ChestBlockModel singleModel;
+    private final ChestBlockModel leftModel;
+    private final ChestBlockModel rightModel;
     private final BlockEntityRendererFactory.Context ctx;
 
     static {
         for (GolemType type : GolemType.values()) {
-            TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
+            SINGLE_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
+            LEFT_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
+            RIGHT_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
         }
     }
 
     public GolemChestBlockEntityRenderer(BlockEntityRendererFactory.Context ctx) {
         this.ctx = ctx;
-        this.model = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.CHEST));
+        this.singleModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.CHEST));
+        this.leftModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.DOUBLE_CHEST_LEFT));
+        this.rightModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.DOUBLE_CHEST_RIGHT));
     }
 
     @Override
@@ -52,6 +61,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         state.yaw = entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.FACING).getPositiveHorizontalDegrees();
         state.animationProgress = entity.getAnimationProgress(tickProgress);
         state.golemType = entity.getGolemType();
+        state.chestType = entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.CHEST_TYPE);
     }
 
     @Override
@@ -65,11 +75,24 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         progress = 1.0F - progress;
         progress = 1.0F - progress * progress * progress;
 
-        Identifier identifier = TEXTURES.getOrDefault(state.golemType, TEXTURES.values().iterator().next());
+        Identifier identifier = switch (state.chestType) {
+            case SINGLE -> SINGLE_TEXTURES.get(state.golemType);
+            case LEFT -> LEFT_TEXTURES.get(state.golemType);
+            case RIGHT -> RIGHT_TEXTURES.get(state.golemType);
+        };
+        if (identifier == null) {
+            identifier = SINGLE_TEXTURES.values().iterator().next();
+        }
         RenderLayer renderLayer = RenderLayers.entityCutout(identifier);
-        
+
+        ChestBlockModel model = switch (state.chestType) {
+            case SINGLE -> this.singleModel;
+            case LEFT -> this.leftModel;
+            case RIGHT -> this.rightModel;
+        };
+
         queue.submitModel(
-                this.model,
+                model,
                 progress,
                 matrices,
                 renderLayer,

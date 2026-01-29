@@ -57,23 +57,5 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
     }
 
     protected void renderDebugLine(UtilityGolemRenderState state, BlockPos targetPos, int r, int g, int b, MatrixStack matrices, OrderedRenderCommandQueue queue) {
-        // Use a simple line renderer.
-        /*
-        
-        queue.submitCustom(matrices, net.minecraft.client.render.RenderLayer.getLineStrip(), (entry, vertices) -> {
-            Matrix4f matrix = entry.getPositionMatrix();
-            
-            float startX = 0;
-            float startY = 0.5f; // From middle of golem
-            float startZ = 0;
-            
-            float endX = (float) (targetPos.getX() + 0.5 - state.x);
-            float endY = (float) (targetPos.getY() + 0.5 - state.y);
-            float endZ = (float) (targetPos.getZ() + 0.5 - state.z);
-            
-            // Draw the line
-            vertices.vertex(matrix, startX, startY, startZ).color(r, g, b, 255).normal(entry, 0, 1, 0);
-            vertices.vertex(matrix, endX, endY, endZ).color(r, g, b, 255).normal(entry, 0, 1, 0);
-        });*/
     }
 }
