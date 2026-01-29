@@ -20,6 +20,9 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.text.Text;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.World;
@@ -35,8 +38,8 @@ import net.minecraft.world.WorldView;
 import net.minecraft.world.tick.ScheduledTickView;
 
 import net.minecraft.util.ItemScatterer;
+import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.screen.NamedScreenHandlerFactory;
 
 public class GolemChestBlock extends Block implements BlockEntityProvider {
     public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
@@ -132,7 +135,7 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
 
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        return world.isClient() ? (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY ? (BlockEntityTicker<T>) (BlockEntityTicker<? extends GolemChestBlockEntity>) ChestBlockEntity::clientTick : null) : null;
+        return world.isClient() ? (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY ? (BlockEntityTicker<T>) (BlockEntityTicker<? extends GolemChestBlockEntity>) (world1, pos, state1, blockEntity) -> ChestBlockEntity.clientTick(world1, pos, state1, blockEntity) : null) : null;
     }
 
     @Override
@@ -149,8 +152,18 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
             return ActionResult.SUCCESS;
         } else {
             Inventory inventory = GolemChestBlockEntity.getInventory(this, state, world, pos, false);
-            if (inventory instanceof NamedScreenHandlerFactory namedScreenHandlerFactory) {
-                player.openHandledScreen(namedScreenHandlerFactory);
+            if (inventory != null) {
+                player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
+                    (syncId, playerInventory, p) -> {
+                        if (inventory instanceof DoubleInventory) {
+                            return GenericContainerScreenHandler.createGeneric9x6(syncId, playerInventory, inventory);
+                        }
+                        return GenericContainerScreenHandler.createGeneric9x3(syncId, playerInventory, inventory);
+                    },
+                    inventory instanceof DoubleInventory 
+                        ? Text.translatable(state.getBlock().getTranslationKey().replace("block.", "container.") + "_double")
+                        : Text.translatable(state.getBlock().getTranslationKey())
+                ));
             }
             return ActionResult.CONSUME;
         }

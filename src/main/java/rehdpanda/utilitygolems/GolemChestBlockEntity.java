@@ -63,6 +63,12 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
 
     @Override
     protected Text getContainerName() {
+        if (this.world != null) {
+            Inventory inventory = GolemChestBlockEntity.getInventory((GolemChestBlock) this.getCachedState().getBlock(), this.getCachedState(), this.world, this.pos, true);
+            if (inventory instanceof DoubleInventory) {
+                return Text.translatable(this.getCachedState().getBlock().getTranslationKey().replace("block.", "container.") + "_double");
+            }
+        }
         return Text.translatable(this.getCachedState().getBlock().getTranslationKey());
     }
 }
