@@ -109,6 +109,7 @@ public class UGInit implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
                     CommandManager.literal("UG-debug")
+                            .requires(source -> source.hasPermissionLevel(2))
                             .executes(context -> {
                                 ServerCommandSource source = context.getSource();
                                 source.sendFeedback(
@@ -116,6 +117,9 @@ public class UGInit implements ModInitializer {
                                         false
                                 );
                                 ServerPlayerEntity player = source.getPlayer();
+                                if (player == null) {
+                                    return 0;
+                                }
                                 give(player, Items.GOLD_BLOCK);
                                 give(player, Items.LAPIS_BLOCK);
                                 give(player, Items.EMERALD_BLOCK);
@@ -127,10 +131,18 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.FURNACE);
                                 give(player, Items.JUKEBOX);
                                 give(player, Items.REDSTONE_LAMP);
+                                give(player, Items.NETHER_WART);
+                                give(player, Items.STRIPPED_BAMBOO_BLOCK);
                                 give(player, Items.SPONGE);
                                 give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
                                 give(player, UGItems.WRENCH_ITEM);
+
+                                ItemStack nameTag = new ItemStack(Items.NAME_TAG);
+                                nameTag.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, Text.literal("debug"));
+                                player.getInventory().insertStack(nameTag);
+
+                                source.sendFeedback(() -> Text.literal("Debug items given!"), false);
 
                                 return 1;
                             })
