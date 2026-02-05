@@ -25,8 +25,6 @@ public class UGBlocks {
     public static void register() {
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
-            if (type == GolemType.FURNACE || type == GolemType.JUKEBOX) continue;
-
             String name = type.getName().trim() + "_chest";
             Block materialBlock = switch (type) {
                 case LAPIS -> Blocks.LAPIS_BLOCK;
@@ -39,7 +37,8 @@ public class UGBlocks {
                 case BAMBOO -> Blocks.OAK_PLANKS;
                 case SPONGE -> Blocks.SPONGE;
                 case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
-                default -> Blocks.CHEST;
+                case FURNACE -> Blocks.FURNACE;
+                case JUKEBOX -> Blocks.JUKEBOX;
             };
 
             float hardness = switch (type) {

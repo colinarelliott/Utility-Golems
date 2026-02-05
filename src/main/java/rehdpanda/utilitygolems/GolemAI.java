@@ -64,7 +64,6 @@ public class GolemAI {
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DigBlockGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
-        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
     }
 
     // Initialize goals for Redstone Golem
@@ -81,7 +80,6 @@ public class GolemAI {
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new TradeWithVillagerGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, VillagerEntity.class, 8.0F)));
     }
 
     // Initialize goals for Gold Golem
@@ -116,7 +114,6 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
     }
 
     /// AI IN PROGRESS
@@ -173,10 +170,131 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PlayRecordGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
-        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new LookAtEntityGoal(golem, PlayerEntity.class, 8.0F)));
-
     }
     
+    /// GOAL WRAPPER
+    public static class ClimbLadderGoal extends Goal {
+        private final UtilityGolem golem;
+        private BlockPos ladderPos;
+
+        public ClimbLadderGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE));
+        }
+
+        @Override
+        public boolean canStart() {
+            ladderPos = findNearbyLadder();
+            if (ladderPos == null) return false;
+
+            // If we are already on a ladder, we can start/continue
+            if (golem.getEntityWorld().getBlockState(golem.getBlockPos()).isIn(BlockTags.CLIMBABLE)) {
+                return true;
+            }
+
+            // Otherwise, only start if we have a target above us
+            BlockPos target = getTargetPos();
+            if (target != null && target.getY() > golem.getY()) return true;
+            
+            // Or if we are already moving and stuck vertically near a ladder
+            if (!golem.getNavigation().isIdle() && target != null) {
+                 double dy = target.getY() - golem.getY();
+                 if (dy > 1.0) return true;
+            }
+            
+            return false;
+        }
+
+        private BlockPos getTargetPos() {
+            if (golem.getNavigation().getCurrentPath() != null) {
+                return golem.getNavigation().getCurrentPath().getTarget();
+            }
+            return null;
+        }
+
+        private BlockPos findNearbyLadder() {
+            BlockPos pos = golem.getBlockPos();
+            // Check current block and immediate neighbors
+            for (BlockPos p : BlockPos.iterate(pos.add(-1, 0, -1), pos.add(1, 1, 1))) {
+                if (golem.getEntityWorld().getBlockState(p).isIn(BlockTags.CLIMBABLE)) {
+                    return p.toImmutable();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            if (ladderPos == null) return false;
+
+            // Check if we are still on or near a climbable block
+            boolean onClimbable = false;
+            BlockPos pos = golem.getBlockPos();
+            for (BlockPos p : BlockPos.iterate(pos.add(-1, 0, -1), pos.add(1, 1, 1))) {
+                if (golem.getEntityWorld().getBlockState(p).isIn(BlockTags.CLIMBABLE)) {
+                    onClimbable = true;
+                    ladderPos = p.toImmutable();
+                    break;
+                }
+            }
+            
+            if (!onClimbable) return false;
+            
+            // If we've reached the target height or target moved below us, we can stop
+            BlockPos target = getTargetPos();
+            if (target != null && target.getY() <= golem.getY()) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public void start() {
+            golem.getNavigation().stop();
+        }
+
+        @Override
+        public void stop() {
+            ladderPos = null;
+            golem.setVelocity(golem.getVelocity().x, 0.0, golem.getVelocity().z);
+        }
+
+        @Override
+        public void tick() {
+            if (ladderPos == null) return;
+            
+            BlockPos target = getTargetPos();
+
+            // Move towards ladder horizontal center
+            double centerX = ladderPos.getX() + 0.5;
+            double centerZ = ladderPos.getZ() + 0.5;
+            
+            if (golem.squaredDistanceTo(centerX, golem.getY(), centerZ) > 0.05) {
+                golem.getNavigation().startMovingTo(centerX, golem.getY(), centerZ, 1.0);
+            } else {
+                golem.getNavigation().stop();
+                // Snap to center to avoid sliding off
+                golem.refreshPositionAndAngles(centerX, golem.getY(), centerZ, golem.getYaw(), golem.getPitch());
+            }
+            
+            // If we are close enough to the ladder horizontally, climb
+            if (Math.abs(golem.getX() - centerX) < 0.5 && Math.abs(golem.getZ() - centerZ) < 0.5) {
+                if (target == null || target.getY() > golem.getY()) {
+                    // Only apply upward velocity if there is a climbable block at our feet or slightly above
+                    BlockPos currentPos = golem.getBlockPos();
+                    if (golem.getEntityWorld().getBlockState(currentPos).isIn(BlockTags.CLIMBABLE) || 
+                        golem.getEntityWorld().getBlockState(currentPos.up()).isIn(BlockTags.CLIMBABLE)) {
+                        golem.setVelocity(golem.getVelocity().x, 0.2, golem.getVelocity().z);
+                    } else {
+                        // We are at the top or no longer on a ladder
+                        golem.setVelocity(golem.getVelocity().x, 0.0, golem.getVelocity().z);
+                    }
+                }
+            }
+        }
+    }
+
     /// GOAL WRAPPER
     public static class DebugGoalWrapper extends Goal {
         private final UtilityGolem golem;
@@ -301,6 +419,7 @@ public class GolemAI {
 
         @Override
         public void start() {
+            golem.clearBlacklist();
         }
 
         @Override
@@ -483,9 +602,13 @@ public class GolemAI {
 
         private BlockPos findNearbyChest() {
             if (golem.getChestPos() != null) {
-                BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
-                if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
-                    return golem.getChestPos();
+                if (golem.isBlacklisted(golem.getChestPos())) {
+                    golem.setChestPos(null);
+                } else {
+                    BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
+                    if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
+                        return golem.getChestPos();
+                    }
                 }
             }
 
@@ -495,10 +618,12 @@ public class GolemAI {
                 for (int y = -15; y <= 15; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
+                        if (golem.isBlacklisted(p)) continue;
                         BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
                         BlockState bs = golem.getEntityWorld().getBlockState(p);
                         Block block = bs.getBlock();
-                        if (be instanceof Inventory && block == golem.getGolemType().getChestBlock()) {
+                        Block targetChest = golem.getGolemType().getChestBlock();
+                        if (be instanceof Inventory && block == targetChest) {
                             golem.setChestPos(p);
                             return p;
                         }
@@ -789,9 +914,13 @@ public class GolemAI {
 
         private BlockPos findNearbyChest() {
             if (golem.getChestPos() != null) {
-                BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
-                if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
-                    return golem.getChestPos();
+                if (golem.isBlacklisted(golem.getChestPos())) {
+                    golem.setChestPos(null);
+                } else {
+                    BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
+                    if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
+                        return golem.getChestPos();
+                    }
                 }
             }
 
@@ -801,10 +930,12 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
+                        if (golem.isBlacklisted(p)) continue;
                         BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
                         BlockState bs = golem.getEntityWorld().getBlockState(p);
                         Block block = bs.getBlock();
-                        if (be instanceof Inventory && block == golem.getGolemType().getChestBlock()) {
+                        Block targetChest = golem.getGolemType().getChestBlock();
+                        if (be instanceof Inventory && block == targetChest) {
                             golem.setChestPos(p);
                             return p;
                         }
@@ -865,6 +996,9 @@ public class GolemAI {
             chestPos = null;
         }
 
+        private int stuckTicks = 0;
+        private Vec3d lastPos = Vec3d.ZERO;
+
         @Override
         public void tick() {
             if (chestPos == null) return;
@@ -876,12 +1010,34 @@ public class GolemAI {
             double verticalDist = Math.abs(dy);
 
             if (horizontalDistSq > 4.0D || verticalDist > 4.0D) {
+                // stuck check
+                Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+                if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
+                    stuckTicks++;
+                } else {
+                    stuckTicks = 0;
+                }
+                lastPos = currentPos;
+
+                if (stuckTicks > 100) {
+                    golem.blacklistPosition(chestPos);
+                    stop();
+                    return;
+                }
+
                 // If it's far vertically, target our current height
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+                    boolean possible;
                     if (verticalDist > 2.0D) {
-                        golem.getNavigation().startMovingTo(chestPos.getX(), golem.getY(), chestPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), golem.getY(), chestPos.getZ(), 1.2D);
                     } else {
-                        golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                    }
+
+                    if (!possible) {
+                        golem.blacklistPosition(chestPos);
+                        stop();
+                        return;
                     }
                 }
             } else {
@@ -1029,8 +1185,20 @@ public class GolemAI {
                 if (!hasAnythingNeeded()) {
                     return false;
                 }
+
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    chestPos = findNearbyChest();
+                }
+
+                if (chestPos == null) return false;
+
+                // If we can already farm something (harvesting), prioritize that over withdrawing tools
+                if (new FarmGoal(golem).canStart()) {
+                    return false;
+                }
+
+                return hasNeededItemsInChest(chestPos);
             }
             
             if (golem.getGolemType() == GolemType.AMETHYST) {
@@ -1357,7 +1525,7 @@ public class GolemAI {
                         if (!hasEnoughSaplings() && stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) return true;
                     }
                     if (golem.getGolemType() == GolemType.BAMBOO) {
-                        if (!UtilityGolem.isHoe(golem.getHeldItem()) && UtilityGolem.isHoe(stack)) return true;
+                        if (!hasHoe() && UtilityGolem.isHoe(stack)) return true;
                         if (!hasWaterBucket() && !hasEmptyBucket() && (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET))) return true;
                         if (!hasSeeds() && isSeed(stack)) return true;
                     }
@@ -1384,9 +1552,24 @@ public class GolemAI {
             return false;
         }
 
+        private boolean hasHoe() {
+            if (UtilityGolem.isHoe(golem.getHeldItem())) return true;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isHoe(inv.getStack(i))) return true;
+            }
+            return false;
+        }
+
         public boolean hasAnythingNeeded() {
             if (golem.getGolemType() == GolemType.BAMBOO) {
-                return !UtilityGolem.isHoe(golem.getHeldItem()) || (!hasWaterBucket() && !hasEmptyBucket()) || !hasSeeds();
+                // We always WANT these things, but we don't NEED them to start farming if there's harvesting to do.
+                // However, this method is used by WithdrawItemsGoal.canStart().
+                // If we return true here, it will try to withdraw.
+                boolean needsHoe = !hasHoe();
+                boolean needsWater = !hasWaterBucket() && !hasEmptyBucket();
+                boolean needsSeeds = !hasSeeds();
+                return needsHoe || needsWater || needsSeeds;
             }
             if (golem.getGolemType() == GolemType.GOLD) {
                 return !hasGoldIngot() || !hasGoldNugget();
@@ -1412,9 +1595,13 @@ public class GolemAI {
 
         private BlockPos findNearbyChest() {
             if (golem.getChestPos() != null) {
-                BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
-                if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
-                    return golem.getChestPos();
+                if (golem.isBlacklisted(golem.getChestPos())) {
+                    golem.setChestPos(null);
+                } else {
+                    BlockEntity be = golem.getEntityWorld().getBlockEntity(golem.getChestPos());
+                    if (be instanceof Inventory && golem.getEntityWorld().getBlockState(golem.getChestPos()).getBlock() == golem.getGolemType().getChestBlock()) {
+                        return golem.getChestPos();
+                    }
                 }
             }
 
@@ -1424,10 +1611,12 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
+                        if (golem.isBlacklisted(p)) continue;
                         BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
                         BlockState bs = golem.getEntityWorld().getBlockState(p);
                         Block block = bs.getBlock();
-                        if (be instanceof Inventory && block == golem.getGolemType().getChestBlock()) {
+                        Block targetChest = golem.getGolemType().getChestBlock();
+                        if (be instanceof Inventory && block == targetChest) {
                             golem.setChestPos(p);
                             return p;
                         }
@@ -1455,9 +1644,13 @@ public class GolemAI {
             }
             if (golem.getGolemType() == GolemType.BAMBOO) {
                 // Should continue if we still need something AND there's a chest to get it from
+                if (chestPos == null) {
+                    chestPos = findNearbyChest();
+                }
                 return chestPos != null && hasAnythingNeeded() && !isInventoryFull() && 
                        golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory &&
-                       hasNeededItemsInChest(chestPos);
+                       hasNeededItemsInChest(chestPos) &&
+                       !new FarmGoal(golem).canStart(); // Interrupt if there's farming to do
             }
             if (golem.getGolemType() == GolemType.AMETHYST) {
                 return chestPos != null && !hasEnoughBreedingItems() && !isInventoryFull() && golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
@@ -1499,6 +1692,9 @@ public class GolemAI {
             chestPos = null;
         }
 
+        private int stuckTicks = 0;
+        private Vec3d lastPos = Vec3d.ZERO;
+
         @Override
         public void tick() {
             if (chestPos == null) return;
@@ -1510,11 +1706,35 @@ public class GolemAI {
             double verticalDist = Math.abs(dy);
 
             if (horizontalDistSq > 4.0D || verticalDist > 4.0D) {
-                // If it's far vertically, target our current height
-                if (verticalDist > 2.0D) {
-                    golem.getNavigation().startMovingTo(chestPos.getX(), golem.getY(), chestPos.getZ(), 1.2D);
+                // stuck check
+                Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+                if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
+                    stuckTicks++;
                 } else {
-                    golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                    stuckTicks = 0;
+                }
+                lastPos = currentPos;
+
+                if (stuckTicks > 100) {
+                    golem.blacklistPosition(chestPos);
+                    stop();
+                    return;
+                }
+
+                // If it's far vertically, target our current height
+                if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+                    boolean possible;
+                    if (verticalDist > 2.0D) {
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), golem.getY(), chestPos.getZ(), 1.2D);
+                    } else {
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                    }
+
+                    if (!possible) {
+                        golem.blacklistPosition(chestPos);
+                        stop();
+                        return;
+                    }
                 }
             } else {
                 golem.getNavigation().stop();
@@ -1875,6 +2095,7 @@ public class GolemAI {
                 for (int y = -range; y <= range; y++) {
                     for (int z = -8; z <= 8; z++) {
                         BlockPos p = pos.add(x, y, z);
+                        if (golem.isBlacklisted(p)) continue;
                         if (canDig(p)) {
                             // Only dig if within 32 blocks of chest (if chest is known)
                             if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
@@ -1940,6 +2161,9 @@ public class GolemAI {
             targetPos = null;
         }
 
+        private int stuckTicks = 0;
+        private Vec3d lastPos = Vec3d.ZERO;
+
         @Override
         public void tick() {
             if (targetPos == null) return;
@@ -1966,12 +2190,34 @@ public class GolemAI {
             double verticalDist = Math.abs(dy);
 
             if (horizontalDistSq > 16.0D || verticalDist > 15.0D) {
+                // stuck check
+                Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+                if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
+                    stuckTicks++;
+                } else {
+                    stuckTicks = 0;
+                }
+                lastPos = currentPos;
+
+                if (stuckTicks > 100) {
+                    golem.blacklistPosition(targetPos);
+                    stop();
+                    return;
+                }
+
                 // If it's high up or far below, move to the XZ position at our current height
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+                    boolean possible;
                     if (verticalDist > 2.0D) {
-                        golem.getNavigation().startMovingTo(targetPos.getX(), golem.getY(), targetPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(targetPos.getX(), golem.getY(), targetPos.getZ(), 1.2D);
                     } else {
-                        golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
+                    }
+
+                    if (!possible) {
+                        golem.blacklistPosition(targetPos);
+                        stop();
+                        return;
                     }
                 }
                 breakingTime = 0;
@@ -2064,10 +2310,37 @@ public class GolemAI {
             if (golem.getGolemType() != GolemType.BAMBOO) return false;
             
             BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) {
+                // If we don't have a chest, try to find one.
+                // This allows the golem to start farming as soon as a chest is placed.
+                chestPos = findNearbyChest();
+            }
             if (chestPos == null) return false;
 
             targetPos = findTargetPos();
             return targetPos != null;
+        }
+
+        private BlockPos findNearbyChest() {
+            BlockPos pos = golem.getBlockPos();
+            int range = 16;
+            for (int x = -range; x <= range; x++) {
+                for (int y = -4; y <= 4; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        if (golem.isBlacklisted(p)) continue;
+                        BlockEntity be = golem.getEntityWorld().getBlockEntity(p);
+                        BlockState bs = golem.getEntityWorld().getBlockState(p);
+                        Block block = bs.getBlock();
+                        Block targetChest = golem.getGolemType().getChestBlock();
+                        if (be instanceof Inventory && block == targetChest) {
+                            golem.setChestPos(p);
+                            return p;
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         private BlockPos findTargetPos() {
@@ -2105,7 +2378,7 @@ public class GolemAI {
                 for (int z = -4; z <= 4; z++) {
                     for (int y = -1; y <= 1; y++) {
                         BlockPos p = center.add(x, y, z);
-                        if (p.equals(center)) {
+                        if (p.equals(center) || golem.isBlacklisted(p)) {
                             continue; 
                         }
                         
@@ -2125,13 +2398,16 @@ public class GolemAI {
                             if (shouldTill(p, center) || shouldPlant(p, center)) {
                                 return p;
                             }
+                        } else if (hasWaterBucket() && (shouldTill(p, center) || shouldPlant(p, center))) {
+                             // If we have a water bucket, but haven't placed it yet, we should still return the center to place it.
+                             // This is already handled at the top of findTargetPos, but just in case.
                         }
                     }
                 }
             }
 
             // Check if center block itself needs action (in case it's not water)
-            if (!center.equals(chestPos)) {
+            if (!center.equals(chestPos) && !golem.isBlacklisted(center)) {
                 if (shouldHarvest(center, null)) return center;
                 if (isWater(center)) {
                     // center is already water, do nothing
@@ -2340,6 +2616,9 @@ public class GolemAI {
             farmActionTime = 0;
         }
 
+        private int stuckTicks = 0;
+        private Vec3d lastPos = Vec3d.ZERO;
+
         @Override
         public void tick() {
             if (targetPos == null) return;
@@ -2349,8 +2628,28 @@ public class GolemAI {
 
             double dist = golem.getBlockPos().getSquaredDistance(targetPos.getX(), targetPos.getY(), targetPos.getZ());
             if (dist > 4.0) {
+                // stuck check
+                Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+                if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
+                    stuckTicks++;
+                } else {
+                    stuckTicks = 0;
+                }
+                lastPos = currentPos;
+
+                if (stuckTicks > 100) {
+                    golem.blacklistPosition(targetPos);
+                    targetPos = null;
+                    return;
+                }
+
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
-                    golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.0);
+                    boolean possible = golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.0);
+                    if (!possible) {
+                        golem.blacklistPosition(targetPos);
+                        targetPos = null;
+                        return;
+                    }
                 }
                 golem.getLookControl().lookAt(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5, 30.0F, 30.0F);
             } else {
@@ -2493,6 +2792,9 @@ public class GolemAI {
                             Block.dropStack(serverWorld, targetPos, remaining);
                         }
                     }
+                    
+                    // Swing hand to show action
+                    golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                 }
                 targetPos = null;
                 return;
@@ -3338,7 +3640,7 @@ public class GolemAI {
                 for (int y = -range; y <= range; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
-                        if (canChop(p) && !failedBlocks.containsKey(p)) {
+                        if (canChop(p) && !failedBlocks.containsKey(p) && !golem.isBlacklisted(p)) {
                             // Only chop if within 32 blocks of chest (if chest is known)
                             if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 double distSq = p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ());
@@ -3370,7 +3672,7 @@ public class GolemAI {
                 for (int y = -searchRange; y <= searchRange; y++) {
                     for (int z = -searchRange; z <= searchRange; z++) {
                         BlockPos p = startPos.add(x, y, z);
-                        if (canChop(p) && !failedBlocks.containsKey(p)) {
+                        if (canChop(p) && !failedBlocks.containsKey(p) && !golem.isBlacklisted(p)) {
                             // Only chop if within 32 blocks of chest (if chest is known)
                             if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
                                 double distSq = p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ());
@@ -3483,13 +3785,24 @@ public class GolemAI {
 
             // If it's too far horizontally or too far vertically
             if (horizontalDistSq > 16.0D || verticalDist > 15.0D) {
+                if (stuckTicks > 100) {
+                    golem.blacklistPosition(targetPos);
+                    targetPos = null;
+                    return;
+                }
                 // If it's high up, move to the base of it
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+                    boolean possible;
                     // If it's high up, move to the base of it
                     if (verticalDist > 2.0D) {
-                        golem.getNavigation().startMovingTo(targetPos.getX(), golem.getY(), targetPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(targetPos.getX(), golem.getY(), targetPos.getZ(), 1.2D);
                     } else {
-                        golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.2D);
+                    }
+                    if (!possible) {
+                        golem.blacklistPosition(targetPos);
+                        targetPos = null;
+                        return;
                     }
                 }
                 breakingTime = 0;

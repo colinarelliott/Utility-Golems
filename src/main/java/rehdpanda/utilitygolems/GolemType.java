@@ -66,7 +66,7 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initFurnaceGoals,
-            Blocks.CHEST
+            null
     ),
     BAMBOO("bamboo_golem", "Bamboo Golem", "textures/entity/bamboo_golem.png",
             baseAttributes()
@@ -106,7 +106,7 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initJukeboxGoals,
-            Blocks.CHEST
+            null
     );
 
 

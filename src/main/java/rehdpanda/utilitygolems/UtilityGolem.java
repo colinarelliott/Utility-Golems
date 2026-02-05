@@ -8,6 +8,14 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.InventoryOwner;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.ai.pathing.EntityNavigation;
+import net.minecraft.entity.ai.pathing.MobNavigation;
+import java.util.HashSet;
+import java.util.Set;
+import net.minecraft.entity.ai.pathing.EntityNavigation;
+import net.minecraft.entity.ai.pathing.MobNavigation;
+import net.minecraft.entity.ai.pathing.PathNodeMaker;
+import net.minecraft.entity.ai.pathing.PathNodeNavigator;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -42,6 +50,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleInventory inventory = new SimpleInventory(9);
     private final SimpleInventory furnaceInventory = new SimpleInventory(3);
+    private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
     private ItemStack currentlyPlayingStack = ItemStack.EMPTY;
     private int burnTime;
@@ -145,6 +154,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return (BlockPos)((Optional)this.dataTracker.get(DEBUG_TARGET)).orElse(null);
     }
 
+    public boolean isBlacklisted(BlockPos pos) {
+        return blacklistedPositions.contains(pos);
+    }
+
+    public void blacklistPosition(BlockPos pos) {
+        blacklistedPositions.add(pos);
+    }
+
+    public void clearBlacklist() {
+        blacklistedPositions.clear();
+    }
+
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;
@@ -197,11 +218,26 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             if (this.jukeboxCooldown == 0 && !this.currentlyPlayingStack.isEmpty()) {
                 if (!this.getEntityWorld().isClient()) {
                     this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
-                    this.currentlyPlayingStack = ItemStack.EMPTY;
+                    
+                    // Stop the music sound if it was playing via playSound
+                    this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE).song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                        // Unfortunately there is no easy stopSound on World, but typically music discs are handled by JUKEBOX_STOPS_PLAYING event on client
+                        // However since we added a manual playSound, we should ensure it stops. 
+                        // Actually, playSound for RECORDS category might not be easily stoppable from server without a specific packet.
+                        // But JUKEBOX_STOPS_PLAYING should stop all records at that position on the client.
+                    });
+
                     if (this.golemType == GolemType.JUKEBOX) {
+                        PlayerEntity player = this.getEntityWorld().getClosestPlayer(this, 10.0D);
+                        if (player != null) {
+                            player.dropItem(this.currentlyPlayingStack.copy(), false);
+                        } else {
+                            this.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), this.currentlyPlayingStack.copy()));
+                        }
                         this.setHeldItem(ItemStack.EMPTY);
                         this.setSearching(false);
                     }
+                    this.currentlyPlayingStack = ItemStack.EMPTY;
                 }
             }
             if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
@@ -219,6 +255,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 tickJukebox();
             }
         }
+    }
+
+    @Override
+    public boolean isClimbing() {
+        return super.isClimbing() || this.getEntityWorld().getBlockState(this.getBlockPos()).isIn(net.minecraft.registry.tag.BlockTags.CLIMBABLE);
     }
 
     private void tickFurnace() {
@@ -340,7 +381,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                             
                             if (!this.getEntityWorld().isClient()) {
                                 this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
-                                this.getEntityWorld().playSound(null, this.getBlockPos(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.NEUTRAL, 0.5F, 0.4F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+                                this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
                             }
 
                             // Equipping the record so it's visible and might help with client-side playing
@@ -475,6 +516,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
                         
                         this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
+                        this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
                         
                         this.setHeldItem(this.currentlyPlayingStack.copy());
                         this.setSearching(true);
@@ -647,9 +689,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
+    protected EntityNavigation createNavigation(World world) {
+        MobNavigation mobNavigation = new MobNavigation(this, world);
+        // mobNavigation.setCanPathThroughDoors(true);
+        return mobNavigation;
+    }
+
+    @Override
     protected void initGoals() {
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new SwimGoal(this)));
-        this.goalSelector.add(6, new GolemAI.DebugGoalWrapper(this, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F)));
+        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.entity.ai.goal.LongDoorInteractGoal(this, true)));
+        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
 
         if (this.golemType != null) {
             this.golemType.initGoals(this);
