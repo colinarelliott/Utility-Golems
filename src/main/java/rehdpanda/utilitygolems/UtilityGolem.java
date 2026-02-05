@@ -287,24 +287,33 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         
         boolean isLampOn = this.isLampOn();
         if (isLampOn) {
-            if (!this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
-                this.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 20, 0, false, false));
-            }
-            
-            BlockPos currentPos = this.getBlockPos().up();
-            if (lastLightPos == null || !lastLightPos.equals(currentPos)) {
-                removeLight();
-                if (this.getEntityWorld().getBlockState(currentPos).isReplaceable()) {
-                    this.getEntityWorld().setBlockState(currentPos, UGBlocks.LIGHT_BLOCK.getDefaultState());
-                    lastLightPos = currentPos;
-                }
-            }
+            updateLightAndGlowing(12);
         } else {
-            if (this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
-                this.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING);
-            }
-            removeLight();
+            stopLightAndGlowing();
         }
+    }
+
+    private void updateLightAndGlowing(int lightLevel) {
+        if (!this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
+            this.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 20, 0, false, false));
+        }
+
+        BlockPos currentPos = this.getBlockPos().up();
+        if (lastLightPos == null || !lastLightPos.equals(currentPos) || !this.getEntityWorld().getBlockState(lastLightPos).isOf(UGBlocks.LIGHT_BLOCK) || this.getEntityWorld().getBlockState(lastLightPos).get(LightBlock.LEVEL) != lightLevel) {
+            removeLight();
+            if (this.getEntityWorld().getBlockState(currentPos).isReplaceable()) {
+                this.getEntityWorld().setBlockState(currentPos, UGBlocks.LIGHT_BLOCK.getDefaultState().with(LightBlock.LEVEL, lightLevel));
+                lastLightPos = currentPos;
+            }
+        }
+    }
+
+    private void stopLightAndGlowing() {
+        if (lastLightPos == null) return;
+        if (this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
+            this.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING);
+        }
+        removeLight();
     }
 
     private void removeLight() {
@@ -373,6 +382,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
         if (wasBurning != this.burnTime > 0) {
             // Updated
+        }
+
+        if (this.burnTime > 0) {
+            updateLightAndGlowing(6);
+        } else {
+            stopLightAndGlowing();
         }
     }
 

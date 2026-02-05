@@ -40,6 +40,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.LAMP, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
         }
     }
 
@@ -58,6 +59,7 @@ public class GolemPatterns {
             case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
             case JUKEBOX -> Blocks.JUKEBOX;
             case LAMP -> Blocks.REDSTONE_LAMP;
+            case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
             default -> Blocks.LAPIS_BLOCK;
         };
 

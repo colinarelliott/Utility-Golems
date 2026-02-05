@@ -30,7 +30,7 @@ public class UGBlocks {
                 lightId,
                 new LightBlock(AbstractBlock.Settings.create()
                         .registryKey(RegistryKey.of(RegistryKeys.BLOCK, lightId))
-                        .luminance(state -> 12)
+                        .luminance(state -> state.get(LightBlock.LEVEL))
                         .noCollision()
                         .nonOpaque()
                         .air())
@@ -52,6 +52,7 @@ public class UGBlocks {
                 case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
                 case FURNACE -> Blocks.FURNACE;
                 case JUKEBOX -> Blocks.JUKEBOX;
+                case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
                 default -> Blocks.AIR;
             };
 

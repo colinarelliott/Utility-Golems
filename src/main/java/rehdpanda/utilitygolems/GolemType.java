@@ -115,6 +115,14 @@ public enum GolemType {
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initLampGoals,
             null
+    ),
+    NETHER_WART("nether_wart_golem", "Nether Wart Golem", "textures/entity/nether_wart_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetherWartGoals,
+            null
     );
 
 
