@@ -46,3 +46,7 @@
     - Automates potion brewing when given a brewing stand and ingredients.
     - Deposits finished potions into nearby chests.
     - Fills water bottles with water when given glass bottles.
+
+### Adds a wrench item which heals golems
+<recipe image>
+- 500 durability, standard tool
