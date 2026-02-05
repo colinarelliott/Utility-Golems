@@ -171,6 +171,160 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PlayRecordGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
     }
+
+    public static void initLampGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                Items.TORCH, Items.SOUL_TORCH, Items.REDSTONE_TORCH, Items.LANTERN, Items.SOUL_LANTERN
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new PlaceTorchGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+    }
+    
+    public static class PlaceTorchGoal extends Goal {
+        private final UtilityGolem golem;
+        private BlockPos targetPos;
+        private int placeActionTime;
+        private static final int MAX_PLACE_ACTION_TIME = 20;
+        private int cooldown = 0;
+
+        public PlaceTorchGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (cooldown > 0) {
+                cooldown--;
+                return false;
+            }
+            if (golem.getGolemType() != GolemType.LAMP) return false;
+            if (!golem.isLampOn()) return false;
+            
+            targetPos = findDarkSpot();
+            return targetPos != null && hasTorch();
+        }
+
+        private boolean hasTorch() {
+            if (isTorch(golem.getHeldItem())) return true;
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (isTorch(golem.getInventory().getStack(i))) return true;
+            }
+            return false;
+        }
+
+        private boolean isTorch(ItemStack stack) {
+            return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
+        }
+
+        private BlockPos findDarkSpot() {
+            World world = golem.getEntityWorld();
+            BlockPos pos = golem.getBlockPos();
+            int range = 8;
+            BlockPos bestPos = null;
+            double bestDistSq = Double.MAX_VALUE;
+
+            for (int x = -range; x <= range; x++) {
+                for (int y = -2; y <= 2; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        if (world.getLightLevel(net.minecraft.world.LightType.BLOCK, p) == 0 && canPlaceTorchAt(p)) {
+                            double distSq = pos.getSquaredDistance(p);
+                            if (distSq < bestDistSq) {
+                                bestDistSq = distSq;
+                                bestPos = p.toImmutable();
+                            }
+                        }
+                    }
+                }
+            }
+            return bestPos;
+        }
+
+        private boolean canPlaceTorchAt(BlockPos pos) {
+            World world = golem.getEntityWorld();
+            if (!world.getBlockState(pos).isReplaceable()) return false;
+            BlockState below = world.getBlockState(pos.down());
+            return below.isSideSolidFullSquare(world, pos.down(), Direction.UP) || below.isIn(BlockTags.FENCES);
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetPos != null && hasTorch() && golem.isLampOn() && golem.getEntityWorld().getLightLevel(net.minecraft.world.LightType.BLOCK, targetPos) == 0;
+        }
+
+        @Override
+        public void start() {
+            placeActionTime = 0;
+            golem.setDebugTarget(targetPos);
+            golem.getNavigation().startMovingTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D, 1.2D);
+        }
+
+        @Override
+        public void stop() {
+            targetPos = null;
+            golem.setDebugTarget(null);
+            golem.getNavigation().stop();
+            cooldown = 40; // Add 2 second cooldown after finishing or being interrupted
+        }
+
+        @Override
+        public void tick() {
+            if (targetPos == null) return;
+
+            golem.getLookControl().lookAt(targetPos.getX() + 0.5D, targetPos.getY() + 0.5D, targetPos.getZ() + 0.5D);
+            double distSq = golem.squaredDistanceTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D);
+
+            if (distSq > 2.0D * 2.0D) {
+                if (golem.getNavigation().isIdle()) {
+                    golem.getNavigation().startMovingTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D, 1.2D);
+                }
+                placeActionTime = 0;
+            } else {
+                golem.getNavigation().stop();
+                placeActionTime++;
+                if (placeActionTime >= MAX_PLACE_ACTION_TIME) {
+                    placeTorch();
+                    targetPos = null;
+                }
+            }
+        }
+
+        private void placeTorch() {
+            ItemStack torchStack = ItemStack.EMPTY;
+            int slot = -1;
+
+            if (isTorch(golem.getHeldItem())) {
+                torchStack = golem.getHeldItem();
+            } else {
+                for (int i = 0; i < golem.getInventory().size(); i++) {
+                    if (isTorch(golem.getInventory().getStack(i))) {
+                        torchStack = golem.getInventory().getStack(i);
+                        slot = i;
+                        break;
+                    }
+                }
+            }
+
+            if (!torchStack.isEmpty()) {
+                World world = golem.getEntityWorld();
+                Block torchBlock = Blocks.TORCH;
+                if (torchStack.isOf(Items.SOUL_TORCH)) torchBlock = Blocks.SOUL_TORCH;
+                else if (torchStack.isOf(Items.REDSTONE_TORCH)) torchBlock = Blocks.REDSTONE_TORCH;
+
+                if (world.getBlockState(targetPos).isReplaceable()) {
+                    world.setBlockState(targetPos, torchBlock.getDefaultState());
+                    world.playSound(null, targetPos, SoundEvents.BLOCK_WOOD_PLACE, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    torchStack.decrement(1);
+                    if (torchStack.isEmpty() && slot != -1) {
+                        golem.getInventory().setStack(slot, ItemStack.EMPTY);
+                    }
+                    golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                }
+            }
+        }
+    }
     
     /// GOAL WRAPPER
     public static class ClimbLadderGoal extends Goal {
@@ -4292,6 +4446,8 @@ public class GolemAI {
                         } else if (golem.getGolemType() == GolemType.GOLD) {
                             // Gold golem wants to pick up gold AND anything else (traded items)
                             isFamiliar = true; 
+                        } else if (golem.getGolemType() == GolemType.LAMP) {
+                            isFamiliar = UtilityGolem.isTorch(stack);
                         }
                         
                         if (!isFamiliar) return false;

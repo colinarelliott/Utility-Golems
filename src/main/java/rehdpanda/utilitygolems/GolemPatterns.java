@@ -38,6 +38,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.SPONGE, facing);
             trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE, facing);
             trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX, facing);
+            trySpawnGolem(serverWorld, pos, GolemType.LAMP, facing);
         }
     }
 
@@ -56,6 +57,7 @@ public class GolemPatterns {
             //case STRIPPEDBAMBOO -> Blocks.STRIPPED_BAMBOO_BLOCK;
             case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
             case JUKEBOX -> Blocks.JUKEBOX;
+            case LAMP -> Blocks.REDSTONE_LAMP;
             default -> Blocks.LAPIS_BLOCK;
         };
 
@@ -82,7 +84,7 @@ public class GolemPatterns {
         }
 
         Block chestBlock = type.getChestBlock();
-        if (chestBlock != null && golem.getGolemType() != GolemType.FURNACE && golem.getGolemType() != GolemType.JUKEBOX) {
+        if (chestBlock != null) {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
             BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();

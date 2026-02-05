@@ -107,6 +107,14 @@ public enum GolemType {
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initJukeboxGoals,
             null
+    ),
+    LAMP("lamp_golem", "Lamp Golem", "textures/entity/lamp_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initLampGoals,
+            null
     );
 
 
@@ -154,6 +162,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
+        if (this == LAMP) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

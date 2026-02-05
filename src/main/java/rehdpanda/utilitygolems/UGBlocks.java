@@ -21,10 +21,23 @@ import java.util.Map;
 public class UGBlocks {
     public static final Map<GolemType, Block> GOLEM_CHESTS = new HashMap<>();
     public static BlockEntityType<GolemChestBlockEntity> GOLEM_CHEST_BLOCK_ENTITY;
+    public static Block LIGHT_BLOCK;
 
     public static void register() {
+        Identifier lightId = Identifier.of(UGInit.MOD_ID, "light_block");
+        LIGHT_BLOCK = Registry.register(
+                Registries.BLOCK,
+                lightId,
+                new LightBlock(AbstractBlock.Settings.create()
+                        .registryKey(RegistryKey.of(RegistryKeys.BLOCK, lightId))
+                        .luminance(state -> 12)
+                        .noCollision()
+                        .nonOpaque()
+                        .air())
+        );
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
+            if (type == GolemType.LAMP) continue;
             String name = type.getName().trim() + "_chest";
             Block materialBlock = switch (type) {
                 case LAPIS -> Blocks.LAPIS_BLOCK;
@@ -39,6 +52,7 @@ public class UGBlocks {
                 case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
                 case FURNACE -> Blocks.FURNACE;
                 case JUKEBOX -> Blocks.JUKEBOX;
+                default -> Blocks.AIR;
             };
 
             float hardness = switch (type) {
@@ -58,6 +72,7 @@ public class UGBlocks {
                             .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
                             .strength(hardness, resistance)
                             .requiresTool()
+                            .luminance(state -> 0)
                             .nonOpaque())
             );
             GOLEM_CHESTS.put(type, block);

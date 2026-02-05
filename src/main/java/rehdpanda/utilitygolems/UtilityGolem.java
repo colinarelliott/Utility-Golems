@@ -57,6 +57,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private int fuelTime;
     private int cookTime;
     private int cookTimeTotal;
+    private BlockPos lastLightPos;
 
     private final net.minecraft.screen.PropertyDelegate furnacePropertyDelegate = new net.minecraft.screen.PropertyDelegate() {
         @Override
@@ -92,6 +93,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Integer> WALL_WIDTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> WALL_LENGTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -102,6 +104,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(WALL_WIDTH, 3);
         builder.add(WALL_LENGTH, 3);
         builder.add(BUILDING_STARTED, false);
+        builder.add(LAMP_ON, false);
     }
 
     public void setBuildingStarted(boolean started) {
@@ -110,6 +113,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public boolean isBuildingStarted() {
         return this.dataTracker.get(BUILDING_STARTED);
+    }
+
+    public void setLampOn(boolean on) {
+        this.dataTracker.set(LAMP_ON, on);
+    }
+
+    public boolean isLampOn() {
+        return this.dataTracker.get(LAMP_ON);
     }
 
     public void setBuildPattern(BuildPattern pattern) {
@@ -179,6 +190,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public void onDeath(net.minecraft.entity.damage.DamageSource source) {
         super.onDeath(source);
         if (!this.getEntityWorld().isClient()) {
+            removeLight();
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 ItemStack stack = this.getEquippedStack(slot);
                 if (!stack.isEmpty()) {
@@ -254,7 +266,52 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             if (this.golemType == GolemType.JUKEBOX) {
                 tickJukebox();
             }
+            if (this.golemType == GolemType.LAMP) {
+                tickLamp();
+            }
         }
+    }
+
+    private void tickLamp() {
+        if (this.getEntityWorld().isClient()) return;
+        
+        boolean isLampOn = this.isLampOn();
+        if (isLampOn) {
+            if (!this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
+                this.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 20, 0, false, false));
+            }
+            
+            BlockPos currentPos = this.getBlockPos().up();
+            if (lastLightPos == null || !lastLightPos.equals(currentPos)) {
+                removeLight();
+                if (this.getEntityWorld().getBlockState(currentPos).isReplaceable()) {
+                    this.getEntityWorld().setBlockState(currentPos, UGBlocks.LIGHT_BLOCK.getDefaultState());
+                    lastLightPos = currentPos;
+                }
+            }
+        } else {
+            if (this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
+                this.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING);
+            }
+            removeLight();
+        }
+    }
+
+    private void removeLight() {
+        if (lastLightPos != null) {
+            if (this.getEntityWorld().getBlockState(lastLightPos).isOf(UGBlocks.LIGHT_BLOCK)) {
+                this.getEntityWorld().setBlockState(lastLightPos, net.minecraft.block.Blocks.AIR.getDefaultState());
+            }
+            lastLightPos = null;
+        }
+    }
+
+    @Override
+    public void remove(net.minecraft.entity.Entity.RemovalReason reason) {
+        if (!this.getEntityWorld().isClient()) {
+            removeLight();
+        }
+        super.remove(reason);
     }
 
     @Override
@@ -490,13 +547,33 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
-        if (!player.getEntityWorld().isClient()) {
-            if (this.golemType == GolemType.FURNACE) {
+        if (this.golemType == GolemType.LAMP && isTorch(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                swapTool(player, playerStack);
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.FURNACE) {
+            if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
                         (syncId, playerInventory, p) -> new GolemFurnaceScreenHandler(syncId, playerInventory, this.furnaceInventory, this.furnacePropertyDelegate, this),
                         this.getDisplayName()
                 ));
-            } else if (this.golemType == GolemType.JUKEBOX) {
+            }
+            return ActionResult.SUCCESS;
+        } else if (this.golemType == GolemType.LAMP) {
+            if (player.isSneaking()) {
+                if (!player.getEntityWorld().isClient()) {
+                    this.setLampOn(!this.isLampOn());
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), this.isLampOn() ? SoundEvents.BLOCK_IRON_TRAPDOOR_OPEN : SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE, SoundCategory.BLOCKS, 0.5F, 1.5F);
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
+
+        if (!player.getEntityWorld().isClient()) {
+            if (this.golemType == GolemType.JUKEBOX) {
                 if (!this.currentlyPlayingStack.isEmpty()) {
                     player.dropItem(this.currentlyPlayingStack.copy(), false);
                     this.currentlyPlayingStack = ItemStack.EMPTY;
@@ -544,6 +621,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         return new GolemInventoryScreenHandler(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
                     }
                 });
+                return ActionResult.SUCCESS;
             }
         }
         return ActionResult.SUCCESS;
@@ -601,6 +679,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return stack.isOf(Items.SHEARS);
     }
 
+    public static boolean isTorch(ItemStack stack) {
+        return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
+    }
+
     public static boolean isShovel(ItemStack stack) {
         return stack.isOf(Items.WOODEN_SHOVEL) || stack.isOf(Items.STONE_SHOVEL) ||
                 stack.isOf(Items.IRON_SHOVEL) || stack.isOf(Items.DIAMOND_SHOVEL) ||
@@ -617,6 +699,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("WallWidth", this.getWallWidth());
         writeView.putInt("WallLength", this.getWallLength());
         writeView.putBoolean("BuildingStarted", this.isBuildingStarted());
+        writeView.putBoolean("LampOn", this.isLampOn());
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.writeData(writeView.get("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         if (!this.currentlyPlayingStack.isEmpty()) {
@@ -641,6 +724,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setWallWidth(readView.getInt("WallWidth", 3));
         this.setWallLength(readView.getInt("WallLength", 3));
         this.setBuildingStarted(readView.getBoolean("BuildingStarted", false));
+        this.setLampOn(readView.getBoolean("LampOn", false));
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.readData(readView.getReadView("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);

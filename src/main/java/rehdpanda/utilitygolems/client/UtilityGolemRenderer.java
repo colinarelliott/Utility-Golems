@@ -24,6 +24,9 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
 
     @Override
     public Identifier getTexture(CopperGolemEntityRenderState state) {
+        if (state instanceof UtilityGolemRenderState renderState && renderState.isLampOn && type == GolemType.LAMP) {
+            return Identifier.of("utility-golems", "textures/entity/lamp_golem_illuminated.png");
+        }
         return type.getTexture();
     }
 
@@ -39,6 +42,7 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             renderState.chestPos = utilityGolem.getChestPos();
             renderState.aiTarget = utilityGolem.getDebugTarget();
             renderState.isDebug = utilityGolem.hasCustomName() && "debug".equalsIgnoreCase(utilityGolem.getCustomName().getString());
+            renderState.isLampOn = utilityGolem.isLampOn();
         }
     }
 

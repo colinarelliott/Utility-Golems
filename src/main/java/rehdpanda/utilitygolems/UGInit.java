@@ -129,6 +129,7 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.BAMBOO_BLOCK);
                                 give(player, Items.FURNACE);
                                 give(player, Items.JUKEBOX);
+                                give(player, Items.REDSTONE_LAMP);
                                 give(player, Items.SPONGE);
                                 give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
@@ -140,6 +141,7 @@ public class UGInit implements ModInitializer {
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
             for (GolemType type : GolemType.values()) {
+                if (type == GolemType.LAMP) continue;
                 net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
                 if (chest != null) {
                     entries.add(chest);
