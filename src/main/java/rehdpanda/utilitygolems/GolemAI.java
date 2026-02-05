@@ -1423,51 +1423,57 @@ public class GolemAI {
         }
 
         private boolean hasTradeItems() {
-            TradeOfferList offers = findNearbyVillagerOffers();
-            if (offers == null) return false;
+            List<TradeOfferList> allOffers = findNearbyVillagerOffers();
+            if (allOffers.isEmpty()) return false;
             SimpleInventory inventory = golem.getInventory();
-            for (TradeOffer offer : offers) {
-                if (offer.isDisabled()) continue;
-                if (offer.getSellItem().isOf(Items.EMERALD)) {
-                    TradedItem buyItem1 = offer.getFirstBuyItem();
-                    Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
-                    if (hasStack(inventory, buyItem1) && (buyItem2.isEmpty() || hasStack(inventory, buyItem2.get()))) {
-                        return true;
+            for (TradeOfferList offers : allOffers) {
+                for (TradeOffer offer : offers) {
+                    if (offer.isDisabled()) continue;
+                    if (offer.getSellItem().isOf(Items.EMERALD)) {
+                        TradedItem buyItem1 = offer.getFirstBuyItem();
+                        Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
+                        if (hasStack(inventory, buyItem1) && (buyItem2.isEmpty() || hasStack(inventory, buyItem2.get()))) {
+                            return true;
+                        }
                     }
                 }
             }
             return false;
         }
 
-        private TradeOfferList findNearbyVillagerOffers() {
+        private List<TradeOfferList> findNearbyVillagerOffers() {
+            List<TradeOfferList> allOffers = new ArrayList<>();
             List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), villager -> true);
             for (VillagerEntity villager : villagers) {
                 TradeOfferList offers = villager.getOffers();
                 for (TradeOffer offer : offers) {
                     if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
-                        return offers;
+                        allOffers.add(offers);
+                        break;
                     }
                 }
             }
-            return null;
+            return allOffers;
         }
 
         private boolean hasTradeItemsInChest(BlockPos pos) {
             BlockEntity be = golem.getEntityWorld().getBlockEntity(pos);
             if (be instanceof Inventory container) {
-                TradeOfferList offers = findNearbyVillagerOffers();
-                if (offers == null) return false;
+                List<TradeOfferList> allOffers = findNearbyVillagerOffers();
+                if (allOffers.isEmpty()) return false;
                 
-                for (TradeOffer offer : offers) {
-                    if (offer.isDisabled()) continue;
-                    if (offer.getSellItem().isOf(Items.EMERALD)) {
-                        TradedItem buyItem1 = offer.getFirstBuyItem();
-                        Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
-                        
-                        boolean has1 = hasStackInInventoryOrChest(buyItem1, container);
-                        boolean has2 = buyItem2.isEmpty() || hasStackInInventoryOrChest(buyItem2.get(), container);
-                        
-                        if (has1 && has2) return true;
+                for (TradeOfferList offers : allOffers) {
+                    for (TradeOffer offer : offers) {
+                        if (offer.isDisabled()) continue;
+                        if (offer.getSellItem().isOf(Items.EMERALD)) {
+                            TradedItem buyItem1 = offer.getFirstBuyItem();
+                            Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
+                            
+                            boolean has1 = hasStackInInventoryOrChest(buyItem1, container);
+                            boolean has2 = buyItem2.isEmpty() || hasStackInInventoryOrChest(buyItem2.get(), container);
+                            
+                            if (has1 && has2) return true;
+                        }
                     }
                 }
             }
@@ -1906,6 +1912,7 @@ public class GolemAI {
             BlockEntity be = golem.getEntityWorld().getBlockEntity(chestPos);
             if (be instanceof Inventory container) {
                 SimpleInventory golemInv = golem.getInventory();
+                boolean withdrawnSomething = false;
                 for (int i = 0; i < container.size(); i++) {
                     ItemStack containerStack = container.getStack(i);
                     if (containerStack.isEmpty()) continue;
@@ -1921,6 +1928,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.AMETHYST && isValidBreedingItem(containerStack)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setStack(i, remaining);
+                        withdrawnSomething = true;
                         if (hasEnoughBreedingItems() || isInventoryFull()) {
                             golemInv.markDirty();
                             container.markDirty();
@@ -1932,6 +1940,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.REDSTONE && containerStack.isOf(Items.REDSTONE)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setStack(i, remaining);
+                        withdrawnSomething = true;
                         if (hasRedstone() || isInventoryFull()) {
                             golemInv.markDirty();
                             container.markDirty();
@@ -1943,6 +1952,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.GOLD && containerStack.isOf(Items.GOLD_INGOT)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setStack(i, remaining);
+                        withdrawnSomething = true;
                         if (hasGold() || isInventoryFull()) {
                             golemInv.markDirty();
                             container.markDirty();
@@ -1954,6 +1964,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.JUKEBOX && containerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE) != null) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setStack(i, remaining);
+                        withdrawnSomething = true;
                         if (hasMusicDisc() || isInventoryFull()) {
                             golemInv.markDirty();
                             container.markDirty();
@@ -1965,6 +1976,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.FURNACE && isFuel(containerStack)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setStack(i, remaining);
+                        withdrawnSomething = true;
                         if (hasFuel() || isInventoryFull()) {
                             golemInv.markDirty();
                             container.markDirty();
@@ -1977,6 +1989,7 @@ public class GolemAI {
                         if (UtilityGolem.isHoe(containerStack)) {
                             ItemStack hoe = containerStack.split(1);
                             golem.setHeldItem(hoe);
+                            withdrawnSomething = true;
                             if ((hasWaterBucket() || hasEmptyBucket()) && hasSeeds()) {
                                 golemInv.markDirty();
                                 container.markDirty();
@@ -1986,6 +1999,7 @@ public class GolemAI {
                             if (!hasWaterBucket() && !hasEmptyBucket()) {
                                 ItemStack bucket = containerStack.split(1);
                                 golem.getInventory().addStack(bucket);
+                                withdrawnSomething = true;
                                 if (UtilityGolem.isHoe(golem.getHeldItem()) && hasSeeds()) {
                                     golemInv.markDirty();
                                     container.markDirty();
@@ -1996,6 +2010,7 @@ public class GolemAI {
                              if (!hasSeeds()) {
                                  ItemStack seeds = containerStack.split(Math.min(containerStack.getCount(), 64));
                                  golem.getInventory().addStack(seeds);
+                                 withdrawnSomething = true;
                                  if (UtilityGolem.isHoe(golem.getHeldItem()) && (hasWaterBucket() || hasEmptyBucket())) {
                                      golemInv.markDirty();
                                      container.markDirty();
@@ -2022,6 +2037,7 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.DIAMOND && containerStack.getItem() instanceof net.minecraft.item.BlockItem) {
                         ItemStack blocks = containerStack.split(Math.min(containerStack.getCount(), 64));
                         golemInv.addStack(blocks);
+                        withdrawnSomething = true;
                         golemInv.markDirty();
                         container.markDirty();
                         return true;
@@ -2035,6 +2051,7 @@ public class GolemAI {
                             } else {
                                 golem.getInventory().addStack(tool);
                             }
+                            withdrawnSomething = true;
                         } else if (!hasShears() && UtilityGolem.isShears(containerStack)) {
                             ItemStack tool = containerStack.split(1);
                             if (golem.getHeldItem().isEmpty()) {
@@ -2042,11 +2059,13 @@ public class GolemAI {
                             } else {
                                 golem.getInventory().addStack(tool);
                             }
+                            withdrawnSomething = true;
                         } else if (!hasEnoughSaplings() && containerStack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) {
                             int needed = 8 - getSaplingCount();
                             if (needed > 0) {
                                 ItemStack toWithdraw = containerStack.split(Math.min(needed, containerStack.getCount()));
                                 golem.getInventory().addStack(toWithdraw);
+                                withdrawnSomething = true;
                             }
                         }
                         
@@ -2055,6 +2074,7 @@ public class GolemAI {
                             container.markDirty();
                             return true;
                         }
+                        withdrawnSomething = true;
                         continue;
                     }
 
@@ -2067,59 +2087,67 @@ public class GolemAI {
                     }
 
                     if (golem.getGolemType() == GolemType.EMERALD) {
-                        TradeOfferList offers = findNearbyVillagerOffers();
-                        if (offers != null) {
-                            boolean withdrawnSomething = false;
-                            for (TradeOffer offer : offers) {
-                                if (offer.isDisabled()) continue;
-                                if (offer.getSellItem().isOf(Items.EMERALD)) {
-                                    TradedItem buyItem1 = offer.getFirstBuyItem();
-                                    Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
-                                    
-                                    if (buyItem1.matches(containerStack)) {
-                                        int countInInv = getCountInInventory(buyItem1);
-                                        int needed = buyItem1.count() - countInInv;
-                                        if (needed > 0) {
-                                            ItemStack toWithdraw = containerStack.split(Math.min(needed, containerStack.getCount()));
-                                            ItemStack remaining = golem.getInventory().addStack(toWithdraw);
-                                            if (!remaining.isEmpty()) {
-                                                containerStack.increment(remaining.getCount());
+                        List<TradeOfferList> allOffers = findNearbyVillagerOffers();
+                        if (!allOffers.isEmpty()) {
+                            boolean withdrawnSomethingInThisItem = false;
+                            for (TradeOfferList offers : allOffers) {
+                                for (TradeOffer offer : offers) {
+                                    if (offer.isDisabled()) continue;
+                                    if (offer.getSellItem().isOf(Items.EMERALD)) {
+                                        TradedItem buyItem1 = offer.getFirstBuyItem();
+                                        Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
+
+                                        if (buyItem1.matches(containerStack)) {
+                                            int countInInv = getCountInInventory(buyItem1);
+                                            int needed = buyItem1.count() - countInInv;
+                                            if (needed > 0) {
+                                                ItemStack toWithdraw = containerStack.split(Math.min(needed, containerStack.getCount()));
+                                                ItemStack remaining = golem.getInventory().addStack(toWithdraw);
+                                                if (!remaining.isEmpty()) {
+                                                    containerStack.increment(remaining.getCount());
+                                                }
+                                                withdrawnSomething = true;
+                                                withdrawnSomethingInThisItem = true;
+                                                if (hasTradeItems() || isInventoryFull()) {
+                                                    golemInv.markDirty();
+                                                    container.markDirty();
+                                                    return true;
+                                                }
+                                                break;
                                             }
-                                            withdrawnSomething = true;
-                                            if (hasTradeItems() || isInventoryFull()) {
-                                                golemInv.markDirty();
-                                                container.markDirty();
-                                                return true;
+                                        } else if (buyItem2.isPresent() && buyItem2.get().matches(containerStack)) {
+                                            int countInInv = getCountInInventory(buyItem2.get());
+                                            int needed = buyItem2.get().count() - countInInv;
+                                            if (needed > 0) {
+                                                ItemStack toWithdraw = containerStack.split(Math.min(needed, containerStack.getCount()));
+                                                ItemStack remaining = golem.getInventory().addStack(toWithdraw);
+                                                if (!remaining.isEmpty()) {
+                                                    containerStack.increment(remaining.getCount());
+                                                }
+                                                withdrawnSomething = true;
+                                                withdrawnSomethingInThisItem = true;
+                                                if (hasTradeItems() || isInventoryFull()) {
+                                                    golemInv.markDirty();
+                                                    container.markDirty();
+                                                    return true;
+                                                }
+                                                break;
                                             }
-                                            break;
-                                        }
-                                    } else if (buyItem2.isPresent() && buyItem2.get().matches(containerStack)) {
-                                        int countInInv = getCountInInventory(buyItem2.get());
-                                        int needed = buyItem2.get().count() - countInInv;
-                                        if (needed > 0) {
-                                            ItemStack toWithdraw = containerStack.split(Math.min(needed, containerStack.getCount()));
-                                            ItemStack remaining = golem.getInventory().addStack(toWithdraw);
-                                            if (!remaining.isEmpty()) {
-                                                containerStack.increment(remaining.getCount());
-                                            }
-                                            withdrawnSomething = true;
-                                            if (hasTradeItems() || isInventoryFull()) {
-                                                golemInv.markDirty();
-                                                container.markDirty();
-                                                return true;
-                                            }
-                                            break;
                                         }
                                     }
                                 }
+                                if (withdrawnSomethingInThisItem) break;
                             }
-                            if (withdrawnSomething) continue;
+                            if (withdrawnSomethingInThisItem) continue;
                         }
                         continue;
                     }
                 }
-                golemInv.markDirty();
-                container.markDirty();
+                if (withdrawnSomething) {
+                    golemInv.markDirty();
+                    container.markDirty();
+                    return true;
+                }
             }
             return false;
         }

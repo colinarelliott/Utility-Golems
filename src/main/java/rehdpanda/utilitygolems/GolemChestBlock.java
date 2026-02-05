@@ -6,14 +6,19 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.BlockMirror;
 import net.minecraft.util.BlockRotation;
+import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -44,15 +49,16 @@ import net.minecraft.inventory.Inventory;
 public class GolemChestBlock extends Block implements BlockEntityProvider {
     public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
     public static final EnumProperty<ChestType> CHEST_TYPE = Properties.CHEST_TYPE;
+    public static final net.minecraft.state.property.BooleanProperty STRIPPED = net.minecraft.state.property.BooleanProperty.of("stripped");
 
     public GolemChestBlock(AbstractBlock.Settings settings) {
         super(settings);
-        this.setDefaultState(this.stateManager.getDefaultState().with(FACING, Direction.NORTH).with(CHEST_TYPE, ChestType.SINGLE));
+        this.setDefaultState(this.stateManager.getDefaultState().with(FACING, Direction.NORTH).with(CHEST_TYPE, ChestType.SINGLE).with(STRIPPED, false));
     }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(FACING, CHEST_TYPE);
+        builder.add(FACING, CHEST_TYPE, STRIPPED);
     }
 
     @Override
@@ -79,20 +85,20 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
                 }
             }
         }
-        return this.getDefaultState().with(FACING, direction).with(CHEST_TYPE, chestType);
+        return this.getDefaultState().with(FACING, direction).with(CHEST_TYPE, chestType).with(STRIPPED, false);
     }
 
     @Nullable
     private Direction getNeighborChestDirection(ItemPlacementContext ctx, Direction dir) {
         BlockState blockState = ctx.getWorld().getBlockState(ctx.getBlockPos().offset(dir));
-        return blockState.isOf(this) && blockState.get(CHEST_TYPE) == ChestType.SINGLE ? blockState.get(FACING) : null;
+        return blockState.isOf(this) && blockState.get(CHEST_TYPE) == ChestType.SINGLE && blockState.get(STRIPPED) == false ? blockState.get(FACING) : null;
     }
 
     @Override
     protected BlockState getStateForNeighborUpdate(BlockState state, WorldView world, ScheduledTickView tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, @Nullable Random random) {
         if (neighborState.isOf(this) && direction.getAxis().isHorizontal()) {
             ChestType chestType = neighborState.get(CHEST_TYPE);
-            if (state.get(CHEST_TYPE) == ChestType.SINGLE && chestType != ChestType.SINGLE && state.get(FACING) == neighborState.get(FACING) && getFacing(neighborState) == direction.getOpposite()) {
+            if (state.get(CHEST_TYPE) == ChestType.SINGLE && chestType != ChestType.SINGLE && state.get(FACING) == neighborState.get(FACING) && getFacing(neighborState) == direction.getOpposite() && state.get(STRIPPED) == neighborState.get(STRIPPED)) {
                 return state.with(CHEST_TYPE, chestType.getOpposite());
             }
         } else if (getFacing(state).getAxis() == direction.getAxis()) {
@@ -145,6 +151,21 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
         return blockEntity == null ? false : blockEntity.onSyncedBlockEvent(type, data);
     }
 
+
+    @Override
+    protected ActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+        if (state.isOf(UGBlocks.GOLEM_CHESTS.get(GolemType.BAMBOO)) && !state.get(STRIPPED) && stack.getItem() instanceof net.minecraft.item.AxeItem) {
+            if (!world.isClient()) {
+                world.setBlockState(pos, state.with(STRIPPED, true), 3);
+                world.playSound(null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                if (!player.getAbilities().creativeMode) {
+                    stack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+        return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
+    }
 
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {

@@ -62,6 +62,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         state.animationProgress = entity.getAnimationProgress(tickProgress);
         state.golemType = entity.getGolemType();
         state.chestType = entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.CHEST_TYPE);
+        state.isStripped = entity.getCachedState().contains(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED) && entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED);
     }
 
     @Override
@@ -76,9 +77,15 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         progress = 1.0F - progress * progress * progress;
 
         Identifier identifier = switch (state.chestType) {
-            case SINGLE -> SINGLE_TEXTURES.get(state.golemType);
-            case LEFT -> LEFT_TEXTURES.get(state.golemType);
-            case RIGHT -> RIGHT_TEXTURES.get(state.golemType);
+            case SINGLE -> state.isStripped && state.golemType == GolemType.BAMBOO 
+                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
+                    : SINGLE_TEXTURES.get(state.golemType);
+            case LEFT -> state.isStripped && state.golemType == GolemType.BAMBOO 
+                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
+                    : LEFT_TEXTURES.get(state.golemType);
+            case RIGHT -> state.isStripped && state.golemType == GolemType.BAMBOO 
+                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
+                    : RIGHT_TEXTURES.get(state.golemType);
         };
         if (identifier == null) {
             identifier = SINGLE_TEXTURES.values().iterator().next();

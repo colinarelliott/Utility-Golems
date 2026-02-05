@@ -94,6 +94,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Integer> WALL_LENGTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -105,6 +106,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(WALL_LENGTH, 3);
         builder.add(BUILDING_STARTED, false);
         builder.add(LAMP_ON, false);
+        builder.add(STRIPPED, false);
     }
 
     public void setBuildingStarted(boolean started) {
@@ -121,6 +123,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public boolean isLampOn() {
         return this.dataTracker.get(LAMP_ON);
+    }
+
+    public void setStripped(boolean stripped) {
+        this.dataTracker.set(STRIPPED, stripped);
+    }
+
+    public boolean isStripped() {
+        return this.dataTracker.get(STRIPPED);
     }
 
     public void setBuildPattern(BuildPattern pattern) {
@@ -505,6 +515,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack playerStack = player.getStackInHand(hand);
+        if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
+            if (!player.getEntityWorld().isClient()) {
+                this.setStripped(true);
+                this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_AXE_STRIP, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
         if (this.golemType == GolemType.LAPIS && isPickaxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
@@ -700,6 +721,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("WallLength", this.getWallLength());
         writeView.putBoolean("BuildingStarted", this.isBuildingStarted());
         writeView.putBoolean("LampOn", this.isLampOn());
+        writeView.putBoolean("Stripped", this.isStripped());
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.writeData(writeView.get("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         if (!this.currentlyPlayingStack.isEmpty()) {
@@ -725,6 +747,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setWallLength(readView.getInt("WallLength", 3));
         this.setBuildingStarted(readView.getBoolean("BuildingStarted", false));
         this.setLampOn(readView.getBoolean("LampOn", false));
+        this.setStripped(readView.getBoolean("Stripped", false));
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.readData(readView.getReadView("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);

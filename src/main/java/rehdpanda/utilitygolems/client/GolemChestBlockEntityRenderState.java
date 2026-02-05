@@ -10,4 +10,5 @@ public class GolemChestBlockEntityRenderState extends BlockEntityRenderState {
     public float animationProgress;
     public GolemType golemType;
     public ChestType chestType;
+    public boolean isStripped;
 }
