@@ -201,10 +201,10 @@ public class GolemAI {
                 Items.GLASS_BOTTLE, Items.NETHER_WART
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
-        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FillBottleGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new BrewingGoal(golem)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
-        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new FillBottleGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BrewingGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
     
     public static class PlaceTorchGoal extends Goal {
@@ -946,6 +946,7 @@ public class GolemAI {
         private BlockPos targetPos;
         private int actionTimer;
         private ItemStack pendingActionStack = ItemStack.EMPTY;
+        private int searchCooldown = 0;
 
         public BrewingGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -954,13 +955,24 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
             if (golem.getInventory().isEmpty() && !golem.getHeldItem().isOf(Items.BLAZE_POWDER)) return false;
             
             targetPos = findBrewingStand();
-            if (targetPos == null) return false;
+            if (targetPos == null) {
+                searchCooldown = 40 + golem.getRandom().nextInt(40); // 2-4s cooldown if none found
+                return false;
+            }
 
             // Only start brewing if we have something to do at the stand
-            return hasWorkAtStand();
+            boolean hasWork = hasWorkAtStand();
+            if (!hasWork) {
+                searchCooldown = 20 + golem.getRandom().nextInt(20); // 1-2s cooldown if no work
+            }
+            return hasWork;
         }
 
         private boolean hasWorkAtStand() {
@@ -978,6 +990,15 @@ public class GolemAI {
                     return true;
                 }
 
+                // Check if stand HAS any bottles/potions to brew with
+                boolean standHasBottles = false;
+                for (int i = 0; i < 3; i++) {
+                    if (!stand.getStack(i).isEmpty()) {
+                        standHasBottles = true;
+                        break;
+                    }
+                }
+
                 // 3. Can add water bottles?
                 boolean hasWaterInInv = findWaterBottleInInventory() != -1;
                 if (hasWaterInInv) {
@@ -987,7 +1008,7 @@ public class GolemAI {
                 }
 
                 // 4. Can add ingredient?
-                if (stand.getStack(3).isEmpty() && findBestIngredientForStand(stand) != -1) {
+                if (standHasBottles && stand.getStack(3).isEmpty() && findBestIngredientForStand(stand) != -1) {
                     return true;
                 }
             }
@@ -1023,6 +1044,8 @@ public class GolemAI {
             golem.setDebugTarget(null);
             golem.setHeldItem(ItemStack.EMPTY);
             pendingActionStack = ItemStack.EMPTY;
+            actionTimer = 0;
+            searchCooldown = 20 + golem.getRandom().nextInt(20); // Add cooldown after stopping
         }
 
         private void updateHeldItem() {
@@ -1072,12 +1095,20 @@ public class GolemAI {
         @Override
         public void tick() {
             if (targetPos == null) return;
-            if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+            
+            // Only search for brewing stand if the current target is no longer a brewing stand
+            if (golem.getRandom().nextInt(40) == 0 && !golem.getEntityWorld().getBlockState(targetPos).isOf(Blocks.BREWING_STAND)) {
+                targetPos = findBrewingStand();
+                if (targetPos == null) return;
+            }
+
+            if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(20) == 0) {
                 golem.getNavigation().startMovingTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), 1.0D);
             }
             golem.getLookControl().lookAt(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
 
             if (golem.squaredDistanceTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5) < 4.0D) {
+                golem.getNavigation().stop(); // Stop moving once close enough
                 actionTimer++;
                 if (actionTimer >= 20) {
                     interactWithBrewingStand();
@@ -1196,7 +1227,11 @@ public class GolemAI {
             if (hasRegularPotion || hasAwkwardPotion) {
                 for (int i = 0; i < golem.getInventory().size(); i++) {
                     ItemStack stack = golem.getInventory().getStack(i);
-                    if (isSecondaryIngredient(stack)) return i;
+                    if (isSecondaryIngredient(stack)) {
+                        // Check if the stand already has this ingredient or if it can be used
+                        ItemStack standIngredient = stand.getStack(3);
+                        if (standIngredient.isEmpty()) return i;
+                    }
                 }
             }
 
@@ -1306,6 +1341,22 @@ public class GolemAI {
             return false;
         }
 
+        public static boolean isWaterBottleStatic(ItemStack stack) {
+            if (stack.isOf(Items.POTION)) {
+                net.minecraft.component.type.PotionContentsComponent potion = stack.get(DataComponentTypes.POTION_CONTENTS);
+                return potion != null && potion.potion().isPresent() && potion.potion().get().matches(net.minecraft.potion.Potions.WATER);
+            }
+            return false;
+        }
+
+        public static boolean isAwkwardPotionStatic(ItemStack stack) {
+            if (stack.isOf(Items.POTION)) {
+                net.minecraft.component.type.PotionContentsComponent potion = stack.get(DataComponentTypes.POTION_CONTENTS);
+                return potion != null && potion.potion().isPresent() && potion.potion().get().matches(net.minecraft.potion.Potions.AWKWARD);
+            }
+            return false;
+        }
+
         public static int findItemInInventoryStatic(UtilityGolem golem, Item item) {
             for (int i = 0; i < golem.getInventory().size(); i++) {
                 if (golem.getInventory().getStack(i).isOf(item)) return i;
@@ -1369,6 +1420,7 @@ public class GolemAI {
         private BlockPos waterPos;
         private int actionTimer;
         private int cooldown;
+        private int searchCooldown = 0;
 
         public FillBottleGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -1381,6 +1433,10 @@ public class GolemAI {
                 cooldown--;
                 return false;
             }
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
             if (isInventoryFull()) return false;
             if (findItemInInventory(Items.GLASS_BOTTLE) == -1) return false;
             
@@ -1390,20 +1446,39 @@ public class GolemAI {
 
             // Also don't fill bottles if there's an active brewing process that needs our attention
             // (e.g. we have ingredients but the stand is empty or waiting for them)
-            if (shouldPrioritizeBrewing()) return false;
+            if (shouldPrioritizeBrewing()) {
+                searchCooldown = 20 + golem.getRandom().nextInt(20);
+                return false;
+            }
 
             waterPos = findNearbyWater();
-            return waterPos != null;
+            if (waterPos == null) {
+                searchCooldown = 40 + golem.getRandom().nextInt(40);
+                return false;
+            }
+            return true;
         }
 
         private boolean shouldPrioritizeBrewing() {
+            // Use cached targetPos from BrewingGoal if possible? 
+            // For now just optimization: don't call findBrewingStand every tick
             BlockPos standPos = findBrewingStand();
             if (standPos == null) return false;
             
             BlockEntity be = golem.getEntityWorld().getBlockEntity(standPos);
             if (be instanceof net.minecraft.block.entity.BrewingStandBlockEntity stand) {
                 // If we have ingredients and stand can take them, prioritize brewing
-                if (findIngredientInInventory() != -1 && stand.getStack(3).isEmpty()) return true;
+                if (findIngredientInInventory() != -1 && stand.getStack(3).isEmpty()) {
+                    // But only if there are actually potions/bottles to brew with
+                    boolean standHasBottles = false;
+                    for (int i = 0; i < 3; i++) {
+                        if (!stand.getStack(i).isEmpty()) {
+                            standHasBottles = true;
+                            break;
+                        }
+                    }
+                    if (standHasBottles) return true;
+                }
                 
                 // If we have water bottles and stand has empty slots, prioritize brewing
                 if (findWaterBottleInInventory() != -1) {
@@ -1582,12 +1657,20 @@ public class GolemAI {
         @Override
         public void tick() {
             if (waterPos == null) return;
-            if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+
+            // Only search for water if the current target is no longer water
+            if (golem.getRandom().nextInt(40) == 0 && !golem.getEntityWorld().getFluidState(waterPos).isIn(net.minecraft.registry.tag.FluidTags.WATER)) {
+                waterPos = findNearbyWater();
+                if (waterPos == null) return;
+            }
+
+            if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(20) == 0) {
                 golem.getNavigation().startMovingTo(waterPos.getX(), waterPos.getY(), waterPos.getZ(), 1.0D);
             }
             golem.getLookControl().lookAt(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5);
 
             if (golem.squaredDistanceTo(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5) < 4.0D) {
+                golem.getNavigation().stop(); // Stop moving once close enough
                 actionTimer++;
                 if (actionTimer >= 20) {
                     fillBottle();
@@ -1647,6 +1730,7 @@ public class GolemAI {
         private final UtilityGolem golem;
         private BlockPos chestPos;
         private int delay;
+        private int searchCooldown = 0;
 
         public DepositItemsGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -1746,9 +1830,17 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
             if (hasItemsToDeposit()) {
                 chestPos = findNearbyChest();
-                return chestPos != null;
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return true;
             }
             return false;
         }
@@ -1922,6 +2014,7 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.NETHER_WART) {
                 golem.setHeldItem(ItemStack.EMPTY);
             }
+            searchCooldown = 20 + golem.getRandom().nextInt(20);
         }
 
         private int stuckTicks = 0;
@@ -2079,6 +2172,7 @@ public class GolemAI {
         private final UtilityGolem golem;
         private BlockPos chestPos;
         private int delay;
+        private int searchCooldown = 0;
 
         public WithdrawItemsGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -2087,12 +2181,20 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (!golem.getHeldItem().isEmpty() && UtilityGolem.isPickaxe(golem.getHeldItem())) {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.DEEPSLATE) {
@@ -2100,7 +2202,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.NETHERITE) {
@@ -2108,7 +2214,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.BAMBOO) {
@@ -2122,7 +2232,10 @@ public class GolemAI {
                     chestPos = findNearbyChest();
                 }
 
-                if (chestPos == null) return false;
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
 
                 // If we can already farm something (harvesting), prioritize that over withdrawing tools
                 if (new FarmGoal(golem).canStart()) {
@@ -2137,7 +2250,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.REDSTONE) {
@@ -2145,7 +2262,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.GOLD) {
@@ -2153,7 +2274,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.JUKEBOX) {
@@ -2161,7 +2286,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.FURNACE) {
@@ -2169,7 +2298,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.SPONGE) {
@@ -2177,7 +2310,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.DIAMOND) {
@@ -2185,7 +2322,11 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.EMERALD) {
@@ -2193,21 +2334,36 @@ public class GolemAI {
                     return false;
                 }
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasTradeItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasTradeItemsInChest(chestPos);
             }
 
             if (golem.getGolemType() == GolemType.NETHER_WART) {
                 if (hasIngredients() && hasSecondaryIngredients() && hasGlassBottles() && hasBlazePowder()) {
                     // Check if we have at least 1 stack of each. 
                     // Actually, if we have them, we might still want more if we have room in our 6 reserved slots.
-                    int filledSlots = 0;
+                    int supplySlotsUsed = 0;
                     for (int i = 0; i < golem.getInventory().size(); i++) {
-                        if (!golem.getInventory().getStack(i).isEmpty()) filledSlots++;
+                        ItemStack s = golem.getInventory().getStack(i);
+                        if (!s.isEmpty() && (isIngredient(s) || s.isOf(Items.GLASS_BOTTLE) || s.isOf(Items.BLAZE_POWDER))) {
+                            supplySlotsUsed++;
+                        }
                     }
-                    if (filledSlots >= 6) return false;
+                    if (supplySlotsUsed >= 6) return false;
                 }
+                
+                // Don't withdraw if inventory is full (regardless of supply slots)
+                if (isInventoryFull()) return false;
+
                 chestPos = golem.getChestPos();
-                return chestPos != null && hasNeededItemsInChest(chestPos);
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
             }
 
             return false;
@@ -2429,6 +2585,14 @@ public class GolemAI {
             return false;
         }
 
+        private boolean hasItem(Item item) {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(item)) return true;
+            }
+            return false;
+        }
+
         private boolean hasGold() {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
@@ -2531,8 +2695,24 @@ public class GolemAI {
                         if (stack.isOf(Items.GOLD_INGOT) || stack.isOf(Items.GOLD_NUGGET)) return true;
                     }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (stack.isOf(Items.GLASS_BOTTLE) || isIngredient(stack) || stack.isOf(Items.BLAZE_POWDER)) return true;
-                        if (stack.get(DataComponentTypes.POTION_CONTENTS) != null) return true;
+                        if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
+                        if (isIngredient(stack) && !hasItem(stack.getItem())) return true;
+                        if (stack.isOf(Items.BLAZE_POWDER) && !hasBlazePowder()) return true;
+                        if (stack.get(DataComponentTypes.POTION_CONTENTS) != null) {
+                             // Only withdraw potions if we have space in our 3 reserved water/potion slots
+                             int potionSlotsUsed = 0;
+                             for (int j = 0; j < golem.getInventory().size(); j++) {
+                                 ItemStack s = golem.getInventory().getStack(j);
+                                 if (BrewingGoal.isWaterBottleStatic(s) || BrewingGoal.isRegularPotionStatic(s) || BrewingGoal.isAwkwardPotionStatic(s)) {
+                                     potionSlotsUsed++;
+                                 }
+                             }
+                             if (potionSlotsUsed < 3) {
+                                 // Check if we already have this specific potion?
+                                 // Potions are usually different, but let's just check if we have any space for another potion
+                                 return true;
+                             }
+                        }
                     }
                 }
             }
@@ -2653,6 +2833,29 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
+            if (chestPos == null || !(golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory)) return false;
+
+            if (golem.getGolemType() == GolemType.NETHER_WART) {
+                // If inventory is "full" for supplies (6 slots used), stop.
+                int supplySlotsUsed = 0;
+                for (int i = 0; i < golem.getInventory().size(); i++) {
+                    ItemStack s = golem.getInventory().getStack(i);
+                    if (!s.isEmpty() && (isIngredient(s) || s.isOf(Items.GLASS_BOTTLE) || s.isOf(Items.BLAZE_POWDER))) {
+                        supplySlotsUsed++;
+                    }
+                }
+                if (supplySlotsUsed >= 6) {
+                    return false;
+                }
+
+                // If no more needed items in chest, stop.
+                if (chestPos == null || !hasNeededItemsInChest(chestPos)) {
+                    return false;
+                }
+                
+                return true;
+            }
+
             if (golem.getGolemType() == GolemType.LAPIS) {
                 return chestPos != null && golem.getHeldItem().isEmpty() && golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
             }
@@ -2769,6 +2972,9 @@ public class GolemAI {
                     withdrawItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();
+                        if (!shouldContinue()) {
+                            stop();
+                        }
                     }
                 }
             }
@@ -2804,9 +3010,25 @@ public class GolemAI {
                                 }
                             }
                             if (supplySlotsUsed < 6) {
-                                ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
-                                golemInv.addStack(toWithdraw);
-                                withdrawnSomething = true;
+                                // Only withdraw if we don't already have a stack of this specific item
+                                boolean alreadyHasItem = false;
+                                for (int j = 0; j < golemInv.size(); j++) {
+                                    if (golemInv.getStack(j).isOf(containerStack.getItem())) {
+                                        alreadyHasItem = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!alreadyHasItem) {
+                                    ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                                    golemInv.addStack(toWithdraw);
+                                    withdrawnSomething = true;
+                                    
+                                    golemInv.markDirty();
+                                    container.markDirty();
+                                    // Stop after one successful withdrawal to allow re-evaluation in tick/shouldContinue
+                                    return true;
+                                }
                             }
                         }
                         continue;

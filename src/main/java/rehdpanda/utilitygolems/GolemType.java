@@ -6,6 +6,8 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.passive.CopperGolemEntity;
 import net.minecraft.util.Identifier;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import java.util.function.Consumer;
 
 import net.minecraft.block.Block;

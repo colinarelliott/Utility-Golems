@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    "C C",
+    " I ",
+    " I "
+  ],
+  "result": {
+    "id": "utility-golems:wrench",
+    "count": 1
+  }
+}

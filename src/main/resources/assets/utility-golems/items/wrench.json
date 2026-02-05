@@ -1,0 +1,7 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "utility-golems:item/wrench"
+  },
+  "hand_equipped": true
+}

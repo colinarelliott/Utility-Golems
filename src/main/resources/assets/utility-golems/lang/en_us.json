@@ -39,6 +39,8 @@
   "item.utility-golems.furnace_golem_chest": "Furnace Chest",
   "item.utility-golems.jukebox_golem_chest": "Jukebox Chest",
   "item.utility-golems.nether_wart_golem_chest": "Nether Wart Chest",
+  "item.utility-golems.wrench": "Wrench",
+  "item.utility-golems.wrench.description": "Used to repair damaged golems",
 
   "item.utility-golems.lapis_chest": "Lapis Chest",
   "item.utility-golems.redstone_chest": "Redstone Chest",

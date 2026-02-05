@@ -12,10 +12,7 @@ import net.minecraft.entity.ai.pathing.EntityNavigation;
 import net.minecraft.entity.ai.pathing.MobNavigation;
 import java.util.HashSet;
 import java.util.Set;
-import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.ai.pathing.MobNavigation;
-import net.minecraft.entity.ai.pathing.PathNodeMaker;
-import net.minecraft.entity.ai.pathing.PathNodeNavigator;
+
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -287,17 +284,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         
         boolean isLampOn = this.isLampOn();
         if (isLampOn) {
-            updateLightAndGlowing(12);
+            updateLightEmission(12);
         } else {
-            stopLightAndGlowing();
+            stopLightEmission();
         }
     }
 
-    private void updateLightAndGlowing(int lightLevel) {
-        if (!this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
-            this.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 20, 0, false, false));
-        }
-
+    private void updateLightEmission(int lightLevel) {
         BlockPos currentPos = this.getBlockPos().up();
         if (lastLightPos == null || !lastLightPos.equals(currentPos) || !this.getEntityWorld().getBlockState(lastLightPos).isOf(UGBlocks.LIGHT_BLOCK) || this.getEntityWorld().getBlockState(lastLightPos).get(LightBlock.LEVEL) != lightLevel) {
             removeLight();
@@ -308,11 +301,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
     }
 
-    private void stopLightAndGlowing() {
+    private void stopLightEmission() {
         if (lastLightPos == null) return;
-        if (this.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING)) {
-            this.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.GLOWING);
-        }
         removeLight();
     }
 
@@ -385,9 +375,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (this.burnTime > 0) {
-            updateLightAndGlowing(6);
+            updateLightEmission(6);
         } else {
-            stopLightAndGlowing();
+            stopLightEmission();
         }
     }
 
@@ -590,6 +580,33 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
+        if (playerStack.isOf(UGItems.WRENCH_ITEM)) {
+            float currentHealth = this.getHealth();
+            float maxHealth = this.getMaxHealth();
+            if (currentHealth < maxHealth) {
+                if (!player.getEntityWorld().isClient()) {
+                    this.heal(maxHealth * 0.25f); // Heal 25% of max health
+                    if (!player.getAbilities().creativeMode) {
+                        playerStack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+                    }
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_IRON_GOLEM_REPAIR, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+                    for (int i = 0; i < 7; ++i) {
+                        double d = this.random.nextGaussian() * 0.02;
+                        double e = this.random.nextGaussian() * 0.02;
+                        double f = this.random.nextGaussian() * 0.02;
+                        ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.HEART, this.getParticleX(1.0), this.getRandomBodyY() + 0.5, this.getParticleZ(1.0), 1, d, e, f, 0.0);
+                    }
+                    player.sendMessage(Text.literal(this.golemType.getFriendlyName() + " Health: " + (int)this.getHealth() + "/" + (int)maxHealth), true);
+                }
+                return ActionResult.SUCCESS;
+            } else {
+                if (!player.getEntityWorld().isClient()) {
+                    player.sendMessage(Text.literal(this.golemType.getFriendlyName() + " is already at full health (" + (int)maxHealth + "/" + (int)maxHealth + ")"), true);
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
+
         if (this.golemType == GolemType.FURNACE) {
             if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
@@ -602,7 +619,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             if (player.isSneaking()) {
                 if (!player.getEntityWorld().isClient()) {
                     this.setLampOn(!this.isLampOn());
-                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), this.isLampOn() ? SoundEvents.BLOCK_IRON_TRAPDOOR_OPEN : SoundEvents.BLOCK_IRON_TRAPDOOR_CLOSE, SoundCategory.BLOCKS, 0.5F, 1.5F);
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
                 }
                 return ActionResult.SUCCESS;
             }
