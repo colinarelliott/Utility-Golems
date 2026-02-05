@@ -11,6 +11,20 @@
   "block.utility-golems.deepslate_golem_chest": "Deepslate Chest",
   "block.utility-golems.furnace_golem_chest": "Furnace Chest",
   "block.utility-golems.jukebox_golem_chest": "Jukebox Chest",
+  "block.utility-golems.nether_wart_golem_chest": "Nether Wart Chest",
+  "container.utility-golems.lapis_golem_chest_double": "Lapis Double Chest",
+  "container.utility-golems.redstone_golem_chest_double": "Redstone Double Chest",
+  "container.utility-golems.emerald_golem_chest_double": "Emerald Double Chest",
+  "container.utility-golems.gold_golem_chest_double": "Gold Double Chest",
+  "container.utility-golems.amethyst_golem_chest_double": "Amethyst Double Chest",
+  "container.utility-golems.netherite_golem_chest_double": "Netherite Double Chest",
+  "container.utility-golems.bamboo_golem_chest_double": "Bamboo Double Chest",
+  "container.utility-golems.diamond_golem_chest_double": "Diamond Double Chest",
+  "container.utility-golems.sponge_golem_chest_double": "Sponge Double Chest",
+  "container.utility-golems.deepslate_golem_chest_double": "Deepslate Double Chest",
+  "container.utility-golems.furnace_golem_chest_double": "Furnace Double Chest",
+  "container.utility-golems.jukebox_golem_chest_double": "Jukebox Double Chest",
+  "container.utility-golems.nether_wart_golem_chest_double": "Nether Wart Double Chest",
 
   "item.utility-golems.lapis_golem_chest": "Lapis Chest",
   "item.utility-golems.redstone_golem_chest": "Redstone Chest",
@@ -24,6 +38,9 @@
   "item.utility-golems.deepslate_golem_chest": "Deepslate Chest",
   "item.utility-golems.furnace_golem_chest": "Furnace Chest",
   "item.utility-golems.jukebox_golem_chest": "Jukebox Chest",
+  "item.utility-golems.nether_wart_golem_chest": "Nether Wart Chest",
+  "item.utility-golems.wrench": "Wrench",
+  "item.utility-golems.wrench.description": "Used to repair damaged golems",
 
   "item.utility-golems.lapis_chest": "Lapis Chest",
   "item.utility-golems.redstone_chest": "Redstone Chest",
@@ -43,5 +60,6 @@
   "entity.utility-golems.sponge_golem": "Sponge Golem",
   "entity.utility-golems.deepslate_golem": "Deepslate Golem",
   "entity.utility-golems.furnace_golem": "Furnace Golem",
-  "entity.utility-golems.jukebox_golem": "Jukebox Golem"
+  "entity.utility-golems.jukebox_golem": "Jukebox Golem",
+  "entity.utility-golems.nether_wart_golem": "Nether Wart Golem"
 }

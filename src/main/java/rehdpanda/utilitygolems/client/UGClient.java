@@ -33,12 +33,7 @@ public class UGClient implements ClientModInitializer {
             }
             EntityRendererRegistry.register(
                     UGInit.GOLEM_TYPES.get(type),
-                    (EntityRendererFactory.Context ctx) -> new CopperGolemEntityRenderer(ctx) {
-                        @Override
-                        public Identifier getTexture(CopperGolemEntityRenderState state) {
-                            return type.getTexture();
-                        }
-                    }
+                    (EntityRendererFactory.Context ctx) -> new UtilityGolemRenderer(ctx, type)
             );
         }
     }

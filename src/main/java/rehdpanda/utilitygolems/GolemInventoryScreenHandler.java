@@ -19,6 +19,10 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     private final Inventory inventory;
     private final UtilityGolem golem;
 
+    public UtilityGolem getGolem() {
+        return golem;
+    }
+
     // Client constructor
     public GolemInventoryScreenHandler(int syncId, PlayerInventory playerInventory) {
         this(syncId, playerInventory, new SimpleInventory(GOLEM_INV_SIZE), null);
@@ -58,25 +62,37 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     private void addPlayerInventory(PlayerInventory playerInventory) {
+        UtilityGolem golem = getGolem();
+        int offset = 0;
+        if (golem != null && golem.getGolemType() == GolemType.DIAMOND) {
+            offset = 40; // Always use max offset
+        }
+        
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
                 this.addSlot(new Slot(
                         playerInventory,
                         col + row * 9 + 9,
                         8 + col * 18,
-                        84 + row * 18
+                        84 + offset + row * 18
                 ));
             }
         }
     }
 
     private void addHotbar(PlayerInventory playerInventory) {
+        UtilityGolem golem = getGolem();
+        int offset = 0;
+        if (golem != null && golem.getGolemType() == GolemType.DIAMOND) {
+            offset = 40;
+        }
+
         for (int i = 0; i < 9; ++i) {
             this.addSlot(new Slot(
                     playerInventory,
                     i,
                     8 + i * 18,
-                    142
+                    142 + offset
             ));
         }
     }

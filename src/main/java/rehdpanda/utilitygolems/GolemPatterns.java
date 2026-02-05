@@ -1,7 +1,8 @@
 package rehdpanda.utilitygolems;
-
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.util.math.Direction;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.block.pattern.BlockPattern;
@@ -22,22 +23,28 @@ public class GolemPatterns {
     // Called from Mixin after block is placed
     public static void onPumpkinPlaced(World world, BlockPos pos) {
         if (world instanceof ServerWorld serverWorld) {
-            trySpawnGolem(serverWorld, pos, GolemType.LAPIS);
-            trySpawnGolem(serverWorld, pos, GolemType.REDSTONE);
-            trySpawnGolem(serverWorld, pos, GolemType.EMERALD);
-            trySpawnGolem(serverWorld, pos, GolemType.GOLD);
-            trySpawnGolem(serverWorld, pos, GolemType.AMETHYST);
-            trySpawnGolem(serverWorld, pos, GolemType.NETHERITE);
-            trySpawnGolem(serverWorld, pos, GolemType.FURNACE);
-            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO);
-            trySpawnGolem(serverWorld, pos, GolemType.DIAMOND);
-            trySpawnGolem(serverWorld, pos, GolemType.SPONGE);
-            trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE);
-            trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX);
+            net.minecraft.entity.player.PlayerEntity player = world.getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
+            Direction facing = player != null ? player.getHorizontalFacing().getOpposite() : Direction.NORTH;
+
+            trySpawnGolem(serverWorld, pos, GolemType.LAPIS, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.REDSTONE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.EMERALD, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.GOLD, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.AMETHYST, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.NETHERITE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.FURNACE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, true);
+            trySpawnGolem(serverWorld, pos, GolemType.DIAMOND, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.SPONGE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.LAMP, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
         }
     }
 
-    private static void trySpawnGolem(ServerWorld world, BlockPos pos, GolemType type) {
+    private static void trySpawnGolem(ServerWorld world, BlockPos pos, GolemType type, Direction facing, boolean isStripped) {
         Block bottomBlock = switch (type) {
             case LAPIS -> Blocks.LAPIS_BLOCK;
             case REDSTONE -> Blocks.REDSTONE_BLOCK;
@@ -48,10 +55,11 @@ public class GolemPatterns {
             case FURNACE -> Blocks.FURNACE;
             case DIAMOND -> Blocks.DIAMOND_BLOCK;
             case SPONGE -> Blocks.SPONGE;
-            case BAMBOO -> Blocks.BAMBOO_BLOCK;
-            //case STRIPPEDBAMBOO -> Blocks.STRIPPED_BAMBOO_BLOCK;
+            case BAMBOO -> isStripped ? Blocks.STRIPPED_BAMBOO_BLOCK : Blocks.BAMBOO_BLOCK;
             case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
             case JUKEBOX -> Blocks.JUKEBOX;
+            case LAMP -> Blocks.REDSTONE_LAMP;
+            case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
             default -> Blocks.LAPIS_BLOCK;
         };
 
@@ -63,6 +71,7 @@ public class GolemPatterns {
         // Spawn the golem at the pumpkin position
         BlockPos spawnPos = result.translate(0, 0, 0).getBlockPos();
         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), world, type);
+        golem.setStripped(isStripped);
         golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
         golem.initialize(world, world.getLocalDifficulty(spawnPos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
         world.spawnEntity(golem);
@@ -78,11 +87,15 @@ public class GolemPatterns {
         }
 
         Block chestBlock = type.getChestBlock();
-        if (chestBlock != null && golem.getGolemType() != GolemType.FURNACE && golem.getGolemType() != GolemType.JUKEBOX) {
+        if (chestBlock != null) {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
             BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();
-            world.setBlockState(bottomPos, chestBlock.getDefaultState());
+            BlockState chestState = chestBlock.getDefaultState().with(GolemChestBlock.FACING, facing);
+            if (chestState.contains(GolemChestBlock.STRIPPED)) {
+                chestState = chestState.with(GolemChestBlock.STRIPPED, isStripped);
+            }
+            world.setBlockState(bottomPos, chestState);
         }
     }
 }

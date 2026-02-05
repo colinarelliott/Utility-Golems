@@ -7,4 +7,6 @@ public class UtilityGolemRenderState extends CopperGolemEntityRenderState {
     public BlockPos chestPos;
     public BlockPos aiTarget;
     public boolean isDebug;
+    public boolean isLampOn;
+    public boolean isStripped;
 }

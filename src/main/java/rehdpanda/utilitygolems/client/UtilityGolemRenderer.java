@@ -24,6 +24,14 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
 
     @Override
     public Identifier getTexture(CopperGolemEntityRenderState state) {
+        if (state instanceof UtilityGolemRenderState renderState) {
+            if (renderState.isLampOn && type == GolemType.LAMP) {
+                return Identifier.of("utility-golems", "textures/entity/lamp_golem_illuminated.png");
+            }
+            if (renderState.isStripped && type == GolemType.BAMBOO) {
+                return Identifier.of("utility-golems", "textures/entity/stripped_bamboo_golem.png");
+            }
+        }
         return type.getTexture();
     }
 
@@ -39,6 +47,8 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             renderState.chestPos = utilityGolem.getChestPos();
             renderState.aiTarget = utilityGolem.getDebugTarget();
             renderState.isDebug = utilityGolem.hasCustomName() && "debug".equalsIgnoreCase(utilityGolem.getCustomName().getString());
+            renderState.isLampOn = utilityGolem.isLampOn();
+            renderState.isStripped = utilityGolem.isStripped();
         }
     }
 
@@ -57,23 +67,5 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
     }
 
     protected void renderDebugLine(UtilityGolemRenderState state, BlockPos targetPos, int r, int g, int b, MatrixStack matrices, OrderedRenderCommandQueue queue) {
-        // Use a simple line renderer.
-        /*
-        
-        queue.submitCustom(matrices, net.minecraft.client.render.RenderLayer.getLineStrip(), (entry, vertices) -> {
-            Matrix4f matrix = entry.getPositionMatrix();
-            
-            float startX = 0;
-            float startY = 0.5f; // From middle of golem
-            float startZ = 0;
-            
-            float endX = (float) (targetPos.getX() + 0.5 - state.x);
-            float endY = (float) (targetPos.getY() + 0.5 - state.y);
-            float endZ = (float) (targetPos.getZ() + 0.5 - state.z);
-            
-            // Draw the line
-            vertices.vertex(matrix, startX, startY, startZ).color(r, g, b, 255).normal(entry, 0, 1, 0);
-            vertices.vertex(matrix, endX, endY, endZ).color(r, g, b, 255).normal(entry, 0, 1, 0);
-        });*/
     }
 }

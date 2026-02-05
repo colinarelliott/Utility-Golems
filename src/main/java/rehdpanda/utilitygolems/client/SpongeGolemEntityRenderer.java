@@ -54,10 +54,10 @@ public class SpongeGolemEntityRenderer extends UtilityGolemRenderer {
                 
                 queue.submitCustom(matrices, BOBBER_LAYER, (entry, vertices) -> {
                     Matrix4f matrix = entry.getPositionMatrix();
-                    vertices.vertex(matrix, -0.5F, -0.5F, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 1.0F, 0.0F);
-                    vertices.vertex(matrix, 0.5F, -0.5F, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 1.0F, 0.0F);
-                    vertices.vertex(matrix, 0.5F, 0.5F, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 1.0F, 0.0F);
-                    vertices.vertex(matrix, -0.5F, 0.5F, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 1.0F, 0.0F);
+                    vertices.vertex(matrix, -0.5F, -0.5F, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 0.0F, 1.0F);
+                    vertices.vertex(matrix, 0.5F, -0.5F, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 0.0F, 1.0F);
+                    vertices.vertex(matrix, 0.5F, 0.5F, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 0.0F, 1.0F);
+                    vertices.vertex(matrix, -0.5F, 0.5F, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(state.light).normal(entry, 0.0F, 0.0F, 1.0F);
                 });
                 matrices.pop();
             }

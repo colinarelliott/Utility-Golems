@@ -15,7 +15,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.resource.featuretoggle.FeatureFlags;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -23,7 +22,14 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.util.math.Vec3d;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.entity.Entity;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+import net.minecraft.network.packet.CustomPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,10 +46,36 @@ public class UGInit implements ModInitializer {
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started) implements CustomPayload {
+        public static final Id<SyncPatternPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_pattern"));
+        public static final PacketCodec<RegistryByteBuf, SyncPatternPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SyncPatternPayload::entityId,
+                PacketCodecs.VAR_INT, SyncPatternPayload::patternOrdinal,
+                PacketCodecs.VAR_INT, SyncPatternPayload::width,
+                PacketCodecs.VAR_INT, SyncPatternPayload::length,
+                ItemStack.OPTIONAL_PACKET_CODEC, SyncPatternPayload::filter,
+                PacketCodecs.BOOLEAN, SyncPatternPayload::started,
+                SyncPatternPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
     public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_inventory"), new ScreenHandlerType<>(GolemInventoryScreenHandler::new, FeatureSet.empty()));
+            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_inventory"), new ExtendedScreenHandlerType<>(
+                    (syncId, playerInventory, entityId) -> {
+                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        if (entity instanceof UtilityGolem golem) {
+                            return new GolemInventoryScreenHandler(syncId, playerInventory, golem.getInventory(), golem);
+                        }
+                        return new GolemInventoryScreenHandler(syncId, playerInventory);
+                    }, PacketCodecs.INTEGER
+            ));
     public static final ScreenHandlerType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
             Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_furnace"), new ScreenHandlerType<>(GolemFurnaceScreenHandler::new, FeatureSet.empty()));
 
@@ -53,6 +85,25 @@ public class UGInit implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Utility Golems initializing...");
         UGBlocks.register();
+        UGItems.register();
+
+        PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SyncPatternPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    BuildPattern pattern = BuildPattern.values()[payload.patternOrdinal()];
+                    golem.setBuildPattern(pattern);
+                    golem.setWallWidth(payload.width());
+                    golem.setWallLength(payload.length());
+                    golem.setBuildingStarted(payload.started());
+                    if (!payload.filter().isEmpty()) {
+                        golem.setHeldItem(payload.filter());
+                    }
+                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)")), true);
+                }
+            });
+        });
 
         /// REGISTER DEBUG COMMANDS
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -75,17 +126,24 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.BAMBOO_BLOCK);
                                 give(player, Items.FURNACE);
                                 give(player, Items.JUKEBOX);
+                                give(player, Items.REDSTONE_LAMP);
                                 give(player, Items.SPONGE);
                                 give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
+                                give(player, UGItems.WRENCH_ITEM);
 
                                 return 1;
                             })
             );
         });
 
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> {
+            entries.add(UGItems.WRENCH_ITEM);
+        });
+
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
             for (GolemType type : GolemType.values()) {
+                if (type == GolemType.LAMP) continue;
                 net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
                 if (chest != null) {
                     entries.add(chest);

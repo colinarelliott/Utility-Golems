@@ -21,21 +21,60 @@ import java.util.Map;
 public class UGBlocks {
     public static final Map<GolemType, Block> GOLEM_CHESTS = new HashMap<>();
     public static BlockEntityType<GolemChestBlockEntity> GOLEM_CHEST_BLOCK_ENTITY;
+    public static Block LIGHT_BLOCK;
 
     public static void register() {
+        Identifier lightId = Identifier.of(UGInit.MOD_ID, "light_block");
+        LIGHT_BLOCK = Registry.register(
+                Registries.BLOCK,
+                lightId,
+                new LightBlock(AbstractBlock.Settings.create()
+                        .registryKey(RegistryKey.of(RegistryKeys.BLOCK, lightId))
+                        .luminance(state -> state.get(LightBlock.LEVEL))
+                        .noCollision()
+                        .nonOpaque()
+                        .air())
+        );
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
-            if (type == GolemType.FURNACE || type == GolemType.JUKEBOX) continue;
-
+            if (type == GolemType.LAMP) continue;
             String name = type.getName().trim() + "_chest";
+            Block materialBlock = switch (type) {
+                case LAPIS -> Blocks.LAPIS_BLOCK;
+                case REDSTONE -> Blocks.REDSTONE_BLOCK;
+                case EMERALD -> Blocks.EMERALD_BLOCK;
+                case GOLD -> Blocks.GOLD_BLOCK;
+                case AMETHYST -> Blocks.AMETHYST_BLOCK;
+                case NETHERITE -> Blocks.NETHERITE_BLOCK;
+                case DIAMOND -> Blocks.DIAMOND_BLOCK;
+                case BAMBOO -> Blocks.OAK_PLANKS;
+                case SPONGE -> Blocks.SPONGE;
+                case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
+                case FURNACE -> Blocks.FURNACE;
+                case JUKEBOX -> Blocks.JUKEBOX;
+                case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
+                default -> Blocks.AIR;
+            };
+
+            float hardness = switch (type) {
+                case BAMBOO -> Blocks.BAMBOO_BLOCK.getHardness();
+                default -> materialBlock.getHardness();
+            };
+            float resistance = switch (type) {
+                case BAMBOO -> Blocks.BAMBOO_BLOCK.getBlastResistance();
+                default -> materialBlock.getBlastResistance();
+            };
+
+            Identifier id = Identifier.of(UGInit.MOD_ID, name);
             Block block = Registry.register(
                     Registries.BLOCK,
-                    Identifier.of(UGInit.MOD_ID, name),
-                    new GolemChestBlock(AbstractBlock.Settings.copy(Blocks.CHEST)
+                    id,
+                    new GolemChestBlock(AbstractBlock.Settings.copy(materialBlock)
+                            .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
+                            .strength(hardness, resistance)
                             .requiresTool()
-                            .strength(2.5f, 12.5f)
-                            .nonOpaque()
-                            .registryKey(RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(UGInit.MOD_ID, name))))
+                            .luminance(state -> 0)
+                            .nonOpaque())
             );
             GOLEM_CHESTS.put(type, block);
             chestBlocks.add(block);

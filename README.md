@@ -5,7 +5,6 @@
 
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
-**IMPLEMENTED / PARTIALLY IMPLEMENTED**
 - <code style="color : blue">Lapis Golem</code> (Digging)
   - Give the lapis golem a pickaxe and it will dig then deposit items in a chest.
 - <code style="color : grey">Netherite Golem</code> (Attack / Defend)
@@ -36,7 +35,18 @@
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation)
   - connect redstone elements when given redstone dust
   - activate redstone elements nearby
-
-**FUTURE PLANS**
 - <code style="color : lightblue">Diamond Golem</code> (Building)
-  - Takes blocks from a chest and builds a schematic-defined structure in the world.
+  - [FUTURE?] Takes blocks from a chest and builds a schematic-defined structure in the world.
+  - Currently builds small simple structures, selectable in inventory.
+- <code style="color : lightgreen">Lamp Golem</code> (Lighting)
+  - Turns on and off a glowing effect, illuminating the surroundings at a light level of 12.
+  - Follows the player, making it useful for caving.
+  - Give it a torches of any kind to have it place them in dark areas.
+- <code style="color : red">Nether Wart Golem</code> (Brewing)
+    - Automates potion brewing when given a brewing stand and ingredients.
+    - Deposits finished potions into nearby chests.
+    - Fills water bottles with water when given glass bottles.
+
+### Adds a wrench item which heals golems
+<img width="183" height="104" alt="Screenshot 2026-02-05 at 3 22 47 PM" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
+- 500 durability, standard tool

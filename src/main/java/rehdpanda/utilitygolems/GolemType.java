@@ -6,6 +6,8 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.passive.CopperGolemEntity;
 import net.minecraft.util.Identifier;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import java.util.function.Consumer;
 
 import net.minecraft.block.Block;
@@ -66,7 +68,7 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initFurnaceGoals,
-            Blocks.CHEST
+            null
     ),
     BAMBOO("bamboo_golem", "Bamboo Golem", "textures/entity/bamboo_golem.png",
             baseAttributes()
@@ -79,7 +81,7 @@ public enum GolemType {
     DIAMOND("diamond_golem", "Diamond Golem", "textures/entity/diamond_golem.png",
             baseAttributes()
                     .add(EntityAttributes.MAX_HEALTH, 40.0)
-                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.2)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initDiamondGoals,
             null
@@ -106,7 +108,23 @@ public enum GolemType {
                     .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
             GolemAI::initJukeboxGoals,
-            Blocks.CHEST
+            null
+    ),
+    LAMP("lamp_golem", "Lamp Golem", "textures/entity/lamp_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initLampGoals,
+            null
+    ),
+    NETHER_WART("nether_wart_golem", "Nether Wart Golem", "textures/entity/nether_wart_golem.png",
+            baseAttributes()
+                    .add(EntityAttributes.MAX_HEALTH, 40.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
+                    .add(EntityAttributes.ATTACK_DAMAGE, 0.5),
+            GolemAI::initNetherWartGoals,
+            null
     );
 
 
@@ -154,6 +172,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
+        if (this == LAMP) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 
