@@ -48,5 +48,5 @@
     - Fills water bottles with water when given glass bottles.
 
 ### Adds a wrench item which heals golems
-<recipe image>
+<img width="183" height="104" alt="Screenshot 2026-02-05 at 3 22 47 PM" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
 - 500 durability, standard tool
