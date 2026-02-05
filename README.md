@@ -42,3 +42,7 @@
   - Turns on and off a glowing effect, illuminating the surroundings at a light level of 12.
   - Follows the player, making it useful for caving.
   - Give it a torches of any kind to have it place them in dark areas.
+- <code style="color : red">Nether Wart Golem</code> (Brewing)
+    - Automates potion brewing when given a brewing stand and ingredients.
+    - Deposits finished potions into nearby chests.
+    - Fills water bottles with water when given glass bottles.
