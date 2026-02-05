@@ -955,15 +955,43 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             if (golem.getInventory().isEmpty() && !golem.getHeldItem().isOf(Items.BLAZE_POWDER)) return false;
-            // Only start brewing if we have water bottles or ingredients, AND fuel
-            boolean hasWater = findWaterBottleInInventory() != -1;
-            boolean hasIngredient = findIngredientInInventory() != -1;
-            boolean hasFuel = findItemInInventory(Items.BLAZE_POWDER) != -1;
-            
-            if (!hasFuel && !hasWater && !hasIngredient) return false;
             
             targetPos = findBrewingStand();
-            return targetPos != null;
+            if (targetPos == null) return false;
+
+            // Only start brewing if we have something to do at the stand
+            return hasWorkAtStand();
+        }
+
+        private boolean hasWorkAtStand() {
+            if (targetPos == null) return false;
+            BlockEntity be = golem.getEntityWorld().getBlockEntity(targetPos);
+            if (be instanceof net.minecraft.block.entity.BrewingStandBlockEntity stand) {
+                // 1. Can collect finished potions?
+                for (int i = 0; i < 3; i++) {
+                    if (!stand.getStack(i).isEmpty() && isFullyFinished(stand.getStack(i))) return true;
+                }
+
+                // 2. Can refill fuel?
+                ItemStack fuelStack = stand.getStack(4);
+                if ((fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxCount()) && findItemInInventory(Items.BLAZE_POWDER) != -1) {
+                    return true;
+                }
+
+                // 3. Can add water bottles?
+                boolean hasWaterInInv = findWaterBottleInInventory() != -1;
+                if (hasWaterInInv) {
+                    for (int i = 0; i < 3; i++) {
+                        if (stand.getStack(i).isEmpty()) return true;
+                    }
+                }
+
+                // 4. Can add ingredient?
+                if (stand.getStack(3).isEmpty() && findBestIngredientForStand(stand) != -1) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private BlockPos findBrewingStand() {
@@ -1245,23 +1273,44 @@ public class GolemAI {
         }
 
         private boolean isFullyFinished(ItemStack stack) {
+            return BrewingGoal.isFullyFinished(golem, stack);
+        }
+
+        public static boolean isFullyFinished(UtilityGolem golem, ItemStack stack) {
             // A potion is fully finished if it's a splash/lingering potion OR it has been enhanced and we have no more secondary ingredients to add
             // For simplicity, let's say if it's not a water bottle and not awkward, it's "finished" enough to be collected if we don't have secondary ingredients.
             // But the user said: "If it has gunpowder, it will make splash potions, same with glowstone / redstone."
             // So it should only collect if it CANNOT improve it further with what it has in inventory.
             
-            if (!isRegularPotion(stack)) return false;
+            if (!isRegularPotionStatic(stack)) return false;
 
             // If we have secondary ingredients, we should probably keep it in the stand to process further
             for (int i = 0; i < golem.getInventory().size(); i++) {
                 if (isSecondaryIngredient(golem.getInventory().getStack(i))) {
                     // But only if it's not already splash/lingering (unless it's dragon breath)
                     if (stack.isOf(Items.POTION)) return false; // Can still add gunpowder/redstone/glowstone
-                    if (stack.isOf(Items.SPLASH_POTION) && findItemInInventory(Items.DRAGON_BREATH) != -1) return false;
+                    if (stack.isOf(Items.SPLASH_POTION) && findItemInInventoryStatic(golem, Items.DRAGON_BREATH) != -1) return false;
                 }
             }
             
             return true;
+        }
+
+        public static boolean isRegularPotionStatic(ItemStack stack) {
+            if (stack.isOf(Items.POTION) || stack.isOf(Items.SPLASH_POTION) || stack.isOf(Items.LINGERING_POTION)) {
+                net.minecraft.component.type.PotionContentsComponent potion = stack.get(DataComponentTypes.POTION_CONTENTS);
+                if (potion == null || !potion.potion().isPresent()) return false;
+                RegistryEntry<net.minecraft.potion.Potion> p = potion.potion().get();
+                return !p.matches(net.minecraft.potion.Potions.WATER) && !p.matches(net.minecraft.potion.Potions.AWKWARD);
+            }
+            return false;
+        }
+
+        public static int findItemInInventoryStatic(UtilityGolem golem, Item item) {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isOf(item)) return i;
+            }
+            return -1;
         }
 
         private boolean isFinishedPotion(ItemStack stack) {
@@ -1304,7 +1353,7 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
-            return targetPos != null && golem.getEntityWorld().getBlockState(targetPos).isOf(Blocks.BREWING_STAND);
+            return targetPos != null && golem.getEntityWorld().getBlockState(targetPos).isOf(Blocks.BREWING_STAND) && hasWorkAtStand();
         }
 
         private boolean isInventoryFull() {
@@ -1353,18 +1402,6 @@ public class GolemAI {
             
             BlockEntity be = golem.getEntityWorld().getBlockEntity(standPos);
             if (be instanceof net.minecraft.block.entity.BrewingStandBlockEntity stand) {
-                // If stand is empty or finished, we should probably go there instead of water
-                boolean standHasWork = false;
-                for (int i = 0; i < 3; i++) {
-                    ItemStack s = stand.getStack(i);
-                    if (!s.isEmpty()) {
-                        if (isWaterBottle(s) || isAwkwardPotion(s) || isRegularPotion(s)) {
-                            standHasWork = true;
-                            break;
-                        }
-                    }
-                }
-                
                 // If we have ingredients and stand can take them, prioritize brewing
                 if (findIngredientInInventory() != -1 && stand.getStack(3).isEmpty()) return true;
                 
@@ -1373,6 +1410,11 @@ public class GolemAI {
                     for (int i = 0; i < 3; i++) {
                         if (stand.getStack(i).isEmpty()) return true;
                     }
+                }
+
+                // If stand has finished potions we can collect
+                for (int i = 0; i < 3; i++) {
+                    if (!stand.getStack(i).isEmpty() && BrewingGoal.isFullyFinished(golem, stand.getStack(i))) return true;
                 }
             }
             return false;
