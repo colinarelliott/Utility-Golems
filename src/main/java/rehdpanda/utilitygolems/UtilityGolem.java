@@ -38,6 +38,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 
 // Base class for Utility Golems
@@ -104,6 +105,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(BUILDING_STARTED, false);
         builder.add(LAMP_ON, false);
         builder.add(STRIPPED, false);
+    }
+
+    public void debugLog(String message) {
+        if (this.hasCustomName() && this.getCustomName().getString().toUpperCase().contains("DEBUG")) {
+            World world = this.getEntityWorld();
+            if (!world.isClient()) {
+                List<PlayerEntity> players = world.getEntitiesByClass(PlayerEntity.class, this.getBoundingBox().expand(16.0D), player -> true);
+                for (PlayerEntity player : players) {
+                    player.sendMessage(Text.literal("[DEBUG] " + message), false);
+                }
+            }
+        }
     }
 
     public void setBuildingStarted(boolean started) {

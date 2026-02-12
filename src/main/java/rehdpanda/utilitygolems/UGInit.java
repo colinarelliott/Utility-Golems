@@ -109,7 +109,6 @@ public class UGInit implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
                     CommandManager.literal("UG-debug")
-                            .requires(source -> source.hasPermissionLevel(2))
                             .executes(context -> {
                                 ServerCommandSource source = context.getSource();
                                 source.sendFeedback(
