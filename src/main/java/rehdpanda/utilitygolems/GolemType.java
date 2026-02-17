@@ -172,7 +172,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
-        if (this == LAMP) return null;
+        if (this == LAMP || this == FURNACE || this == JUKEBOX) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 
