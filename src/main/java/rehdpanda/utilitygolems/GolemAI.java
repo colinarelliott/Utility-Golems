@@ -161,15 +161,15 @@ public class GolemAI {
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PlayRecordGoal(golem)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PlayRecordGoal(golem)));
     }
     public static void initLampGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.TORCH, Items.SOUL_TORCH, Items.REDSTONE_TORCH, Items.LANTERN, Items.SOUL_LANTERN
         ), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
-        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new PlaceTorchGoal(golem)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new PlaceTorchGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
     }
     public static void initNetherWartGoals(UtilityGolem golem) {
@@ -316,7 +316,7 @@ public class GolemAI {
                 for (int y = -2; y <= 2; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
-                        if (world.getLightLevel(net.minecraft.world.LightType.BLOCK, p) == 0 && canPlaceTorchAt(p)) {
+                        if (isDarkEnough(world, p) && canPlaceTorchAt(p)) {
                             double distSq = pos.getSquaredDistance(p);
                             if (distSq < bestDistSq) {
                                 bestDistSq = distSq;
@@ -329,6 +329,29 @@ public class GolemAI {
             return bestPos;
         }
 
+        private boolean isDarkEnough(World world, BlockPos pos) {
+            // Check light level while ignoring the golem's own light block if it's nearby
+            int blockLight = world.getLightLevel(net.minecraft.world.LightType.BLOCK, pos);
+            if (blockLight == 0) return true;
+            
+            // If light level is 12 or less, it might be from the golem itself
+            if (blockLight <= 12) {
+                // If there's a light block from this mod nearby, it's likely the golem's light
+                for (BlockPos p : BlockPos.iterate(pos.add(-2, -2, -2), pos.add(2, 2, 2))) {
+                    if (world.getBlockState(p).isOf(UGBlocks.LIGHT_BLOCK)) {
+                        // The light block at 'p' contributes to 'pos'. 
+                        // If we didn't have this light block, would it be 0?
+                        // This is hard to compute exactly without re-calculating light,
+                        // but we can assume if the golem is close, it's the golem.
+                        if (golem.getBlockPos().getSquaredDistance(pos) < 16) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
         private boolean canPlaceTorchAt(BlockPos pos) {
             World world = golem.getEntityWorld();
             if (!world.getBlockState(pos).isReplaceable()) return false;
@@ -338,7 +361,7 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
-            return targetPos != null && hasTorch() && golem.isLampOn() && golem.getEntityWorld().getLightLevel(net.minecraft.world.LightType.BLOCK, targetPos) == 0;
+            return targetPos != null && hasTorch() && golem.isLampOn() && isDarkEnough(golem.getEntityWorld(), targetPos);
         }
 
         @Override
@@ -6054,7 +6077,7 @@ public class GolemAI {
 
         public PlayRecordGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.LOOK));
+            this.setControls(EnumSet.noneOf(Control.class));
         }
 
         @Override
