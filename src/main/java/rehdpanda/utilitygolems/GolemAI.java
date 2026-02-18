@@ -787,18 +787,69 @@ public class GolemAI {
         }
 
         private BlockPos findNearbyWater(BlockPos center) {
+            World world = golem.getEntityWorld();
+            BlockPos best = null;
+            double bestScore = Double.MAX_VALUE;
             int range = 12;
             for (int x = -range; x <= range; x++) {
-                for (int y = -15; y <= 15; y++) {
+                for (int y = -5; y <= 5; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = center.add(x, y, z);
-                        if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.WATER)) {
-                            return p;
+                        BlockState state = world.getBlockState(p);
+                        if (!state.isOf(Blocks.WATER)) continue;
+                        if (!world.getBlockState(p.up()).isAir()) continue;
+                        // compute score
+                        double dx = p.getX() - center.getX();
+                        double dz = p.getZ() - center.getZ();
+                        double horizDistSq = dx * dx + dz * dz;
+                        int minLandDist = 99;
+                        boolean shallow = !world.getBlockState(p.down()).isOf(Blocks.WATER);
+                        for (int lx = -4; lx <= 4; lx++) {
+                            for (int lz = -4; lz <= 4; lz++) {
+                                if (lx == 0 && lz == 0) continue;
+                                BlockPos landPos = p.add(lx, 0, lz);
+                                BlockState ls = world.getBlockState(landPos);
+                                if (ls.getFluidState().isEmpty() && !ls.isAir()) {
+                                    int dist = Math.max(Math.abs(lx), Math.abs(lz));
+                                    if (dist < minLandDist) {
+                                        minLandDist = dist;
+                                    }
+                                }
+                            }
+                        }
+                        double score = horizDistSq + minLandDist * 25.0;
+                        if (shallow) score -= 10.0;
+                        if (score < bestScore) {
+                            bestScore = score;
+                            best = p;
                         }
                     }
                 }
             }
-            return null;
+            if (best != null) {
+                double dx = best.getX() - center.getX();
+                double dz = best.getZ() - center.getZ();
+                double horizDistSq = dx * dx + dz * dz;
+                boolean shallow = !world.getBlockState(best.down()).isOf(Blocks.WATER);
+                int minLandDist = 99;
+                for (int lx = -4; lx <= 4; lx++) {
+                    for (int lz = -4; lz <= 4; lz++) {
+                        if (lx == 0 && lz == 0) continue;
+                        BlockPos landPos = best.add(lx, 0, lz);
+                        BlockState ls = world.getBlockState(landPos);
+                        if (ls.getFluidState().isEmpty() && !ls.isAir()) {
+                            int dist = Math.max(Math.abs(lx), Math.abs(lz));
+                            if (dist < minLandDist) {
+                                minLandDist = dist;
+                            }
+                        }
+                    }
+                }
+                double score = horizDistSq + minLandDist * 25.0;
+                if (shallow) score -= 10.0;
+                golem.debugLog("FishGoal: Best water " + best.toShortString() + " | score: " + score + " | horizDistSq: " + horizDistSq + " | minLandDist: " + minLandDist + " | shallow: " + shallow);
+            }
+            return best;
         }
 
         @Override
