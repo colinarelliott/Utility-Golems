@@ -36,8 +36,9 @@
   - connect redstone elements when given redstone dust
   - activate redstone elements nearby
 - <code style="color : lightblue">Diamond Golem</code> (Building)
-  - [FUTURE?] Takes blocks from a chest and builds a schematic-defined structure in the world.
-  - Currently builds small simple structures, selectable in inventory.
+  - Takes blocks from a chest and builds a schematic-defined structure in the world.
+  - Builds small simple structures, selectable in inventory.
+  - Replaces blocks as directed.
 - <code style="color : lightgreen">Lamp Golem</code> (Lighting)
   - Turns on and off a glowing effect, illuminating the surroundings at a light level of 12.
   - Follows the player, making it useful for caving.
