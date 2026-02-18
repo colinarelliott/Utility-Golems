@@ -1,5 +1,9 @@
 package rehdpanda.utilitygolems;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
 import net.minecraft.entity.EntityData;
@@ -211,6 +215,28 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         super.onDeath(source);
         if (!this.getEntityWorld().isClient()) {
             removeLight();
+            // Drop material block
+            Block materialBlock = switch (this.golemType) {
+                case LAPIS -> Blocks.LAPIS_BLOCK;
+                case REDSTONE -> Blocks.REDSTONE_BLOCK;
+                case EMERALD -> Blocks.EMERALD_BLOCK;
+                case GOLD -> Blocks.GOLD_BLOCK;
+                case AMETHYST -> Blocks.AMETHYST_BLOCK;
+                case NETHERITE -> Blocks.NETHERITE_BLOCK;
+                case DIAMOND -> Blocks.DIAMOND_BLOCK;
+                case BAMBOO -> Blocks.BAMBOO_BLOCK;
+                case SPONGE -> Blocks.SPONGE;
+                case DEEPSLATE -> Blocks.DEEPSLATE;
+                case FURNACE -> Blocks.FURNACE;
+                case JUKEBOX -> Blocks.JUKEBOX;
+                case LAMP -> Blocks.REDSTONE_LAMP;
+                case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
+                default -> null;
+            };
+            if (materialBlock != null) {
+                Block.dropStack(this.getEntityWorld(), this.getBlockPos(), new ItemStack(materialBlock));
+            }
+
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 ItemStack stack = this.getEquippedStack(slot);
                 if (!stack.isEmpty()) {
@@ -849,6 +875,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     protected void initGoals() {
+        // Clear any goals inherited from parent to avoid unintended behaviors (e.g., random chest checks)
+        this.goalSelector.getGoals().clear();
+        this.targetSelector.getGoals().clear();
+
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new SwimGoal(this)));
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.entity.ai.goal.LongDoorInteractGoal(this, true)));
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
