@@ -112,11 +112,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public void debugLog(String message) {
-        World world = this.getEntityWorld();
-        if (!world.isClient()) {
-            List<PlayerEntity> players = world.getEntitiesByClass(PlayerEntity.class, this.getBoundingBox().expand(16.0D), player -> true);
-            for (PlayerEntity player : players) {
-                player.sendMessage(Text.literal("[DEBUG] " + message), false);
+        if (this.hasCustomName() && this.getCustomName().getString().toUpperCase().contains("DEBUG")) {
+            World world = this.getEntityWorld();
+            if (!world.isClient()) {
+                List<PlayerEntity> players = world.getEntitiesByClass(PlayerEntity.class, this.getBoundingBox().expand(16.0D), player -> true);
+                for (PlayerEntity player : players) {
+                    player.sendMessage(Text.literal("[DEBUG] " + message), false);
+                }
             }
         }
     }
