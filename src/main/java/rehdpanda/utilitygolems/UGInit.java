@@ -30,10 +30,13 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static net.minecraft.entity.ai.brain.task.TargetUtil.give;
@@ -46,7 +49,7 @@ public class UGInit implements ModInitializer {
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started) implements CustomPayload {
+    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started, String schematicName) implements CustomPayload {
         public static final Id<SyncPatternPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_pattern"));
         public static final PacketCodec<RegistryByteBuf, SyncPatternPayload> CODEC = PacketCodec.tuple(
                 PacketCodecs.VAR_INT, SyncPatternPayload::entityId,
@@ -55,7 +58,36 @@ public class UGInit implements ModInitializer {
                 PacketCodecs.VAR_INT, SyncPatternPayload::length,
                 ItemStack.OPTIONAL_PACKET_CODEC, SyncPatternPayload::filter,
                 PacketCodecs.BOOLEAN, SyncPatternPayload::started,
+                PacketCodecs.STRING, SyncPatternPayload::schematicName,
                 SyncPatternPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPayload {
+        public static final Id<SyncDiscoveredTradesPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_discovered_trades"));
+        public static final PacketCodec<RegistryByteBuf, SyncDiscoveredTradesPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SyncDiscoveredTradesPayload::entityId,
+                ItemStack.PACKET_CODEC.collect(PacketCodecs.toList()), SyncDiscoveredTradesPayload::trades,
+                SyncDiscoveredTradesPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPayload {
+        public static final Id<SelectBuyItemPayload> ID = new Id<>(Identifier.of(MOD_ID, "select_buy_item"));
+        public static final PacketCodec<RegistryByteBuf, SelectBuyItemPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SelectBuyItemPayload::entityId,
+                ItemStack.OPTIONAL_PACKET_CODEC, SelectBuyItemPayload::selectedItem,
+                SelectBuyItemPayload::new
         );
 
         @Override
@@ -88,6 +120,18 @@ public class UGInit implements ModInitializer {
         UGItems.register();
 
         PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
+
+        ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    golem.setSelectedBuyItem(payload.selectedItem());
+                }
+            });
+        });
+
         ServerPlayNetworking.registerGlobalReceiver(SyncPatternPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
                 Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
@@ -100,7 +144,10 @@ public class UGInit implements ModInitializer {
                     if (!payload.filter().isEmpty()) {
                         golem.setHeldItem(payload.filter());
                     }
-                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)")), true);
+                    if (payload.schematicName() != null) {
+                        golem.setSchematicName(payload.schematicName());
+                    }
+                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)") + (golem.getSchematicName().isEmpty() ? "" : (" | Schematic: " + golem.getSchematicName()))), true);
                 }
             });
         });
@@ -116,6 +163,9 @@ public class UGInit implements ModInitializer {
                                         false
                                 );
                                 ServerPlayerEntity player = source.getPlayer();
+                                if (player == null) {
+                                    return 0;
+                                }
                                 give(player, Items.GOLD_BLOCK);
                                 give(player, Items.LAPIS_BLOCK);
                                 give(player, Items.EMERALD_BLOCK);
@@ -127,10 +177,18 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.FURNACE);
                                 give(player, Items.JUKEBOX);
                                 give(player, Items.REDSTONE_LAMP);
+                                give(player, Items.NETHER_WART);
+                                give(player, Items.STRIPPED_BAMBOO_BLOCK);
                                 give(player, Items.SPONGE);
                                 give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
                                 give(player, UGItems.WRENCH_ITEM);
+
+                                ItemStack nameTag = new ItemStack(Items.NAME_TAG);
+                                nameTag.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, Text.literal("debug"));
+                                player.getInventory().insertStack(nameTag);
+
+                                source.sendFeedback(() -> Text.literal("Debug items given!"), false);
 
                                 return 1;
                             })
@@ -143,7 +201,7 @@ public class UGInit implements ModInitializer {
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
             for (GolemType type : GolemType.values()) {
-                if (type == GolemType.LAMP) continue;
+                if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX) continue;
                 net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
                 if (chest != null) {
                     entries.add(chest);
@@ -179,5 +237,14 @@ public class UGInit implements ModInitializer {
 
     private void give(ServerPlayerEntity player, Item item) {
         player.getInventory().insertStack(new ItemStack(item, 1));
+    }
+
+    public static void syncDiscoveredTrades(UtilityGolem golem) {
+        if (!golem.getEntityWorld().isClient() && golem.getEntityWorld() instanceof ServerWorld) {
+            SyncDiscoveredTradesPayload payload = new SyncDiscoveredTradesPayload(golem.getId(), golem.getDiscoveredTrades());
+            for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(golem)) {
+                ServerPlayNetworking.send(player, payload);
+            }
+        }
     }
 }

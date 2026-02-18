@@ -13,7 +13,7 @@
 - <code style="color : green">Emerald Golem</code> (Villager Trading Automation) *[WIP]*
   - Give the emerald golem items to trade and it will SELL them to villagers.
   - Deposits profit into nearby chests.
-  - BUY is *[WIP]*
+  - Select items to BUY once the golem has discovered nearby villagers. Will take emeralds from chest to buy.
 - <code style="color : purple">Amethyst Golem</code> (Breeding)
   - Breeds animals for the player using provided wheat or other breeding material.
   - Bug where it uses lots of wheat..

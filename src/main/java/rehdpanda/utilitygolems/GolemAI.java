@@ -55,6 +55,7 @@ import java.util.Optional;
 
 public class GolemAI {
 
+    /// BOOLEAN FUNCTIONS
     public static boolean isIngredient(ItemStack stack) {
         return stack.isOf(Items.NETHER_WART) || stack.isOf(Items.GLOWSTONE_DUST) || stack.isOf(Items.REDSTONE)
                 || stack.isOf(Items.FERMENTED_SPIDER_EYE) || stack.isOf(Items.MAGMA_CREAM) || stack.isOf(Items.SUGAR)
@@ -62,15 +63,14 @@ public class GolemAI {
                 || stack.isOf(Items.PUFFERFISH) || stack.isOf(Items.GOLDEN_CARROT) || stack.isOf(Items.TURTLE_HELMET)
                 || stack.isOf(Items.PHANTOM_MEMBRANE) || stack.isOf(Items.DRAGON_BREATH) || stack.isOf(Items.GUNPOWDER);
     }
-
     public static boolean isSecondaryIngredient(ItemStack stack) {
         return stack.isOf(Items.GUNPOWDER) || stack.isOf(Items.GLOWSTONE_DUST) || stack.isOf(Items.REDSTONE) || stack.isOf(Items.DRAGON_BREATH);
     }
-
     public static boolean isPrimaryIngredient(ItemStack stack) {
         return isIngredient(stack) && !isSecondaryIngredient(stack);
     }
 
+    /// INITIALIZE GOALS
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE,
@@ -80,24 +80,18 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DigBlockGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
-
-    // Initialize goals for Redstone Golem
     public static void initRedstoneGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.REDSTONE, Items.REPEATER), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new ConnectRedstoneGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new TriggerRedstoneGoal(golem)));
     }
-
-    // Initialize goals for Emerald Golem
     public static void initEmeraldGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.EMERALD), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new TradeWithVillagerGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
-
-    // Initialize goals for Gold Golem
     public static void initGoldGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.GOLD_INGOT, Items.GOLD_NUGGET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -105,15 +99,11 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
-    
-    // Initialize goals for Amethyst Golem
     public static void initAmethystGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
     }
-    
-    // Initialize goals for Netherite Golem
     public static void initNetheriteGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD, Items.COPPER_SWORD
@@ -123,15 +113,11 @@ public class GolemAI {
         golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
     }
-
-    // Initialize goals for Furnace Golem
     public static void initFurnaceGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
     }
-
-    /// AI IN PROGRESS
     public static void initBambooGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
@@ -143,8 +129,6 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new RefillBucketGoal(golem)));
     }
-
-    /// AI FUNCTIONAL
     public static void initDiamondGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.DIAMOND), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
@@ -152,16 +136,12 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
     }
-
-    /// AI IN PROGRESS
     public static void initSpongeGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.FISHING_ROD), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FishGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
-
-    /// AI FUNCTIONAL
     public static void initDeepslateGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.NETHERITE_AXE, Items.DIAMOND_AXE, Items.IRON_AXE, Items.GOLDEN_AXE, Items.STONE_AXE, Items.WOODEN_AXE, Items.COPPER_AXE, Items.SHEARS
@@ -172,8 +152,6 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
-
-    /// AI FUNCTIONAL
     public static void initJukeboxGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_BLOCKS, Items.MUSIC_DISC_CHIRP, Items.MUSIC_DISC_FAR,
@@ -186,7 +164,6 @@ public class GolemAI {
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PlayRecordGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
     }
-
     public static void initLampGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.TORCH, Items.SOUL_TORCH, Items.REDSTONE_TORCH, Items.LANTERN, Items.SOUL_LANTERN
@@ -195,7 +172,6 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new PlaceTorchGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
     }
-
     public static void initNetherWartGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.GLASS_BOTTLE, Items.NETHER_WART
@@ -207,6 +183,87 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
     
+    /// DEBUG WRAPPER
+    public static class DebugGoalWrapper extends Goal {
+        private final UtilityGolem golem;
+        private final Goal innerGoal;
+        private final String goalName;
+
+        public DebugGoalWrapper(UtilityGolem golem, Goal innerGoal) {
+            this.golem = golem;
+            this.innerGoal = innerGoal;
+            String name = innerGoal.getClass().getSimpleName();
+            if (name.isEmpty()) {
+                name = innerGoal.getClass().getName();
+                if (name.contains("$")) {
+                    name = name.substring(name.lastIndexOf('$') + 1);
+                } else if (name.contains(".")) {
+                    name = name.substring(name.lastIndexOf('.') + 1);
+                }
+            }
+            this.goalName = name;
+
+            this.setControls(innerGoal.getControls());
+        }
+
+        @Override
+        public boolean canStart() {
+            return innerGoal.canStart();
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return innerGoal.shouldContinue();
+        }
+
+        @Override
+        public boolean canStop() {
+            return innerGoal.canStop();
+        }
+
+        @Override
+        public void start() {
+            golem.debugLog(goalName + " starting");
+            innerGoal.start();
+        }
+
+        @Override
+        public void stop() {
+            golem.setDebugTarget(null);
+            innerGoal.stop();
+        }
+
+        @Override
+        public void tick() {
+            innerGoal.tick();
+            updateDebugTarget();
+        }
+
+        private void updateDebugTarget() {
+            try {
+                java.lang.reflect.Field[] fields = innerGoal.getClass().getDeclaredFields();
+                for (java.lang.reflect.Field field : fields) {
+                    field.setAccessible(true);
+                    Object value = field.get(innerGoal);
+                    if (value instanceof BlockPos pos) {
+                        golem.setDebugTarget(pos);
+                        return;
+                    }
+                    if (value instanceof net.minecraft.entity.Entity entity) {
+                        golem.setDebugTarget(entity.getBlockPos());
+                        return;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        @Override
+        public String toString() {
+            return "DebugWrapper[" + innerGoal.toString() + "]";
+        }
+    }
+
+    /// ADVANCED GOAL LOGIC
     public static class PlaceTorchGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -227,9 +284,13 @@ public class GolemAI {
             }
             if (golem.getGolemType() != GolemType.LAMP) return false;
             if (!golem.isLampOn()) return false;
-            
+
             targetPos = findDarkSpot();
-            return targetPos != null && hasTorch();
+            if (targetPos != null && hasTorch()) {
+                golem.debugLog("PlaceTorchGoal: Found dark spot at " + targetPos.toShortString());
+                return true;
+            }
+            return false;
         }
 
         private boolean hasTorch() {
@@ -334,6 +395,7 @@ public class GolemAI {
             }
 
             if (!torchStack.isEmpty()) {
+                golem.debugLog("PlaceTorchGoal: Placing torch (" + torchStack.getItem().getName().getString() + ") at " + targetPos.getX() + ", " + targetPos.getY() + ", " + targetPos.getZ());
                 World world = golem.getEntityWorld();
                 Block torchBlock = Blocks.TORCH;
                 if (torchStack.isOf(Items.SOUL_TORCH)) torchBlock = Blocks.SOUL_TORCH;
@@ -351,8 +413,6 @@ public class GolemAI {
             }
         }
     }
-    
-    /// GOAL WRAPPER
     public static class ClimbLadderGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos ladderPos;
@@ -375,13 +435,13 @@ public class GolemAI {
             // Otherwise, only start if we have a target above us
             BlockPos target = getTargetPos();
             if (target != null && target.getY() > golem.getY()) return true;
-            
+
             // Or if we are already moving and stuck vertically near a ladder
             if (!golem.getNavigation().isIdle() && target != null) {
-                 double dy = target.getY() - golem.getY();
-                 if (dy > 1.0) return true;
+                double dy = target.getY() - golem.getY();
+                if (dy > 1.0) return true;
             }
-            
+
             return false;
         }
 
@@ -417,9 +477,9 @@ public class GolemAI {
                     break;
                 }
             }
-            
+
             if (!onClimbable) return false;
-            
+
             // If we've reached the target height or target moved below us, we can stop
             BlockPos target = getTargetPos();
             if (target != null && target.getY() <= golem.getY()) {
@@ -443,13 +503,13 @@ public class GolemAI {
         @Override
         public void tick() {
             if (ladderPos == null) return;
-            
+
             BlockPos target = getTargetPos();
 
             // Move towards ladder horizontal center
             double centerX = ladderPos.getX() + 0.5;
             double centerZ = ladderPos.getZ() + 0.5;
-            
+
             if (golem.squaredDistanceTo(centerX, golem.getY(), centerZ) > 0.05) {
                 golem.getNavigation().startMovingTo(centerX, golem.getY(), centerZ, 1.0);
             } else {
@@ -457,14 +517,14 @@ public class GolemAI {
                 // Snap to center to avoid sliding off
                 golem.refreshPositionAndAngles(centerX, golem.getY(), centerZ, golem.getYaw(), golem.getPitch());
             }
-            
+
             // If we are close enough to the ladder horizontally, climb
             if (Math.abs(golem.getX() - centerX) < 0.5 && Math.abs(golem.getZ() - centerZ) < 0.5) {
                 if (target == null || target.getY() > golem.getY()) {
                     // Only apply upward velocity if there is a climbable block at our feet or slightly above
                     BlockPos currentPos = golem.getBlockPos();
-                    if (golem.getEntityWorld().getBlockState(currentPos).isIn(BlockTags.CLIMBABLE) || 
-                        golem.getEntityWorld().getBlockState(currentPos.up()).isIn(BlockTags.CLIMBABLE)) {
+                    if (golem.getEntityWorld().getBlockState(currentPos).isIn(BlockTags.CLIMBABLE) ||
+                            golem.getEntityWorld().getBlockState(currentPos.up()).isIn(BlockTags.CLIMBABLE)) {
                         golem.setVelocity(golem.getVelocity().x, 0.2, golem.getVelocity().z);
                     } else {
                         // We are at the top or no longer on a ladder
@@ -474,96 +534,6 @@ public class GolemAI {
             }
         }
     }
-
-    /// GOAL WRAPPER
-    public static class DebugGoalWrapper extends Goal {
-        private final UtilityGolem golem;
-        private final Goal innerGoal;
-        private final String goalName;
-
-        public DebugGoalWrapper(UtilityGolem golem, Goal innerGoal) {
-            this.golem = golem;
-            this.innerGoal = innerGoal;
-            String name = innerGoal.getClass().getSimpleName();
-            if (name.isEmpty()) {
-                name = innerGoal.getClass().getName();
-                if (name.contains("$")) {
-                    name = name.substring(name.lastIndexOf('$') + 1);
-                } else if (name.contains(".")) {
-                    name = name.substring(name.lastIndexOf('.') + 1);
-                }
-            }
-            this.goalName = name;
-
-            this.setControls(innerGoal.getControls());
-        }
-
-        @Override
-        public boolean canStart() {
-            return innerGoal.canStart();
-        }
-
-        @Override
-        public boolean shouldContinue() {
-            return innerGoal.shouldContinue();
-        }
-
-        @Override
-        public boolean canStop() {
-            return innerGoal.canStop();
-        }
-
-        @Override
-        public void start() {
-            if (golem.hasCustomName() && golem.getCustomName().getString().equalsIgnoreCase("debug")) {
-                World world = golem.getEntityWorld();
-                if (!world.isClient()) {
-                    List<PlayerEntity> players = world.getEntitiesByClass(PlayerEntity.class, golem.getBoundingBox().expand(16.0D), player -> true);
-                    for (PlayerEntity player : players) {
-                        player.sendMessage(Text.literal("[DEBUG] " + goalName + " starting"), false);
-                    }
-                }
-            }
-            innerGoal.start();
-        }
-
-        @Override
-        public void stop() {
-            golem.setDebugTarget(null);
-            innerGoal.stop();
-        }
-
-        @Override
-        public void tick() {
-            innerGoal.tick();
-            updateDebugTarget();
-        }
-
-        private void updateDebugTarget() {
-            try {
-                java.lang.reflect.Field[] fields = innerGoal.getClass().getDeclaredFields();
-                for (java.lang.reflect.Field field : fields) {
-                    field.setAccessible(true);
-                    Object value = field.get(innerGoal);
-                    if (value instanceof BlockPos pos) {
-                        golem.setDebugTarget(pos);
-                        return;
-                    }
-                    if (value instanceof net.minecraft.entity.Entity entity) {
-                        golem.setDebugTarget(entity.getBlockPos());
-                        return;
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
-
-        @Override
-        public String toString() {
-            return "DebugWrapper[" + innerGoal.toString() + "]";
-        }
-    }
-
-    /// ADVANCED GOAL LOGIC
     public static class FollowPlayerGoal extends Goal {
         private final UtilityGolem golem;
         private PlayerEntity targetPlayer;
@@ -619,7 +589,6 @@ public class GolemAI {
             }
         }
     }
-
     public static class TradeWithVillagerGoal extends Goal {
         private final UtilityGolem golem;
         private VillagerEntity targetVillager;
@@ -633,7 +602,24 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             targetVillager = findVillagerWithTrade();
+            // Record trades even if we can't trade right now
+            if (targetVillager == null) {
+                recordNearbyTrades();
+            }
             return targetVillager != null;
+        }
+
+        private void recordNearbyTrades() {
+            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(8.0), villager -> true);
+            for (VillagerEntity villager : villagers) {
+                TradeOfferList offers = villager.getOffers();
+                for (TradeOffer offer : offers) {
+                    if (offer.isDisabled()) continue;
+                    if (!offer.getSellItem().isOf(Items.EMERALD)) {
+                        golem.addDiscoveredTrade(offer.getSellItem());
+                    }
+                }
+            }
         }
 
         private VillagerEntity findVillagerWithTrade() {
@@ -649,9 +635,23 @@ public class GolemAI {
         private boolean canTradeWith(VillagerEntity villager) {
             TradeOfferList offers = villager.getOffers();
             SimpleInventory inventory = golem.getInventory();
+            ItemStack selectedBuy = golem.getSelectedBuyItem();
+
             for (TradeOffer offer : offers) {
                 if (offer.isDisabled()) continue;
+                
+                // Existing selling logic
                 if (offer.getSellItem().isOf(Items.EMERALD)) {
+                    TradedItem buyItem1 = offer.getFirstBuyItem();
+                    Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
+
+                    if (hasStack(inventory, buyItem1) && (buyItem2.isEmpty() || hasStack(inventory, buyItem2.get()))) {
+                        return true;
+                    }
+                }
+                
+                // New buying logic
+                if (!selectedBuy.isEmpty() && ItemStack.areItemsEqual(offer.getSellItem(), selectedBuy)) {
                     TradedItem buyItem1 = offer.getFirstBuyItem();
                     Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
 
@@ -711,9 +711,22 @@ public class GolemAI {
         private void performTrade() {
             TradeOfferList offers = targetVillager.getOffers();
             SimpleInventory inventory = golem.getInventory();
+            ItemStack selectedBuy = golem.getSelectedBuyItem();
+
+            // First, record all available trades from this villager
+            for (TradeOffer offer : offers) {
+                if (!offer.isDisabled() && !offer.getSellItem().isOf(Items.EMERALD)) {
+                    golem.addDiscoveredTrade(offer.getSellItem());
+                }
+            }
+
             for (TradeOffer offer : offers) {
                 if (offer.isDisabled()) continue;
-                if (offer.getSellItem().isOf(Items.EMERALD)) {
+
+                boolean isSellingToVillager = offer.getSellItem().isOf(Items.EMERALD);
+                boolean isBuyingFromVillager = !selectedBuy.isEmpty() && ItemStack.areItemsEqual(offer.getSellItem(), selectedBuy);
+
+                if (isSellingToVillager || isBuyingFromVillager) {
                     TradedItem buyItem1 = offer.getFirstBuyItem();
                     Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
 
@@ -729,8 +742,16 @@ public class GolemAI {
                             golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
                         }
 
-                        // Notify villager of trade
+                        // Notify villager of trade and decrement stock/uses
                         targetVillager.trade(offer);
+                        // Ensure the offer usage/stock is decremented even when not using the trading UI
+                        offer.use();
+                        // Let the villager process post-trade effects (restock timers, XP, sounds)
+                        try {
+                            targetVillager.onSellingItem(reward.copy());
+                        } catch (Throwable ignored) {
+                            // Some mappings may not expose onSellingItem on VillagerEntity; ignore if unavailable
+                        }
                         break;
                     }
                 }
@@ -750,7 +771,6 @@ public class GolemAI {
             }
         }
     }
-
     public static class FishGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos waterPos;
@@ -777,7 +797,11 @@ public class GolemAI {
                 return false;
             }
             waterPos = findNearbyWater(chestPos);
-            return waterPos != null;
+            if (waterPos != null) {
+                golem.debugLog("FishGoal: Found water at " + waterPos.toShortString() + " near chest " + chestPos.toShortString());
+                return true;
+            }
+            return false;
         }
 
         private BlockPos findNearbyChest() {
@@ -804,6 +828,7 @@ public class GolemAI {
                         Block block = bs.getBlock();
                         Block targetChest = golem.getGolemType().getChestBlock();
                         if (be instanceof Inventory && block == targetChest) {
+                            golem.debugLog("FishGoal: Found chest at " + p.toShortString());
                             golem.setChestPos(p);
                             return p;
                         }
@@ -814,18 +839,69 @@ public class GolemAI {
         }
 
         private BlockPos findNearbyWater(BlockPos center) {
+            World world = golem.getEntityWorld();
+            BlockPos best = null;
+            double bestScore = Double.MAX_VALUE;
             int range = 12;
             for (int x = -range; x <= range; x++) {
-                for (int y = -15; y <= 15; y++) {
+                for (int y = -5; y <= 5; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = center.add(x, y, z);
-                        if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.WATER)) {
-                            return p;
+                        BlockState state = world.getBlockState(p);
+                        if (!state.isOf(Blocks.WATER)) continue;
+                        if (!world.getBlockState(p.up()).isAir()) continue;
+                        // compute score
+                        double dx = p.getX() - center.getX();
+                        double dz = p.getZ() - center.getZ();
+                        double horizDistSq = dx * dx + dz * dz;
+                        int minLandDist = 99;
+                        boolean shallow = !world.getBlockState(p.down()).isOf(Blocks.WATER);
+                        for (int lx = -4; lx <= 4; lx++) {
+                            for (int lz = -4; lz <= 4; lz++) {
+                                if (lx == 0 && lz == 0) continue;
+                                BlockPos landPos = p.add(lx, 0, lz);
+                                BlockState ls = world.getBlockState(landPos);
+                                if (ls.getFluidState().isEmpty() && !ls.isAir()) {
+                                    int dist = Math.max(Math.abs(lx), Math.abs(lz));
+                                    if (dist < minLandDist) {
+                                        minLandDist = dist;
+                                    }
+                                }
+                            }
+                        }
+                        double score = horizDistSq + minLandDist * 25.0;
+                        if (shallow) score -= 10.0;
+                        if (score < bestScore) {
+                            bestScore = score;
+                            best = p;
                         }
                     }
                 }
             }
-            return null;
+            if (best != null) {
+                double dx = best.getX() - center.getX();
+                double dz = best.getZ() - center.getZ();
+                double horizDistSq = dx * dx + dz * dz;
+                boolean shallow = !world.getBlockState(best.down()).isOf(Blocks.WATER);
+                int minLandDist = 99;
+                for (int lx = -4; lx <= 4; lx++) {
+                    for (int lz = -4; lz <= 4; lz++) {
+                        if (lx == 0 && lz == 0) continue;
+                        BlockPos landPos = best.add(lx, 0, lz);
+                        BlockState ls = world.getBlockState(landPos);
+                        if (ls.getFluidState().isEmpty() && !ls.isAir()) {
+                            int dist = Math.max(Math.abs(lx), Math.abs(lz));
+                            if (dist < minLandDist) {
+                                minLandDist = dist;
+                            }
+                        }
+                    }
+                }
+                double score = horizDistSq + minLandDist * 25.0;
+                if (shallow) score -= 10.0;
+                golem.debugLog("FishGoal: Best water " + best.toShortString() + " | score: " + score + " | horizDistSq: " + horizDistSq + " | minLandDist: " + minLandDist + " | shallow: " + shallow);
+            }
+            return best;
         }
 
         @Override
@@ -926,6 +1002,7 @@ public class GolemAI {
             }
 
             ItemStack remaining = golem.getInventory().addStack(loot);
+            golem.debugLog("FishGoal: Caught " + loot.getItem().getName().getString() + "!");
             if (!remaining.isEmpty()) {
                 Block.dropStack(serverWorld, golem.getBlockPos(), remaining);
             }
@@ -940,7 +1017,6 @@ public class GolemAI {
             maxFishingTime = 100 + golem.getRandom().nextInt(200);
         }
     }
-
     public static class BrewingGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -969,10 +1045,13 @@ public class GolemAI {
 
             // Only start brewing if we have something to do at the stand
             boolean hasWork = hasWorkAtStand();
-            if (!hasWork) {
+            if (hasWork) {
+                golem.debugLog("BrewingGoal: Found work at brewing stand " + targetPos.toShortString());
+                return true;
+            } else {
                 searchCooldown = 20 + golem.getRandom().nextInt(20); // 1-2s cooldown if no work
             }
-            return hasWork;
+            return false;
         }
 
         private boolean hasWorkAtStand() {
@@ -1023,6 +1102,7 @@ public class GolemAI {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
                         if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.BREWING_STAND)) {
+                            golem.debugLog("BrewingGoal: Found brewing stand at " + p.toShortString());
                             return p;
                         }
                     }
@@ -1414,7 +1494,6 @@ public class GolemAI {
             return true;
         }
     }
-
     public static class FillBottleGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos waterPos;
@@ -1503,6 +1582,7 @@ public class GolemAI {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
                         if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.BREWING_STAND)) {
+                            golem.debugLog("FillBottleGoal: Found brewing stand at " + p.toShortString());
                             return p;
                         }
                     }
@@ -1725,7 +1805,6 @@ public class GolemAI {
             return emptySlots == 0;
         }
     }
-
     public static class DepositItemsGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos chestPos;
@@ -1738,7 +1817,7 @@ public class GolemAI {
         }
 
         public boolean hasItemsToDeposit() {
-            if (golem.getGolemType() == GolemType.EMERALD) return hasEmeralds();
+            if (golem.getGolemType() == GolemType.EMERALD) return hasEmeraldsOrBuyListItems();
             if (golem.getGolemType() == GolemType.BAMBOO) return hasCropsToDeposit();
             if (golem.getGolemType() == GolemType.DEEPSLATE) return hasDeepslateItemsToDeposit();
             if (golem.getGolemType() == GolemType.SPONGE) return hasSpongeItemsToDeposit();
@@ -1746,6 +1825,7 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.JUKEBOX) return hasJukeboxItemsToDeposit();
             if (golem.getGolemType() == GolemType.DIAMOND) return hasDiamondItemsToDeposit();
             if (golem.getGolemType() == GolemType.NETHER_WART) return hasNetherWartItemsToDeposit();
+            if (golem.getGolemType() == GolemType.LAPIS) return hasLapisItemsToDeposit();
             return hasFullStack() || isInventoryFull();
         }
 
@@ -1765,6 +1845,21 @@ public class GolemAI {
                 }
                 return true;
             }
+            return false;
+        }
+
+        private boolean hasLapisItemsToDeposit() {
+            // Deposit regularly to avoid getting full:
+            // - when any stack is full,
+            // - when inventory is full,
+            // - or when 2 or fewer empty slots remain
+            if (hasFullStack() || isInventoryFull()) return true;
+            int empty = 0;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isEmpty()) empty++;
+            }
+            if (empty <= 2) return true;
             return false;
         }
 
@@ -1845,10 +1940,16 @@ public class GolemAI {
             return false;
         }
 
-        private boolean hasEmeralds() {
+        private boolean hasEmeraldsOrBuyListItems() {
             SimpleInventory inv = golem.getInventory();
+            List<ItemStack> buyList = golem.getDiscoveredTrades();
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.getStack(i).isOf(Items.EMERALD)) return true;
+                ItemStack stack = inv.getStack(i);
+                if (stack.isEmpty()) continue;
+                if (stack.isOf(Items.EMERALD)) return true;
+                for (ItemStack buyItem : buyList) {
+                    if (ItemStack.areItemsEqual(stack, buyItem)) return true;
+                }
             }
             return false;
         }
@@ -2085,9 +2186,18 @@ public class GolemAI {
                 SimpleInventory golemInv = golem.getInventory();
                 for (int i = 0; i < golemInv.size(); i++) {
                     ItemStack stack = golemInv.getStack(i);
-                    if (!stack.isEmpty() && !UtilityGolem.isPickaxe(stack)) {
-                        if (golem.getGolemType() == GolemType.EMERALD && !stack.isOf(Items.EMERALD)) {
-                            continue;
+                    if (!stack.isEmpty() && !(UtilityGolem.isPickaxe(stack) || UtilityGolem.isShovel(stack))) {
+                        if (golem.getGolemType() == GolemType.EMERALD) {
+                            boolean isBuyListItem = false;
+                            for (ItemStack buyItem : golem.getDiscoveredTrades()) {
+                                if (ItemStack.areItemsEqual(stack, buyItem)) {
+                                    isBuyListItem = true;
+                                    break;
+                                }
+                            }
+                            if (!stack.isOf(Items.EMERALD) && !isBuyListItem) {
+                                continue;
+                            }
                         }
                         if (golem.getGolemType() == GolemType.BAMBOO) {
                             if (isSeed(stack) || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isHoe(stack)
@@ -2167,7 +2277,6 @@ public class GolemAI {
             return !other.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, other) && other.getCount() < other.getMaxCount();
         }
     }
-
     public static class WithdrawItemsGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos chestPos;
@@ -2185,8 +2294,23 @@ public class GolemAI {
                 searchCooldown--;
                 return false;
             }
+            if (golem.getGolemType() == GolemType.EMERALD) {
+                if (hasEmeralds() || golem.getSelectedBuyItem().isEmpty()) {
+                    return false;
+                }
+                chestPos = golem.getChestPos();
+                if (chestPos == null) {
+                    chestPos = findNearbyChest();
+                }
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
+            }
+
             if (golem.getGolemType() == GolemType.LAPIS) {
-                if (!golem.getHeldItem().isEmpty() && UtilityGolem.isPickaxe(golem.getHeldItem())) {
+                if (hasPickaxe() && hasShovel()) {
                     return false;
                 }
                 chestPos = golem.getChestPos();
@@ -2484,6 +2608,24 @@ public class GolemAI {
             return count >= target.count();
         }
 
+        private boolean hasPickaxe() {
+            if (UtilityGolem.isPickaxe(golem.getHeldItem())) return true;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isPickaxe(inv.getStack(i))) return true;
+            }
+            return false;
+        }
+
+        private boolean hasShovel() {
+            if (UtilityGolem.isShovel(golem.getHeldItem())) return true;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isShovel(inv.getStack(i))) return true;
+            }
+            return false;
+        }
+
         private boolean hasAxe() {
             if (UtilityGolem.isAxe(golem.getHeldItem())) return true;
             SimpleInventory inv = golem.getInventory();
@@ -2585,6 +2727,14 @@ public class GolemAI {
             return false;
         }
 
+        private boolean hasEmeralds() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.EMERALD)) return true;
+            }
+            return false;
+        }
+
         private boolean hasItem(Item item) {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
@@ -2662,6 +2812,7 @@ public class GolemAI {
                     }
                     if (golem.getGolemType() == GolemType.LAPIS) {
                         if (UtilityGolem.isPickaxe(stack)) return true;
+                        if (UtilityGolem.isShovel(stack)) return true;
                     }
                     if (golem.getGolemType() == GolemType.NETHERITE) {
                         if (UtilityGolem.isSword(stack)) return true;
@@ -2693,6 +2844,9 @@ public class GolemAI {
                     }
                     if (golem.getGolemType() == GolemType.GOLD) {
                         if (stack.isOf(Items.GOLD_INGOT) || stack.isOf(Items.GOLD_NUGGET)) return true;
+                    }
+                    if (golem.getGolemType() == GolemType.EMERALD) {
+                        if (stack.isOf(Items.EMERALD)) return true;
                     }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
@@ -2899,9 +3053,11 @@ public class GolemAI {
                 return chestPos != null && (golem.getHeldItem().isEmpty() || !UtilityGolem.isFishingRod(golem.getHeldItem())) && golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
             }
             if (golem.getGolemType() == GolemType.EMERALD) {
-                return chestPos != null && !hasTradeItems() && !isInventoryFull() &&
-                       golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory &&
-                       hasTradeItemsInChest(chestPos) && findNearbyVillagerOffers() != null;
+                boolean needsEmeraldsForBuying = !golem.getSelectedBuyItem().isEmpty() && !hasEmeralds();
+                boolean needsItemsForSelling = findNearbyVillagerOffers() != null && !hasTradeItems() && hasTradeItemsInChest(chestPos);
+                
+                return chestPos != null && (needsEmeraldsForBuying || needsItemsForSelling) && !isInventoryFull() &&
+                       golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
             }
             return false;
         }
@@ -2989,12 +3145,37 @@ public class GolemAI {
                     ItemStack containerStack = container.getStack(i);
                     if (containerStack.isEmpty()) continue;
 
-                    if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isPickaxe(containerStack)) {
-                        ItemStack pickaxe = containerStack.split(1);
-                        golem.setHeldItem(pickaxe);
-                        golemInv.markDirty();
-                        container.markDirty();
-                        return true;
+                    if (golem.getGolemType() == GolemType.EMERALD) {
+                        if (containerStack.isOf(Items.EMERALD)) {
+                            ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                            golem.getInventory().addStack(toWithdraw);
+                            withdrawnSomething = true;
+                        }
+                    }
+
+                    if (golem.getGolemType() == GolemType.LAPIS) {
+                        if (UtilityGolem.isPickaxe(containerStack) && !hasPickaxe()) {
+                            ItemStack toWithdraw = containerStack.split(1);
+                            if (golem.getHeldItem().isEmpty()) {
+                                golem.setHeldItem(toWithdraw);
+                            } else {
+                                golemInv.addStack(toWithdraw);
+                            }
+                            golemInv.markDirty();
+                            container.markDirty();
+                            return true;
+                        }
+                        if (UtilityGolem.isShovel(containerStack) && !hasShovel()) {
+                            ItemStack toWithdraw = containerStack.split(1);
+                            if (golem.getHeldItem().isEmpty()) {
+                                golem.setHeldItem(toWithdraw);
+                            } else {
+                                golemInv.addStack(toWithdraw);
+                            }
+                            golemInv.markDirty();
+                            container.markDirty();
+                            return true;
+                        }
                     }
 
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
@@ -3326,12 +3507,12 @@ public class GolemAI {
             return !other.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, other) && other.getCount() < other.getMaxCount();
         }
     }
-
     public static class DigBlockGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
         private int breakingTime;
         private int maxBreakingTime;
+        private int searchCooldown = 0;
 
         public DigBlockGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -3340,8 +3521,13 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
             targetPos = findTargetBlock();
             if (targetPos != null) {
+                golem.debugLog("DigBlockGoal: Found target block " + golem.getEntityWorld().getBlockState(targetPos).getBlock().getName().getString() + " at " + targetPos.toShortString());
                 ItemStack tool = golem.getHeldItem();
                 // Ensure we have the right tool held or can swap to it
                 BlockState state = golem.getEntityWorld().getBlockState(targetPos);
@@ -3366,6 +3552,8 @@ public class GolemAI {
                     this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
                     return true;
                 }
+            } else {
+                searchCooldown = 20;
             }
             return false;
         }
@@ -3403,25 +3591,189 @@ public class GolemAI {
         private BlockPos findTargetBlock() {
             BlockPos pos = golem.getBlockPos();
             BlockPos chestPos = golem.getChestPos();
-            List<BlockPos> potentialTargets = new ArrayList<>();
-            int range = 15;
-            for (int x = -8; x <= 8; x++) {
-                for (int y = -range; y <= range; y++) {
-                    for (int z = -8; z <= 8; z++) {
-                        BlockPos p = pos.add(x, y, z);
-                        if (golem.isBlacklisted(p)) continue;
-                        if (canDig(p)) {
-                            // Only dig if within 32 blocks of chest (if chest is known)
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
-                                potentialTargets.add(p);
+            World world = golem.getEntityWorld();
+
+            // 1. Prioritize Visible Ores
+            int oreRange = 8;
+            BlockPos.Mutable mutable = new BlockPos.Mutable();
+            double minOreDistSq = Double.MAX_VALUE;
+            BlockPos bestOre = null;
+
+            for (int x = -oreRange; x <= oreRange; x++) {
+                for (int y = -oreRange; y <= oreRange; y++) {
+                    for (int z = -oreRange; z <= oreRange; z++) {
+                        mutable.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
+                        if (golem.isBlacklisted(mutable)) continue;
+                        if (isOre(mutable) && canDig(mutable)) {
+                            if (chestPos == null || mutable.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
+                                // Prevent digging under feet
+                                if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() == pos.getY() - 1 && mutable.getX() == pos.getX() && mutable.getZ() == pos.getZ()) continue;
+                                
+                                double distSq = mutable.getSquaredDistance(pos);
+                                if (distSq < minOreDistSq) {
+                                    minOreDistSq = distSq;
+                                    bestOre = mutable.toImmutable();
+                                }
                             }
                         }
                     }
                 }
             }
-            return potentialTargets.stream()
-                    .min(Comparator.comparingDouble(p -> p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ())))
-                    .orElse(null);
+
+            if (golem.getGolemType() == GolemType.LAPIS && bestOre != null) {
+                return bestOre;
+            }
+
+            // 2. Staircase/Tunnel Logic for Lapis
+            if (golem.getGolemType() == GolemType.LAPIS) {
+                return findStaircaseOrTunnelBlock();
+            }
+
+            // 3. General digging for other types
+            int range = 15;
+            double minTargetDistSq = Double.MAX_VALUE;
+            BlockPos bestTarget = null;
+
+            for (int x = -8; x <= 8; x++) {
+                for (int y = -range; y <= range; y++) {
+                    for (int z = -8; z <= 8; z++) {
+                        mutable.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
+                        if (golem.isBlacklisted(mutable)) continue;
+                        if (canDig(mutable)) {
+                            if (chestPos == null || mutable.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
+                                double distSq = mutable.getSquaredDistance(pos);
+                                if (distSq < minTargetDistSq) {
+                                    minTargetDistSq = distSq;
+                                    bestTarget = mutable.toImmutable();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return bestTarget;
+        }
+
+        private boolean isOre(BlockPos pos) {
+            BlockState state = golem.getEntityWorld().getBlockState(pos);
+            if (!(state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
+                    || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
+                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES))) {
+                return false;
+            }
+
+            // Visibility check: is it adjacent to an air block or a non-opaque block?
+            // Optimization: check common directions first
+            BlockPos.Mutable mutable = new BlockPos.Mutable();
+            for (Direction direction : Direction.values()) {
+                mutable.set(pos, direction);
+                BlockState neighborState = golem.getEntityWorld().getBlockState(mutable);
+                if (neighborState.isAir() || !neighborState.isFullCube(golem.getEntityWorld(), mutable)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private BlockPos findStaircaseOrTunnelBlock() {
+            BlockPos pos = golem.getBlockPos();
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) return null;
+
+            // Use a consistent direction for the staircase based on the chest position
+            Direction facing = Direction.NORTH;
+            if (Math.abs(pos.getX() - chestPos.getX()) > Math.abs(pos.getZ() - chestPos.getZ())) {
+                facing = pos.getX() > chestPos.getX() ? Direction.EAST : Direction.WEST;
+            } else {
+                facing = pos.getZ() > chestPos.getZ() ? Direction.SOUTH : Direction.NORTH;
+            }
+
+            // Locked coordinate to keep it straight
+            int lockedCoord = (facing.getAxis() == Direction.Axis.Z) ? chestPos.getX() : chestPos.getZ();
+            int currentLockedCoord = (facing.getAxis() == Direction.Axis.Z) ? pos.getX() : pos.getZ();
+
+            // If we are not on the locked line, our first priority is to get back to it.
+            if (currentLockedCoord != lockedCoord) {
+                BlockPos targetOnLine = (facing.getAxis() == Direction.Axis.Z) 
+                        ? new BlockPos(lockedCoord, pos.getY(), pos.getZ()) 
+                        : new BlockPos(pos.getX(), pos.getY(), lockedCoord);
+                
+                // Dig through blocks to get back to the line
+                if (canDig(targetOnLine.up())) return targetOnLine.up();
+                if (canDig(targetOnLine)) return targetOnLine;
+                
+                // If we can't dig but we aren't there, we just have to move there (handled by navigation)
+                // However, we return it as a target so the golem focuses on it.
+            }
+
+            BlockPos lockedPos = (facing.getAxis() == Direction.Axis.Z) 
+                    ? new BlockPos(lockedCoord, pos.getY(), pos.getZ()) 
+                    : new BlockPos(pos.getX(), pos.getY(), lockedCoord);
+
+            int targetY = 11;
+            if (pos.getY() <= targetY) {
+                // At target level, dig a 2-high tunnel
+                BlockPos ahead = lockedPos.offset(facing);
+                BlockPos headHigh = ahead.up();
+                if (canDig(headHigh)) return headHigh;
+                if (canDig(ahead)) return ahead;
+                return null;
+            }
+
+            // Staircase down: 1 block forward, 1 block down
+            BlockPos ahead = lockedPos.offset(facing);
+            BlockPos aheadDown = ahead.down();
+            BlockPos aheadUp = ahead.up();
+
+            // Priority: Dig down ahead first to create the step
+            if (canDig(aheadDown)) return aheadDown;
+            // Then clear the way forward
+            if (canDig(ahead)) return ahead;
+            if (canDig(aheadUp)) return aheadUp;
+
+            return null;
+        }
+
+        private boolean tryPlaceStepUp() {
+            if (golem.getInventory().isEmpty()) return false;
+            
+            BlockPos pos = golem.getBlockPos();
+            BlockState underState = golem.getEntityWorld().getBlockState(pos.down());
+            
+            // If we are in a hole (surrounded by blocks) and the target is above us
+            if (targetPos != null && targetPos.getY() > pos.getY()) {
+                // Look for a place to put a block to step up
+                // Simplest: place under feet if we're in a 1x1 hole
+                if (golem.getEntityWorld().getBlockState(pos).isAir() || golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
+                    return placeBlockFromInventory(pos);
+                }
+            }
+            return false;
+        }
+
+        private boolean placeBlockFromInventory(BlockPos pos) {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty() && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem) {
+                    Block block = blockItem.getBlock();
+                    // Prefer dirt or cobblestone-like blocks
+                    if (stack.isIn(net.minecraft.registry.tag.ItemTags.DIRT) || stack.isOf(Items.COBBLESTONE) || stack.isOf(Items.COBBLED_DEEPSLATE)) {
+                        if (golem.getEntityWorld().setBlockState(pos, block.getDefaultState())) {
+                            stack.decrement(1);
+                            golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                            golem.getEntityWorld().playSound(null, pos, block.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                            // Teleport golem slightly up if we placed under feet
+                            if (pos.equals(golem.getBlockPos())) {
+                                golem.setPosition(golem.getX(), golem.getY() + 1.0, golem.getZ());
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         private boolean canDig(BlockPos pos) {
@@ -3512,7 +3864,7 @@ public class GolemAI {
             double horizontalDistSq = dx * dx + dz * dz;
             double verticalDist = Math.abs(dy);
 
-            if (horizontalDistSq > 16.0D || verticalDist > 15.0D) {
+            if (horizontalDistSq > 9.0D || verticalDist > 15.0D) {
                 // stuck check
                 Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
                 if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
@@ -3523,6 +3875,10 @@ public class GolemAI {
                 lastPos = currentPos;
 
                 if (stuckTicks > 100) {
+                    if (golem.getGolemType() == GolemType.LAPIS && tryPlaceStepUp()) {
+                        stuckTicks = 0;
+                        return;
+                    }
                     golem.blacklistPosition(targetPos);
                     stop();
                     return;
@@ -3616,7 +3972,6 @@ public class GolemAI {
             targetPos = null;
         }
     }
-
     public static class FarmGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -4302,7 +4657,6 @@ public class GolemAI {
             return Direction.NORTH;
         }
     }
-
     public static class RefillBucketGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos waterSource;
@@ -4423,7 +4777,6 @@ public class GolemAI {
             return ItemStack.EMPTY;
         }
     }
-
     public static class TriggerRedstoneGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos componentPosition;
@@ -4515,7 +4868,6 @@ public class GolemAI {
             }
         }
     }
-
     public static class ConnectRedstoneGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos startPos;
@@ -4707,7 +5059,6 @@ public class GolemAI {
             }
         }
     }
-
     public static class BreedAnimalsGoal extends Goal {
         private UtilityGolem golem;
         private AnimalEntity animalA;
@@ -4836,7 +5187,6 @@ public class GolemAI {
                     || stack.isOf(Items.WHEAT_SEEDS);
         }
     }
-
     public static class ChopTreeGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -5202,7 +5552,6 @@ public class GolemAI {
             targetPos = null;
         }
     }
-
     public static class ReplantSaplingGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -5346,7 +5695,6 @@ public class GolemAI {
             }
         }
     }
-    
     public static class TradeWithPiglinGoal extends Goal {
         private final UtilityGolem golem;
         private net.minecraft.entity.mob.PiglinEntity targetPiglin;
@@ -5547,7 +5895,6 @@ public class GolemAI {
             }
         }
     }
-
     public static class PickupItemGoal extends Goal {
         private final UtilityGolem golem;
         private net.minecraft.entity.ItemEntity targetItem;
@@ -5573,6 +5920,8 @@ public class GolemAI {
             targetItem = findNearbyItem();
             if (targetItem == null) {
                 cooldown = 20;
+            } else {
+                golem.debugLog("PickupItemGoal: Found item " + targetItem.getStack().getItem().getName().getString() + " at " + targetItem.getBlockPos().toShortString());
             }
             return targetItem != null;
         }
@@ -5606,7 +5955,10 @@ public class GolemAI {
                             boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS);
                             isFamiliar = isCrop || isSeed;
                         } else if (golem.getGolemType() == GolemType.DIAMOND) {
-                            isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem;
+                            // User requested only blocks. Some "seeds" (like Wheat Seeds) are BlockItems but 
+                            // user might not want them. For now, let's keep it to BlockItem but exclude common "seed/non-blocky" items if they cause confusion.
+                            // But usually, Diamond Golem is for building.
+                            isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);
                         } else if (golem.getGolemType() == GolemType.SPONGE) {
                             isFamiliar = stack.isOf(Items.COD) || stack.isOf(Items.SALMON) || stack.isOf(Items.PUFFERFISH) || stack.isOf(Items.TROPICAL_FISH) ||
                                             stack.isOf(Items.ENCHANTED_BOOK) || stack.isOf(Items.NAME_TAG) || stack.isOf(Items.SADDLE) || stack.isOf(Items.BOW) || stack.isOf(Items.FISHING_ROD);
@@ -5617,6 +5969,9 @@ public class GolemAI {
                             isFamiliar = true; 
                         } else if (golem.getGolemType() == GolemType.LAMP) {
                             isFamiliar = UtilityGolem.isTorch(stack);
+                        } else {
+                            // Default: only pick up blocks to avoid cluttering inventory with junk
+                            isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);
                         }
                         
                         if (!isFamiliar) return false;
@@ -5694,7 +6049,6 @@ public class GolemAI {
             targetItem = null;
         }
     }
-
     public static class PlayRecordGoal extends Goal {
         private final UtilityGolem golem;
 
@@ -5728,7 +6082,6 @@ public class GolemAI {
             return golem.getHeldItem().get(DataComponentTypes.JUKEBOX_PLAYABLE) != null;
         }
     }
-
     public static class PlaceBlockGoal extends Goal {
         private final UtilityGolem golem;
         private int patternProgress = 0;
@@ -5736,6 +6089,9 @@ public class GolemAI {
         private int cooldown = 0;
         private BuildPattern lastPattern = BuildPattern.NONE;
         private Direction startFacing = null;
+        private rehdpanda.utilitygolems.schematic.SchematicData schematic = null;
+        private int schematicTotal = 0;
+        private BlockPos schematicOrigin = null;
 
         public PlaceBlockGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -5744,17 +6100,22 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
-            if (cooldown > 0) {
-                cooldown--;
-                return false;
-            }
             if (golem.getBuildPattern() == BuildPattern.NONE) return false;
             if (!golem.isBuildingStarted()) return false;
+            
+            if (cooldown > 0) {
+                return false;
+            }
             
             // Reset progress if pattern changed
             if (golem.getBuildPattern() != lastPattern) {
                 patternProgress = 0;
                 lastPattern = golem.getBuildPattern();
+            }
+
+            // Allow schematic mode to start so that we can load and compute total in start()
+            if (golem.getBuildPattern() == BuildPattern.SCHEMATIC) {
+                return true;
             }
 
             if (golem.getBuildPattern() == BuildPattern.REPLACE) {
@@ -5763,8 +6124,8 @@ public class GolemAI {
             }
 
             if (golem.getBuildPattern() == BuildPattern.TOWER) {
-                // Tower mode needs blocks AND ladders
-                return findBlockInInventory() != -1 && hasLadders() && patternProgress < getMaxProgress();
+                // Tower mode needs blocks; ladders no longer required
+                return findBlockInInventory() != -1 && patternProgress < getMaxProgress();
             }
 
             return findBlockInInventory() != -1 && patternProgress < getMaxProgress();
@@ -5791,6 +6152,40 @@ public class GolemAI {
         public void start() {
             startPos = golem.getBlockPos();
             startFacing = golem.getHorizontalFacing();
+            golem.debugLog("PlaceBlockGoal started. Mode: " + golem.getBuildPattern() + " | Pos: " + startPos.toShortString() + " | Facing: " + startFacing);
+            if (golem.getBuildPattern() == BuildPattern.SCHEMATIC) {
+                schematic = null;
+                schematicTotal = 0;
+                schematicOrigin = null;
+                String name = golem.getSchematicName();
+                golem.debugLog("Schematic Mode: file name = '" + name + "'");
+                if (name != null && !name.isEmpty()) {
+                    java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("utility-golems").resolve("schematics");
+                    try { java.nio.file.Files.createDirectories(dir); } catch (Exception ignored) {}
+                    golem.debugLog("Loading schematic from: " + dir.resolve(name));
+                    schematic = rehdpanda.utilitygolems.schematic.SchematicLoader.load(dir, name);
+                    if (schematic != null) {
+                        schematicOrigin = startPos.offset(startFacing, 2);
+                        golem.debugLog("Schematic loaded. Size: " + schematic.width + "x" + schematic.height + "x" + schematic.length + " | Origin: " + schematicOrigin.toShortString());
+                        // Count non-air blocks
+                        int total = schematic.getTotalBlocks();
+                        int count = 0;
+                        for (int i = 0; i < total; i++) {
+                            net.minecraft.block.Block b = schematic.getBlockAtIndex(i);
+                            if (b != null && b != net.minecraft.block.Blocks.AIR) count++;
+                        }
+                        schematicTotal = count;
+                        golem.debugLog("Total buildable blocks in schematic: " + schematicTotal);
+                        if (schematicTotal == 0) {
+                            golem.debugLog("Warning: schematicTotal is 0. Golem might have nothing to build.");
+                        }
+                    } else {
+                        golem.debugLog("Failed to load schematic. (SchematicLoader returned null)");
+                    }
+                } else {
+                    golem.debugLog("No schematic name selected.");
+                }
+            }
         }
 
         @Override
@@ -5800,7 +6195,7 @@ public class GolemAI {
             }
 
             if (golem.getBuildPattern() == BuildPattern.TOWER) {
-                return findBlockInInventory() != -1 && hasLadders();
+                return findBlockInInventory() != -1;
             }
 
             return findBlockInInventory() != -1;
@@ -5808,41 +6203,45 @@ public class GolemAI {
 
         private int getMaxProgress() {
             switch (golem.getBuildPattern()) {
-                case WALL:
+                case PLATFORM:
                     int width = golem.getWallWidth();
                     int length = golem.getWallLength();
-                    // Perimeter = 2*W + 2*L - 4 (to avoid double counting corners)
-                    // For a WxL rectangle, it's (W + L - 2) * 2 blocks per layer.
-                    // If W=1 or L=1 it might be different, but let's assume W, L >= 2.
-                    // If W=3, L=3: (3+3-2)*2 = 8 blocks.
-                    int perimeter = 0;
-                    if (width > 1 && length > 1) {
-                        perimeter = (width + length - 2) * 2;
-                    } else if (width > 0 && length > 0) {
-                        perimeter = width * length;
-                    }
-                    if (perimeter == 0) return 0;
-                    return perimeter * 4; // 4 blocks high
+                    if (width <= 0 || length <= 0) return 0;
+                    return width * length; // Single-layer solid platform
                 case REPLACE: return 25; // Scan 5x5 area around start
-                case TOWER: return 20; // 20 blocks high
+                case TOWER: return 1000; // As many as it has (up to 1000)
+                case SCHEMATIC: return schematicTotal;
                 default: return 0;
             }
         }
 
         @Override
         public void tick() {
+            if (cooldown > 0) {
+                cooldown--;
+                return;
+            }
             if (patternProgress >= getMaxProgress()) {
+                golem.debugLog("Pattern finished. Progress: " + patternProgress + "/" + getMaxProgress());
                 patternProgress = 0;
                 cooldown = 100;
+                golem.setBuildingStarted(false);
+                golem.getNavigation().stop();
                 return;
             }
 
             BlockPos targetPos = getTargetPos();
-            if (targetPos == null) return;
+            if (targetPos == null) {
+                if (golem.getBuildPattern() == BuildPattern.SCHEMATIC && schematic != null) {
+                     golem.debugLog("Schematic targetPos is null at progress " + patternProgress + "/" + schematicTotal);
+                }
+                return;
+            }
 
             double distSq = golem.squaredDistanceTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
             if (distSq > 4.0) {
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
+                    golem.debugLog("Moving to target: " + targetPos.toShortString() + " | dist: " + Math.sqrt(distSq));
                     golem.getNavigation().startMovingTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 1.0);
                 }
             } else {
@@ -5853,6 +6252,8 @@ public class GolemAI {
                     replaceBlock(targetPos);
                 } else if (golem.getBuildPattern() == BuildPattern.TOWER) {
                     placeTowerStep(targetPos);
+                } else if (golem.getBuildPattern() == BuildPattern.SCHEMATIC) {
+                    placeSchematicBlock(targetPos);
                 } else {
                     placeBlock(targetPos);
                 }
@@ -5862,53 +6263,43 @@ public class GolemAI {
         private BlockPos getTargetPos() {
             Direction facing = golem.getHorizontalFacing();
             switch (golem.getBuildPattern()) {
-                case WALL:
+                case PLATFORM:
                     Direction side = facing.rotateYClockwise();
                     int width = golem.getWallWidth();
                     int length = golem.getWallLength();
-                    
-                    int perimeter = 0;
-                    if (width > 1 && length > 1) {
-                        perimeter = (width + length - 2) * 2;
-                    } else if (width > 0 && length > 0) {
-                        perimeter = width * length;
-                    }
-                    if (perimeter == 0) return null;
-
-                    int layer = patternProgress / perimeter;
-                    int posInLayer = patternProgress % perimeter;
-                    
-                    int dx = 0, dz = 0;
-                    if (width > 1 && length > 1) {
-                        if (posInLayer < width) {
-                            dx = posInLayer;
-                            dz = 0;
-                        } else if (posInLayer < width + length - 1) {
-                            dx = width - 1;
-                            dz = posInLayer - (width - 1);
-                        } else if (posInLayer < 2 * width + length - 2) {
-                            dx = (width - 1) - (posInLayer - (width + length - 2));
-                            dz = length - 1;
-                        } else {
-                            dx = 0;
-                            dz = (length - 1) - (posInLayer - (2 * width + length - 3));
-                        }
-                    } else if (width > 0 && length > 0) {
-                        dx = posInLayer % width;
-                        dz = posInLayer / width;
-                    }
-                    
-                    return startPos.offset(facing, 2 + dz).offset(side, dx - width/2).up(layer);
-                    
+                    if (width <= 0 || length <= 0) return null;
+                    int dx = patternProgress % width;
+                    int dz = patternProgress / width;
+                    return startPos.offset(facing, 2 + dz).offset(side, dx - width/2);
                 case REPLACE:
                     int rx = (patternProgress % 5) - 2;
                     int rz = (patternProgress / 5) - 2;
                     return startPos.add(rx, 0, rz);
-                    
                 case TOWER:
-                    Direction towerFacing = startFacing != null ? startFacing : golem.getHorizontalFacing();
-                    return startPos.offset(towerFacing, 2).up(patternProgress);
-                    
+                    // Build directly under the golem
+                    return golem.getBlockPos().down();
+                case SCHEMATIC:
+                    if (schematic == null || schematicOrigin == null) return null;
+                    // Iterate indices until find next non-air and not already correct block
+                    int total = schematic.getTotalBlocks();
+                    int seen = 0;
+                    for (int i = 0; i < total; i++) {
+                        net.minecraft.block.Block block = schematic.getBlockAtIndex(i);
+                        if (block == null || block == net.minecraft.block.Blocks.AIR) continue;
+                        // Map linear index to x,y,z
+                        int sx = schematic.indexToX(i);
+                        int sy = schematic.indexToY(i);
+                        int sz = schematic.indexToZ(i);
+                        BlockPos rel = translateByFacing(sx, sy, sz, facing);
+                        BlockPos worldPos = schematicOrigin.add(rel.getX(), rel.getY(), rel.getZ());
+                        // Check if already correct
+                        if (golem.getEntityWorld().getBlockState(worldPos).isOf(block)) continue;
+                        if (seen == patternProgress) {
+                            return worldPos;
+                        }
+                        seen++;
+                    }
+                    return null;
                 default:
                     return null;
             }
@@ -5936,6 +6327,7 @@ public class GolemAI {
                             stack.decrement(1);
                             golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                             golem.getEntityWorld().playSound(null, pos, newBlock.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                            cooldown = 8; // 2.5 blocks per second
                         }
                     }
                 }
@@ -5944,50 +6336,129 @@ public class GolemAI {
         }
 
         private void placeTowerStep(BlockPos pos) {
-            // Check for ladder in inventory
-            int ladderSlot = -1;
-            for (int i = 0; i < golem.getInventory().size(); i++) {
-                if (golem.getInventory().getStack(i).isOf(Items.LADDER)) {
-                    ladderSlot = i;
-                    break;
-                }
-            }
-
-            if (ladderSlot == -1) {
-                patternProgress = getMaxProgress(); // Abort if no ladders
-                return;
-            }
-
+            // Place a block directly beneath the golem and jump up
             if (golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
                 int blockSlot = findBlockInInventory();
                 if (blockSlot != -1) {
                     ItemStack stack = golem.getInventory().getStack(blockSlot);
                     Block block = ((net.minecraft.item.BlockItem) stack.getItem()).getBlock();
-                    
                     if (golem.getEntityWorld().setBlockState(pos, block.getDefaultState(), 3)) {
                         stack.decrement(1);
                         golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                         golem.getEntityWorld().playSound(null, pos, block.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
-                        
-                        // Place ladder on the block
-                        // We use a fixed direction for the whole tower based on the golem's starting facing
-                        Direction towerFacing = startFacing != null ? startFacing : golem.getHorizontalFacing();
-                        Direction ladderSide = towerFacing.getOpposite(); // Ladder is on the side facing the golem
-                        BlockPos ladderPos = pos.offset(ladderSide);
-                        
-                        if (golem.getEntityWorld().getBlockState(ladderPos).isReplaceable()) {
-                            BlockState ladderState = Blocks.LADDER.getDefaultState().with(net.minecraft.block.LadderBlock.FACING, ladderSide.getOpposite());
-                            if (golem.getEntityWorld().setBlockState(ladderPos, ladderState, 3)) {
-                                golem.getInventory().getStack(ladderSlot).decrement(1);
-                            }
-                        }
-                        
+                        // Apply an upward velocity to simulate jumping
+                        golem.setVelocity(golem.getVelocity().x, 0.5, golem.getVelocity().z);
                         patternProgress++;
+                        cooldown = 8; // 2.5 blocks per second
                         return;
                     }
                 }
             }
+            // If we fail to place (space not replaceable or no blocks), DON'T advance if TOWER mode
+            // unless we really want to skip (but for tower, skipping doesn't make sense if we are standing on it)
+            // However, we must ensure we don't stall forever if something is blocking.
+            // If it's NOT replaceable, it means there's a block there.
+            // If we are at the same level or higher than that block, we should move up.
+            if (!golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
+                 // There's already a block here. If we are still below where we need to be to place the NEXT one,
+                 // we might need to jump.
+                 if (golem.getY() < pos.getY() + 1.5) {
+                     golem.setVelocity(golem.getVelocity().x, 0.3, golem.getVelocity().z);
+                 }
+            }
+        }
+
+        private void placeSchematicBlock(BlockPos pos) {
+            if (schematic == null) { 
+                golem.debugLog("Schematic is null in placeSchematicBlock");
+                patternProgress++; 
+                return; 
+            }
+            // Determine required block at this target by reverse-mapping pos to schematic index
+            Direction facing = golem.getHorizontalFacing();
+            // Find index that maps to this pos; iterate through as in getTargetPos to keep order
+            int total = schematic.getTotalBlocks();
+            int seen = 0;
+            net.minecraft.block.Block needed = null;
+            for (int i = 0; i < total; i++) {
+                net.minecraft.block.Block block = schematic.getBlockAtIndex(i);
+                if (block == null || block == net.minecraft.block.Blocks.AIR) continue;
+                int sx = schematic.indexToX(i);
+                int sy = schematic.indexToY(i);
+                int sz = schematic.indexToZ(i);
+                BlockPos rel = translateByFacing(sx, sy, sz, facing);
+                BlockPos worldPos = schematicOrigin.add(rel.getX(), rel.getY(), rel.getZ());
+                if (golem.getEntityWorld().getBlockState(worldPos).isOf(block)) continue;
+                if (seen == patternProgress) {
+                    needed = block;
+                    break;
+                }
+                seen++;
+            }
+            if (needed == null) { 
+                golem.debugLog("Could not find needed block at progress " + patternProgress);
+                patternProgress++; 
+                return; 
+            }
+
+            if (golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
+                int slot = findBlockInInventory(needed);
+                if (slot != -1) {
+                    ItemStack stack = golem.getInventory().getStack(slot);
+                    Block block = ((net.minecraft.item.BlockItem) stack.getItem()).getBlock();
+                    golem.debugLog("Placing " + block.getName().getString() + " at " + pos.toShortString());
+                    boolean success = golem.getEntityWorld().setBlockState(pos, block.getDefaultState(), 3);
+                    if (success) {
+                        stack.decrement(1);
+                        golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                        golem.getEntityWorld().playSound(null, pos, block.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        patternProgress++;
+                        cooldown = 8; // 2.5 blocks per second
+                        if (patternProgress >= getMaxProgress()) {
+                            golem.debugLog("Schematic build completed!");
+                            patternProgress = 0;
+                            cooldown = 100;
+                            golem.setBuildingStarted(false);
+                            golem.getNavigation().stop();
+                        }
+                        return;
+                    } else {
+                        golem.debugLog("setBlockState failed at " + pos.toShortString());
+                    }
+                } else {
+                    golem.debugLog("Missing block in inventory: " + needed.getName().getString());
+                }
+            } else {
+                golem.debugLog("Block at " + pos.toShortString() + " is not replaceable: " + golem.getEntityWorld().getBlockState(pos).getBlock().getName().getString());
+            }
             patternProgress++;
+            if (patternProgress >= getMaxProgress()) {
+                golem.debugLog("Schematic build finished (some blocks might have been skipped)");
+                patternProgress = 0;
+                cooldown = 100;
+                golem.setBuildingStarted(false);
+                golem.getNavigation().stop();
+            }
+        }
+
+        private int findBlockInInventory(net.minecraft.block.Block needed) {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem) {
+                    if (blockItem.getBlock() == needed) return i;
+                }
+            }
+            return -1;
+        }
+
+        private BlockPos translateByFacing(int sx, int sy, int sz, Direction facing) {
+            // Origin at schematicOrigin; X goes to right (rotateYClockwise), Z goes forward (facing), Y is up
+            Direction right = facing.rotateYClockwise();
+            return schematicOrigin == null ? new BlockPos(0,0,0) : new BlockPos(
+                    right.getOffsetX() * sx + facing.getOffsetX() * sz,
+                    sy,
+                    right.getOffsetZ() * sx + facing.getOffsetZ() * sz
+            );
         }
 
         private void placeBlock(BlockPos pos) {
@@ -6005,9 +6476,12 @@ public class GolemAI {
                         golem.getEntityWorld().playSound(null, pos, block.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
                         
                         patternProgress++;
+                        cooldown = 8; // 2.5 blocks per second
                         if (patternProgress >= getMaxProgress()) {
                             patternProgress = 0; // Reset for next time this goal starts
                             cooldown = 100;
+                            golem.setBuildingStarted(false);
+                            golem.getNavigation().stop();
                         }
                         return; // Successfully placed a block
                     }
@@ -6020,6 +6494,8 @@ public class GolemAI {
             if (patternProgress >= getMaxProgress()) {
                 patternProgress = 0; // Reset for next time this goal starts
                 cooldown = 100;
+                golem.setBuildingStarted(false);
+                golem.getNavigation().stop();
             }
         }
 

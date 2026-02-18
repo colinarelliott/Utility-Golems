@@ -153,6 +153,17 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
 
 
     @Override
+    protected void onStateReplaced(BlockState state, net.minecraft.server.world.ServerWorld world, BlockPos pos, boolean moved) {
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+        if (blockEntity instanceof GolemChestBlockEntity) {
+            ItemScatterer.spawn(world, pos, (GolemChestBlockEntity)blockEntity);
+            Block.dropStack(world, pos, new ItemStack(this));
+            world.updateComparators(pos, this);
+        }
+        super.onStateReplaced(state, world, pos, moved);
+    }
+
+    @Override
     protected ActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
         if (state.isOf(UGBlocks.GOLEM_CHESTS.get(GolemType.BAMBOO)) && !state.get(STRIPPED) && stack.getItem() instanceof net.minecraft.item.AxeItem) {
             if (!world.isClient()) {

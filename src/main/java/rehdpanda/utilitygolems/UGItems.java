@@ -8,6 +8,8 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.block.Block;
+import net.minecraft.item.BlockItem;
 
 import java.util.List;
 
@@ -26,5 +28,6 @@ public class UGItems {
                         .maxDamage(500)
                         .component(DataComponentTypes.LORE, new LoreComponent(List.of(Text.translatable("item.utility-golems.wrench.description")))))
         );
+
     }
 }

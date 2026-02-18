@@ -64,7 +64,7 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     private void addPlayerInventory(PlayerInventory playerInventory) {
         UtilityGolem golem = getGolem();
         int offset = 0;
-        if (golem != null && golem.getGolemType() == GolemType.DIAMOND) {
+        if (golem != null && (golem.getGolemType() == GolemType.DIAMOND || golem.getGolemType() == GolemType.EMERALD)) {
             offset = 40; // Always use max offset
         }
         
@@ -83,7 +83,7 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     private void addHotbar(PlayerInventory playerInventory) {
         UtilityGolem golem = getGolem();
         int offset = 0;
-        if (golem != null && golem.getGolemType() == GolemType.DIAMOND) {
+        if (golem != null && (golem.getGolemType() == GolemType.DIAMOND || golem.getGolemType() == GolemType.EMERALD)) {
             offset = 40;
         }
 

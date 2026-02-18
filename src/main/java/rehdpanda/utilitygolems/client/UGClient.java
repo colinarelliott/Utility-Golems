@@ -9,10 +9,13 @@ import net.minecraft.client.render.entity.CopperGolemEntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import rehdpanda.utilitygolems.GolemType;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UGBlocks;
+import rehdpanda.utilitygolems.UtilityGolem;
 
 /// HANDLES CLIENT SIDE RENDERING OF GOLEMS
 public class UGClient implements ClientModInitializer {
@@ -36,5 +39,15 @@ public class UGClient implements ClientModInitializer {
                     (EntityRendererFactory.Context ctx) -> new UtilityGolemRenderer(ctx, type)
             );
         }
+
+        ClientPlayNetworking.registerGlobalReceiver(UGInit.SyncDiscoveredTradesPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                Entity entity = context.client().world.getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    golem.getDiscoveredTrades().clear();
+                    golem.getDiscoveredTrades().addAll(payload.trades());
+                }
+            });
+        });
     }
 }
