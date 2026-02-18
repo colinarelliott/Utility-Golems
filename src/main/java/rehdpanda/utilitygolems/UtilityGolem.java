@@ -246,6 +246,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         blacklistedPositions.clear();
     }
 
+    public BlockPos getLastLightPos() {
+        return lastLightPos;
+    }
+
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;

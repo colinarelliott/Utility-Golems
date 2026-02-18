@@ -336,16 +336,24 @@ public class GolemAI {
             
             // If light level is 12 or less, it might be from the golem itself
             if (blockLight <= 12) {
-                // If there's a light block from this mod nearby, it's likely the golem's light
-                for (BlockPos p : BlockPos.iterate(pos.add(-2, -2, -2), pos.add(2, 2, 2))) {
-                    if (world.getBlockState(p).isOf(UGBlocks.LIGHT_BLOCK)) {
-                        // The light block at 'p' contributes to 'pos'. 
-                        // If we didn't have this light block, would it be 0?
-                        // This is hard to compute exactly without re-calculating light,
-                        // but we can assume if the golem is close, it's the golem.
-                        if (golem.getBlockPos().getSquaredDistance(pos) < 16) {
-                            return true;
-                        }
+                // Check if this golem has an active light block
+                BlockPos golemLightPos = golem.getLastLightPos();
+                if (golemLightPos != null && world.getBlockState(golemLightPos).isOf(UGBlocks.LIGHT_BLOCK)) {
+                    // This golem has a light block. We need to know if this block is the ONLY thing lighting 'pos'.
+                    // Since we can't easily re-calculate light without it, we check if 'pos' is close to it.
+                    // Light level 12 reaches 12 blocks, but intensity drops by 1 per block.
+                    // If blockLight is exactly what we'd expect from the golem's light, and no other sources are obvious.
+                    
+                    double dist = Math.sqrt(pos.getSquaredDistance(golemLightPos));
+                    int expectedLight = 12 - (int)Math.floor(dist);
+                    if (expectedLight < 0) expectedLight = 0;
+                    
+                    // If the current light is exactly what we expect from the golem, 
+                    // and expectedLight > 0, we can be reasonably sure that without the golem it would be 0.
+                    // If blockLight > expectedLight, there's definitely another light source.
+                    // If blockLight < expectedLight, something is blocking the golem's light, but still not 0.
+                    if (blockLight == expectedLight && expectedLight > 0) {
+                        return true;
                     }
                 }
             }
