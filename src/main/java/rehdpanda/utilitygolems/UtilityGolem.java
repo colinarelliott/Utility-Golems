@@ -104,6 +104,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
+    private static final TrackedData<Integer> MINING_DIRECTION = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
 
     // Animation state syncing (server -> client)
     private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
@@ -123,6 +124,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(STRIPPED, false);
         builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
         builder.add(SCHEMATIC_NAME, "");
+        builder.add(MINING_DIRECTION, -1);
         builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
@@ -234,6 +236,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public String getSchematicName() {
         return this.dataTracker.get(SCHEMATIC_NAME);
+    }
+
+    public void setMiningDirection(@Nullable net.minecraft.util.math.Direction direction) {
+        this.dataTracker.set(MINING_DIRECTION, direction == null ? -1 : direction.ordinal());
+    }
+
+    @Nullable
+    public net.minecraft.util.math.Direction getMiningDirection() {
+        int ordinal = this.dataTracker.get(MINING_DIRECTION);
+        return ordinal == -1 ? null : net.minecraft.util.math.Direction.values()[ordinal];
     }
 
     private final List<ItemStack> discoveredTrades = new ArrayList<>();
@@ -964,6 +976,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!this.getSchematicName().isEmpty()) {
             writeView.putString("SchematicName", this.getSchematicName());
         }
+        writeView.putInt("MiningDirection", this.dataTracker.get(MINING_DIRECTION));
         // Persist current animation for seamless reloads
         writeView.putInt("AnimationId", this.dataTracker.get(ANIMATION_ID));
         writeView.putInt("AnimationTicks", this.dataTracker.get(ANIMATION_TICKS));
@@ -992,6 +1005,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
         }
         this.setSchematicName(readView.getString("SchematicName", ""));
+        this.dataTracker.set(MINING_DIRECTION, readView.getInt("MiningDirection", -1));
         // Restore animation
         int animId = readView.getInt("AnimationId", GolemAnimation.IDLE.ordinal());
         int animTicks = readView.getInt("AnimationTicks", 0);
@@ -1009,6 +1023,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public void setChestPos(BlockPos chestPos) {
         this.chestPos = chestPos;
+        this.setMiningDirection(null); // Reset mining direction when chest changes
     }
 
     @Override
