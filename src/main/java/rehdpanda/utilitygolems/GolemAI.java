@@ -90,7 +90,9 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.EMERALD), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new TradeWithVillagerGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new CraftEmeraldsGoal(golem)));
+        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
     }
     public static void initGoldGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.GOLD_INGOT, Items.GOLD_NUGGET), false)));
@@ -224,6 +226,9 @@ public class GolemAI {
         @Override
         public void start() {
             golem.debugLog(goalName + " starting");
+            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal) {
+                golem.setAnimation(GolemAnimation.ATTACKING, 20);
+            }
             innerGoal.start();
         }
 
@@ -236,6 +241,11 @@ public class GolemAI {
         @Override
         public void tick() {
             innerGoal.tick();
+            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal) {
+                if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                    golem.setAnimation(GolemAnimation.ATTACKING, 20);
+                }
+            }
             updateDebugTarget();
         }
 
@@ -377,6 +387,7 @@ public class GolemAI {
             placeActionTime = 0;
             golem.setDebugTarget(targetPos);
             golem.getNavigation().startMovingTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D, 1.2D);
+            golem.setAnimation(GolemAnimation.LIGHTING, 20);
         }
 
         @Override
@@ -385,6 +396,7 @@ public class GolemAI {
             golem.setDebugTarget(null);
             golem.getNavigation().stop();
             cooldown = 40; // Add 2 second cooldown after finishing or being interrupted
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
@@ -713,16 +725,23 @@ public class GolemAI {
         @Override
         public void start() {
             tradeDelay = 0;
+            golem.setAnimation(GolemAnimation.NODDING, 40);
         }
 
         @Override
         public void stop() {
             targetVillager = null;
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
         public void tick() {
             if (targetVillager == null) return;
+
+            // Ensure animation is active while trading
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.TRADING, 40);
+            }
 
             double dist = golem.squaredDistanceTo(targetVillager);
             if (dist > 4.0D) {
@@ -939,6 +958,7 @@ public class GolemAI {
         public void start() {
             fishingTime = 0;
             maxFishingTime = 100 + golem.getRandom().nextInt(200); // 5-15 seconds
+            golem.setAnimation(GolemAnimation.FISHING, maxFishingTime);
         }
 
         @Override
@@ -965,6 +985,7 @@ public class GolemAI {
             waterPos = null;
             chestPos = null;
             golem.setFishingTarget(null);
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
@@ -1019,8 +1040,10 @@ public class GolemAI {
                     case 3 -> new ItemStack(Items.PUFFERFISH);
                     default -> new ItemStack(Items.COD);
                 };
+                golem.setAnimation(GolemAnimation.CATCHING_FISH, 20);
             } else if (chance < 95) {
                 loot = new ItemStack(Items.SADDLE); // Simplified junk/treasure for now
+                golem.setAnimation(GolemAnimation.CATCHING_FISH, 20);
             } else {
                 loot = Items.ENCHANTED_BOOK.getDefaultStack();
                 if (serverWorld.getRegistryManager() != null) {
@@ -1030,6 +1053,7 @@ public class GolemAI {
                         loot.addEnchantment(optionalEnchantment.get(), net.minecraft.util.math.MathHelper.nextInt(golem.getRandom(), 1, 3));
                     }
                 }
+                golem.setAnimation(GolemAnimation.CATCHING_RARE_FISH, 20);
             }
 
             ItemStack remaining = golem.getInventory().addStack(loot);
@@ -1147,6 +1171,7 @@ public class GolemAI {
             actionTimer = 0;
             golem.setDebugTarget(targetPos);
             updateHeldItem();
+            golem.setAnimation(GolemAnimation.BREWING, 200); // Typical action duration
         }
 
         @Override
@@ -1157,6 +1182,7 @@ public class GolemAI {
             pendingActionStack = ItemStack.EMPTY;
             actionTimer = 0;
             searchCooldown = 20 + golem.getRandom().nextInt(20); // Add cooldown after stopping
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         private void updateHeldItem() {
@@ -1207,6 +1233,11 @@ public class GolemAI {
         public void tick() {
             if (targetPos == null) return;
             
+            // Ensure animation is active while brewing
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.BREWING, 40);
+            }
+
             // Only search for brewing stand if the current target is no longer a brewing stand
             if (golem.getRandom().nextInt(40) == 0 && !golem.getEntityWorld().getBlockState(targetPos).isOf(Blocks.BREWING_STAND)) {
                 targetPos = findBrewingStand();
@@ -3851,6 +3882,7 @@ public class GolemAI {
         @Override
         public void start() {
             breakingTime = 0;
+            golem.setAnimation(GolemAnimation.DIGGING, Math.min(100, Math.max(40, this.maxBreakingTime)));
         }
 
         @Override
@@ -3865,6 +3897,7 @@ public class GolemAI {
                 golem.getEntityWorld().setBlockBreakingInfo(golem.getId(), targetPos, -1);
             }
             targetPos = null;
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         private int stuckTicks = 0;
@@ -3873,6 +3906,11 @@ public class GolemAI {
         @Override
         public void tick() {
             if (targetPos == null) return;
+
+            // Ensure animation is active while digging
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.DIGGING, 40);
+            }
 
             // Auto-switch tool
             BlockState targetState = golem.getEntityWorld().getBlockState(targetPos);
@@ -4323,6 +4361,7 @@ public class GolemAI {
         @Override
         public void start() {
             farmActionTime = 0;
+            golem.setAnimation(GolemAnimation.FARMING, MAX_FARM_ACTION_TIME);
         }
 
         private int stuckTicks = 0;
@@ -4331,6 +4370,11 @@ public class GolemAI {
         @Override
         public void tick() {
             if (targetPos == null) return;
+
+            // Ensure animation is active while farming
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.FARMING, 40);
+            }
 
             // Ensure we are holding the right tool for the job
             ensureCorrectTool();
@@ -4981,6 +5025,7 @@ public class GolemAI {
         public void start() {
             delay = 0;
             path = calculatePath(startPos, endPos);
+            golem.setAnimation(GolemAnimation.CONNECTING, 100);
         }
 
         private List<BlockPos> calculatePath(BlockPos start, BlockPos end) {
@@ -5035,6 +5080,10 @@ public class GolemAI {
             if (path == null || path.isEmpty()) {
                 stop();
                 return;
+            }
+
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.CONNECTING, 40);
             }
 
             BlockPos target = path.get(0);
@@ -5153,16 +5202,23 @@ public class GolemAI {
         @Override
         public void start() {
             delay = 0;
+            golem.setAnimation(GolemAnimation.BREEDING, 40);
         }
 
         @Override
         public void stop() {
             animalA = null;
             animalB = null;
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
         public void tick() {
+            // Ensure animation is active while breeding
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.BREEDING, 40);
+            }
+
             if (animalA == null || animalB == null) return;
 
             Vec3d animalAPos = Vec3d.of(animalA.getBlockPos());
@@ -5436,6 +5492,7 @@ public class GolemAI {
             breakingTime = 0;
             stuckTicks = 0;
             lastPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+            golem.setAnimation(GolemAnimation.CHOPPING, Math.min(100, Math.max(40, this.maxBreakingTime)));
         }
 
         @Override
@@ -5455,11 +5512,17 @@ public class GolemAI {
                 }
             }
             targetPos = null;
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
         public void tick() {
             if (targetPos == null) return;
+
+            // Ensure animation is active while chopping
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.CHOPPING, 40);
+            }
 
             // Stuck detection
             Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
@@ -5789,6 +5852,7 @@ public class GolemAI {
             tradeDelay = 0;
             waitingForPiglin = false;
             suspectedTradedItem = null;
+            golem.setAnimation(GolemAnimation.NODDING, 40);
         }
 
         @Override
@@ -5796,11 +5860,17 @@ public class GolemAI {
             targetPiglin = null;
             waitingForPiglin = false;
             suspectedTradedItem = null;
+            golem.setAnimation(GolemAnimation.IDLE, 0);
         }
 
         @Override
         public void tick() {
             if (targetPiglin == null) return;
+
+            // Ensure animation is active while trading
+            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+                golem.setAnimation(GolemAnimation.NODDING, 40);
+            }
 
             golem.getLookControl().lookAt(targetPiglin, 30.0F, 30.0F);
             double distSq = golem.squaredDistanceTo(targetPiglin);
@@ -5926,6 +5996,62 @@ public class GolemAI {
             }
         }
     }
+    public static class CraftEmeraldsGoal extends Goal {
+        private final UtilityGolem golem;
+        private int cooldown;
+
+        public CraftEmeraldsGoal(UtilityGolem golem) {
+            this.golem = golem;
+        }
+
+        @Override
+        public boolean canStart() {
+            if (cooldown > 0) {
+                cooldown--;
+                return false;
+            }
+            return hasEmeraldBlocks();
+        }
+
+        private boolean hasEmeraldBlocks() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.EMERALD_BLOCK)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void start() {
+            craft();
+            cooldown = 20;
+        }
+
+        private void craft() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isOf(Items.EMERALD_BLOCK)) {
+                    int count = stack.getCount();
+                    stack.decrement(count);
+                    
+                    ItemStack emeralds = new ItemStack(Items.EMERALD, count * 9);
+                    ItemStack remaining = inv.addStack(emeralds);
+                    
+                    if (!remaining.isEmpty()) {
+                        net.minecraft.block.Block.dropStack(golem.getEntityWorld(), golem.getBlockPos(), remaining);
+                    }
+                    
+                    golem.debugLog("CraftEmeraldsGoal: Crafted " + (count * 9) + " emeralds from " + count + " blocks.");
+                    golem.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, 1.0F);
+                    break;
+                }
+            }
+        }
+    }
+
     public static class PickupItemGoal extends Goal {
         private final UtilityGolem golem;
         private net.minecraft.entity.ItemEntity targetItem;
@@ -6000,6 +6126,10 @@ public class GolemAI {
                             isFamiliar = true; 
                         } else if (golem.getGolemType() == GolemType.LAMP) {
                             isFamiliar = UtilityGolem.isTorch(stack);
+                        } else if (golem.getGolemType() == GolemType.EMERALD) {
+                            boolean isEmerald = stack.isOf(Items.EMERALD) || stack.isOf(Items.EMERALD_BLOCK);
+                            boolean isOnSellingList = golem.getDiscoveredTrades().stream().anyMatch(tradeStack -> ItemStack.areItemsEqual(tradeStack, stack));
+                            isFamiliar = isEmerald || isOnSellingList;
                         } else {
                             // Default: only pick up blocks to avoid cluttering inventory with junk
                             isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);

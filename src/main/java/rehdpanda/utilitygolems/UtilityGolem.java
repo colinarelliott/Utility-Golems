@@ -105,6 +105,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
 
+    // Animation state syncing (server -> client)
+    private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> ANIMATION_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> ANIMATION_START_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
@@ -118,6 +123,41 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(STRIPPED, false);
         builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
         builder.add(SCHEMATIC_NAME, "");
+        builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
+        builder.add(ANIMATION_TICKS, 0);
+        builder.add(ANIMATION_START_TICKS, 0);
+    }
+
+    public GolemAnimation getAnimation() {
+        int id = this.dataTracker.get(ANIMATION_ID);
+        if (id < 0 || id >= GolemAnimation.values().length) return GolemAnimation.IDLE;
+        return GolemAnimation.values()[id];
+    }
+
+    public void setAnimation(GolemAnimation animation, int durationTicks) {
+        this.dataTracker.set(ANIMATION_ID, animation == null ? GolemAnimation.IDLE.ordinal() : animation.ordinal());
+        this.dataTracker.set(ANIMATION_TICKS, Math.max(0, durationTicks));
+        this.dataTracker.set(ANIMATION_START_TICKS, Math.max(1, durationTicks));
+    }
+
+    public int getAnimationTicks() {
+        return this.dataTracker.get(ANIMATION_TICKS);
+    }
+
+    public float getAnimationProgress(float tickDelta) {
+        int ticks = getAnimationTicks();
+        if (ticks <= 0) return 0f;
+        
+        GolemAnimation anim = getAnimation();
+        if (anim == GolemAnimation.DIGGING || anim == GolemAnimation.CHOPPING || anim == GolemAnimation.FARMING || 
+            anim == GolemAnimation.FISHING || anim == GolemAnimation.PLAYING_MUSIC) {
+            // Loop every 20 ticks
+            return ((this.getEntityWorld().getTime() % 20) + tickDelta) / 20.0f;
+        }
+
+        // Normalize into [0..1], counting down
+        int startTicks = this.dataTracker.get(ANIMATION_START_TICKS);
+        return Math.max(0f, Math.min(1f, 1f - (ticks - tickDelta) / Math.max(1f, (float)startTicks)));
     }
 
     public void debugLog(String message) {
@@ -354,6 +394,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
         }
         if (!this.getEntityWorld().isClient()) {
+            // Update animation timer server-side
+            int t = this.dataTracker.get(ANIMATION_TICKS);
+            if (t > 0) {
+                this.dataTracker.set(ANIMATION_TICKS, t - 1);
+                if (t - 1 == 0) {
+                    // Reset to idle when finished
+                    this.dataTracker.set(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
+                }
+            }
+
             if (this.golemType == GolemType.FURNACE) {
                 tickFurnace();
             }
@@ -362,6 +412,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
             if (this.golemType == GolemType.JUKEBOX) {
                 tickJukebox();
+                // Ensure music animation stays active if music is playing
+                if (!this.currentlyPlayingStack.isEmpty() && (this.getAnimation() == GolemAnimation.IDLE || this.getAnimationTicks() <= 1)) {
+                    this.setAnimation(GolemAnimation.PLAYING_MUSIC, 40);
+                }
             }
             if (this.golemType == GolemType.LAMP) {
                 tickLamp();
@@ -412,6 +466,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
         super.remove(reason);
     }
+
 
     @Override
     public boolean isClimbing() {
@@ -469,8 +524,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
         if (this.burnTime > 0) {
             updateLightEmission(6);
+            if (this.getAnimation() == GolemAnimation.IDLE || this.getAnimationTicks() <= 1) {
+                this.setAnimation(GolemAnimation.SMELTING, 40);
+            }
         } else {
             stopLightEmission();
+            if (this.getAnimation() == GolemAnimation.SMELTING) {
+                this.setAnimation(GolemAnimation.IDLE, 0);
+            }
         }
     }
 
@@ -570,6 +631,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                             if (!this.getEntityWorld().isClient()) {
                                 this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
                                 this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
+                                this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                             }
 
                             // Equipping the record so it's visible and might help with client-side playing
@@ -902,6 +964,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!this.getSchematicName().isEmpty()) {
             writeView.putString("SchematicName", this.getSchematicName());
         }
+        // Persist current animation for seamless reloads
+        writeView.putInt("AnimationId", this.dataTracker.get(ANIMATION_ID));
+        writeView.putInt("AnimationTicks", this.dataTracker.get(ANIMATION_TICKS));
+        writeView.putInt("AnimationStartTicks", this.dataTracker.get(ANIMATION_START_TICKS));
     }
 
     @Override
@@ -926,6 +992,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
         }
         this.setSchematicName(readView.getString("SchematicName", ""));
+        // Restore animation
+        int animId = readView.getInt("AnimationId", GolemAnimation.IDLE.ordinal());
+        int animTicks = readView.getInt("AnimationTicks", 0);
+        int animStartTicks = readView.getInt("AnimationStartTicks", Math.max(1, animTicks));
+        this.dataTracker.set(ANIMATION_ID, animId);
+        this.dataTracker.set(ANIMATION_TICKS, animTicks);
+        this.dataTracker.set(ANIMATION_START_TICKS, animStartTicks);
+
         updateAttackDamage();
     }
 
