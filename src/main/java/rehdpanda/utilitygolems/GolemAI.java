@@ -602,7 +602,24 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             targetVillager = findVillagerWithTrade();
+            // Record trades even if we can't trade right now
+            if (targetVillager == null) {
+                recordNearbyTrades();
+            }
             return targetVillager != null;
+        }
+
+        private void recordNearbyTrades() {
+            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(8.0), villager -> true);
+            for (VillagerEntity villager : villagers) {
+                TradeOfferList offers = villager.getOffers();
+                for (TradeOffer offer : offers) {
+                    if (offer.isDisabled()) continue;
+                    if (!offer.getSellItem().isOf(Items.EMERALD)) {
+                        golem.addDiscoveredTrade(offer.getSellItem());
+                    }
+                }
+            }
         }
 
         private VillagerEntity findVillagerWithTrade() {
@@ -618,9 +635,23 @@ public class GolemAI {
         private boolean canTradeWith(VillagerEntity villager) {
             TradeOfferList offers = villager.getOffers();
             SimpleInventory inventory = golem.getInventory();
+            ItemStack selectedBuy = golem.getSelectedBuyItem();
+
             for (TradeOffer offer : offers) {
                 if (offer.isDisabled()) continue;
+                
+                // Existing selling logic
                 if (offer.getSellItem().isOf(Items.EMERALD)) {
+                    TradedItem buyItem1 = offer.getFirstBuyItem();
+                    Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
+
+                    if (hasStack(inventory, buyItem1) && (buyItem2.isEmpty() || hasStack(inventory, buyItem2.get()))) {
+                        return true;
+                    }
+                }
+                
+                // New buying logic
+                if (!selectedBuy.isEmpty() && ItemStack.areItemsEqual(offer.getSellItem(), selectedBuy)) {
                     TradedItem buyItem1 = offer.getFirstBuyItem();
                     Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
 
@@ -680,9 +711,22 @@ public class GolemAI {
         private void performTrade() {
             TradeOfferList offers = targetVillager.getOffers();
             SimpleInventory inventory = golem.getInventory();
+            ItemStack selectedBuy = golem.getSelectedBuyItem();
+
+            // First, record all available trades from this villager
+            for (TradeOffer offer : offers) {
+                if (!offer.isDisabled() && !offer.getSellItem().isOf(Items.EMERALD)) {
+                    golem.addDiscoveredTrade(offer.getSellItem());
+                }
+            }
+
             for (TradeOffer offer : offers) {
                 if (offer.isDisabled()) continue;
-                if (offer.getSellItem().isOf(Items.EMERALD)) {
+
+                boolean isSellingToVillager = offer.getSellItem().isOf(Items.EMERALD);
+                boolean isBuyingFromVillager = !selectedBuy.isEmpty() && ItemStack.areItemsEqual(offer.getSellItem(), selectedBuy);
+
+                if (isSellingToVillager || isBuyingFromVillager) {
                     TradedItem buyItem1 = offer.getFirstBuyItem();
                     Optional<TradedItem> buyItem2 = offer.getSecondBuyItem();
 
@@ -698,8 +742,16 @@ public class GolemAI {
                             golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
                         }
 
-                        // Notify villager of trade
+                        // Notify villager of trade and decrement stock/uses
                         targetVillager.trade(offer);
+                        // Ensure the offer usage/stock is decremented even when not using the trading UI
+                        offer.use();
+                        // Let the villager process post-trade effects (restock timers, XP, sounds)
+                        try {
+                            targetVillager.onSellingItem(reward.copy());
+                        } catch (Throwable ignored) {
+                            // Some mappings may not expose onSellingItem on VillagerEntity; ignore if unavailable
+                        }
                         break;
                     }
                 }
@@ -1765,7 +1817,7 @@ public class GolemAI {
         }
 
         public boolean hasItemsToDeposit() {
-            if (golem.getGolemType() == GolemType.EMERALD) return hasEmeralds();
+            if (golem.getGolemType() == GolemType.EMERALD) return hasEmeraldsOrBuyListItems();
             if (golem.getGolemType() == GolemType.BAMBOO) return hasCropsToDeposit();
             if (golem.getGolemType() == GolemType.DEEPSLATE) return hasDeepslateItemsToDeposit();
             if (golem.getGolemType() == GolemType.SPONGE) return hasSpongeItemsToDeposit();
@@ -1888,10 +1940,16 @@ public class GolemAI {
             return false;
         }
 
-        private boolean hasEmeralds() {
+        private boolean hasEmeraldsOrBuyListItems() {
             SimpleInventory inv = golem.getInventory();
+            List<ItemStack> buyList = golem.getDiscoveredTrades();
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.getStack(i).isOf(Items.EMERALD)) return true;
+                ItemStack stack = inv.getStack(i);
+                if (stack.isEmpty()) continue;
+                if (stack.isOf(Items.EMERALD)) return true;
+                for (ItemStack buyItem : buyList) {
+                    if (ItemStack.areItemsEqual(stack, buyItem)) return true;
+                }
             }
             return false;
         }
@@ -2129,8 +2187,17 @@ public class GolemAI {
                 for (int i = 0; i < golemInv.size(); i++) {
                     ItemStack stack = golemInv.getStack(i);
                     if (!stack.isEmpty() && !(UtilityGolem.isPickaxe(stack) || UtilityGolem.isShovel(stack))) {
-                        if (golem.getGolemType() == GolemType.EMERALD && !stack.isOf(Items.EMERALD)) {
-                            continue;
+                        if (golem.getGolemType() == GolemType.EMERALD) {
+                            boolean isBuyListItem = false;
+                            for (ItemStack buyItem : golem.getDiscoveredTrades()) {
+                                if (ItemStack.areItemsEqual(stack, buyItem)) {
+                                    isBuyListItem = true;
+                                    break;
+                                }
+                            }
+                            if (!stack.isOf(Items.EMERALD) && !isBuyListItem) {
+                                continue;
+                            }
                         }
                         if (golem.getGolemType() == GolemType.BAMBOO) {
                             if (isSeed(stack) || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isHoe(stack)
@@ -2227,6 +2294,21 @@ public class GolemAI {
                 searchCooldown--;
                 return false;
             }
+            if (golem.getGolemType() == GolemType.EMERALD) {
+                if (hasEmeralds() || golem.getSelectedBuyItem().isEmpty()) {
+                    return false;
+                }
+                chestPos = golem.getChestPos();
+                if (chestPos == null) {
+                    chestPos = findNearbyChest();
+                }
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
+            }
+
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (hasPickaxe() && hasShovel()) {
                     return false;
@@ -2645,6 +2727,14 @@ public class GolemAI {
             return false;
         }
 
+        private boolean hasEmeralds() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.getStack(i).isOf(Items.EMERALD)) return true;
+            }
+            return false;
+        }
+
         private boolean hasItem(Item item) {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
@@ -2754,6 +2844,9 @@ public class GolemAI {
                     }
                     if (golem.getGolemType() == GolemType.GOLD) {
                         if (stack.isOf(Items.GOLD_INGOT) || stack.isOf(Items.GOLD_NUGGET)) return true;
+                    }
+                    if (golem.getGolemType() == GolemType.EMERALD) {
+                        if (stack.isOf(Items.EMERALD)) return true;
                     }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
@@ -2960,9 +3053,11 @@ public class GolemAI {
                 return chestPos != null && (golem.getHeldItem().isEmpty() || !UtilityGolem.isFishingRod(golem.getHeldItem())) && golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
             }
             if (golem.getGolemType() == GolemType.EMERALD) {
-                return chestPos != null && !hasTradeItems() && !isInventoryFull() &&
-                       golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory &&
-                       hasTradeItemsInChest(chestPos) && findNearbyVillagerOffers() != null;
+                boolean needsEmeraldsForBuying = !golem.getSelectedBuyItem().isEmpty() && !hasEmeralds();
+                boolean needsItemsForSelling = findNearbyVillagerOffers() != null && !hasTradeItems() && hasTradeItemsInChest(chestPos);
+                
+                return chestPos != null && (needsEmeraldsForBuying || needsItemsForSelling) && !isInventoryFull() &&
+                       golem.getEntityWorld().getBlockEntity(chestPos) instanceof Inventory;
             }
             return false;
         }
@@ -3049,6 +3144,14 @@ public class GolemAI {
                 for (int i = 0; i < container.size(); i++) {
                     ItemStack containerStack = container.getStack(i);
                     if (containerStack.isEmpty()) continue;
+
+                    if (golem.getGolemType() == GolemType.EMERALD) {
+                        if (containerStack.isOf(Items.EMERALD)) {
+                            ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                            golem.getInventory().addStack(toWithdraw);
+                            withdrawnSomething = true;
+                        }
+                    }
 
                     if (golem.getGolemType() == GolemType.LAPIS) {
                         if (UtilityGolem.isPickaxe(containerStack) && !hasPickaxe()) {

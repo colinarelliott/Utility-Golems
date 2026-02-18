@@ -30,10 +30,13 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static net.minecraft.entity.ai.brain.task.TargetUtil.give;
@@ -56,6 +59,34 @@ public class UGInit implements ModInitializer {
                 ItemStack.OPTIONAL_PACKET_CODEC, SyncPatternPayload::filter,
                 PacketCodecs.BOOLEAN, SyncPatternPayload::started,
                 SyncPatternPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPayload {
+        public static final Id<SyncDiscoveredTradesPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_discovered_trades"));
+        public static final PacketCodec<RegistryByteBuf, SyncDiscoveredTradesPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SyncDiscoveredTradesPayload::entityId,
+                ItemStack.PACKET_CODEC.collect(PacketCodecs.toList()), SyncDiscoveredTradesPayload::trades,
+                SyncDiscoveredTradesPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPayload {
+        public static final Id<SelectBuyItemPayload> ID = new Id<>(Identifier.of(MOD_ID, "select_buy_item"));
+        public static final PacketCodec<RegistryByteBuf, SelectBuyItemPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SelectBuyItemPayload::entityId,
+                ItemStack.OPTIONAL_PACKET_CODEC, SelectBuyItemPayload::selectedItem,
+                SelectBuyItemPayload::new
         );
 
         @Override
@@ -88,6 +119,18 @@ public class UGInit implements ModInitializer {
         UGItems.register();
 
         PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
+
+        ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    golem.setSelectedBuyItem(payload.selectedItem());
+                }
+            });
+        });
+
         ServerPlayNetworking.registerGlobalReceiver(SyncPatternPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
                 Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
@@ -190,5 +233,14 @@ public class UGInit implements ModInitializer {
 
     private void give(ServerPlayerEntity player, Item item) {
         player.getInventory().insertStack(new ItemStack(item, 1));
+    }
+
+    public static void syncDiscoveredTrades(UtilityGolem golem) {
+        if (!golem.getEntityWorld().isClient() && golem.getEntityWorld() instanceof ServerWorld) {
+            SyncDiscoveredTradesPayload payload = new SyncDiscoveredTradesPayload(golem.getId(), golem.getDiscoveredTrades());
+            for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(golem)) {
+                ServerPlayNetworking.send(player, payload);
+            }
+        }
     }
 }

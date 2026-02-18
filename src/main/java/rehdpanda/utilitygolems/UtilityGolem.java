@@ -42,8 +42,11 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 // Base class for Utility Golems
 public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
@@ -97,6 +100,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -109,6 +113,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(BUILDING_STARTED, false);
         builder.add(LAMP_ON, false);
         builder.add(STRIPPED, false);
+        builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
     }
 
     public void debugLog(String message) {
@@ -169,6 +174,36 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public int getWallLength() {
         return this.dataTracker.get(WALL_LENGTH);
+    }
+
+    public void setSelectedBuyItem(ItemStack stack) {
+        this.dataTracker.set(SELECTED_BUY_ITEM, stack);
+    }
+
+    public ItemStack getSelectedBuyItem() {
+        return this.dataTracker.get(SELECTED_BUY_ITEM);
+    }
+
+    private final List<ItemStack> discoveredTrades = new ArrayList<>();
+
+    public List<ItemStack> getDiscoveredTrades() {
+        return discoveredTrades;
+    }
+
+    public void addDiscoveredTrade(ItemStack stack) {
+        for (ItemStack s : discoveredTrades) {
+            if (ItemStack.areItemsEqual(s, stack)) return;
+        }
+        discoveredTrades.add(stack.copy());
+        if (!this.getEntityWorld().isClient()) {
+            syncDiscoveredTrades();
+        }
+    }
+
+    public void syncDiscoveredTrades() {
+        if (this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
+            UGInit.syncDiscoveredTrades(this);
+        }
     }
 
     public void setFishingTarget(@Nullable BlockPos pos) {
@@ -803,6 +838,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("FuelTime", this.fuelTime);
         writeView.putInt("CookTime", this.cookTime);
         writeView.putInt("CookTimeTotal", this.cookTimeTotal);
+        if (!this.getSelectedBuyItem().isEmpty()) {
+            writeView.put("SelectedBuyItem", ItemStack.CODEC, this.getSelectedBuyItem());
+        }
         if (this.chestPos != null) {
             writeView.putInt("ChestX", this.chestPos.getX());
             writeView.putInt("ChestY", this.chestPos.getY());
@@ -827,6 +865,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.fuelTime = readView.getInt("FuelTime", 0);
         this.cookTime = readView.getInt("CookTime", 0);
         this.cookTimeTotal = readView.getInt("CookTimeTotal", 0);
+        readView.read("SelectedBuyItem", ItemStack.CODEC).ifPresent(this::setSelectedBuyItem);
         if (readView.contains("ChestX")) {
             this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
         }
