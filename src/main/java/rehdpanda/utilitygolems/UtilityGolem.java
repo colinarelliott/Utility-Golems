@@ -42,6 +42,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -432,13 +434,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
         if (this.burnTime > 0 || (hasFuel && hasInput)) {
             if (this.burnTime <= 0 && hasInput && isFuel(fuelStack)) {
-                this.burnTime = getFuelTime(fuelStack);
-                this.fuelTime = this.burnTime;
-                if (this.burnTime > 0) {
-                    if (fuelStack.isOf(Items.LAVA_BUCKET)) {
-                        this.furnaceInventory.setStack(1, new ItemStack(Items.BUCKET));
-                    } else {
+                if (!getSmeltingResult(inputStack).isEmpty()) {
+                    this.burnTime = getFuelTime(fuelStack);
+                    this.fuelTime = this.burnTime;
+                    if (this.burnTime > 0) {
+                        Item item = fuelStack.getItem();
                         fuelStack.decrement(1);
+                        if (fuelStack.isEmpty()) {
+                            ItemStack itemRemainder = item.getRecipeRemainder();
+                            this.furnaceInventory.setStack(1, itemRemainder);
+                        }
                     }
                 }
             }
@@ -471,6 +476,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private void smeltItem() {
         ItemStack input = this.furnaceInventory.getStack(0);
+        if (input.isEmpty()) return;
+
         ItemStack result = getSmeltingResult(input);
         if (result.isEmpty()) return;
 
@@ -478,7 +485,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (output.isEmpty()) {
             this.furnaceInventory.setStack(2, result.copy());
             input.decrement(1);
-        } else if (output.isOf(result.getItem()) && output.getCount() < output.getMaxCount()) {
+        } else if (ItemStack.areItemsEqual(output, result) && output.getCount() < output.getMaxCount()) {
             output.increment(1);
             input.decrement(1);
         }
@@ -490,12 +497,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (input.isOf(Items.RAW_COPPER) || input.isOf(Items.COPPER_ORE) || input.isOf(Items.DEEPSLATE_COPPER_ORE)) return new ItemStack(Items.COPPER_INGOT);
         if (input.isOf(Items.COBBLESTONE)) return new ItemStack(Items.STONE);
         if (input.isOf(Items.STONE)) return new ItemStack(Items.SMOOTH_STONE);
-        if (input.isOf(Items.SAND)) return new ItemStack(Items.GLASS);
-        if (input.isOf(Items.RED_SAND)) return new ItemStack(Items.GLASS);
-        if (input.isOf(Items.OAK_LOG) || input.isOf(Items.SPRUCE_LOG) || input.isOf(Items.BIRCH_LOG) || input.isOf(Items.JUNGLE_LOG) || input.isOf(Items.ACACIA_LOG) || input.isOf(Items.DARK_OAK_LOG) || input.isOf(Items.MANGROVE_LOG) || input.isOf(Items.CHERRY_LOG) || input.isOf(Items.BAMBOO_BLOCK)) return new ItemStack(Items.CHARCOAL);
-        if (input.isOf(Items.OAK_WOOD) || input.isOf(Items.SPRUCE_WOOD) || input.isOf(Items.BIRCH_WOOD) || input.isOf(Items.JUNGLE_WOOD) || input.isOf(Items.ACACIA_WOOD) || input.isOf(Items.DARK_OAK_WOOD) || input.isOf(Items.MANGROVE_WOOD) || input.isOf(Items.CHERRY_WOOD)) return new ItemStack(Items.CHARCOAL);
-        if (input.isOf(Items.STRIPPED_OAK_LOG) || input.isOf(Items.STRIPPED_SPRUCE_LOG) || input.isOf(Items.STRIPPED_BIRCH_LOG) || input.isOf(Items.STRIPPED_JUNGLE_LOG) || input.isOf(Items.STRIPPED_ACACIA_LOG) || input.isOf(Items.STRIPPED_DARK_OAK_LOG) || input.isOf(Items.STRIPPED_MANGROVE_LOG) || input.isOf(Items.STRIPPED_CHERRY_LOG)) return new ItemStack(Items.CHARCOAL);
-        if (input.isOf(Items.STRIPPED_OAK_WOOD) || input.isOf(Items.STRIPPED_SPRUCE_WOOD) || input.isOf(Items.STRIPPED_BIRCH_WOOD) || input.isOf(Items.STRIPPED_JUNGLE_WOOD) || input.isOf(Items.STRIPPED_ACACIA_WOOD) || input.isOf(Items.STRIPPED_DARK_OAK_WOOD) || input.isOf(Items.STRIPPED_MANGROVE_WOOD) || input.isOf(Items.STRIPPED_CHERRY_WOOD)) return new ItemStack(Items.CHARCOAL);
+        if (input.isOf(Items.SAND) || input.isOf(Items.RED_SAND)) return new ItemStack(Items.GLASS);
+        if (input.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || input.isOf(Items.BAMBOO_BLOCK)) return new ItemStack(Items.CHARCOAL);
         if (input.isOf(Items.PORKCHOP)) return new ItemStack(Items.COOKED_PORKCHOP);
         if (input.isOf(Items.BEEF)) return new ItemStack(Items.COOKED_BEEF);
         if (input.isOf(Items.CHICKEN)) return new ItemStack(Items.COOKED_CHICKEN);
@@ -513,15 +516,40 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private boolean isFuel(ItemStack stack) {
-        return stack.isOf(Items.COAL) || stack.isOf(Items.CHARCOAL) || stack.isOf(Items.BLAZE_ROD) || stack.isOf(Items.LAVA_BUCKET);
+        if (stack.isEmpty()) return false;
+        if (stack.isOf(Items.COAL) || stack.isOf(Items.CHARCOAL) || stack.isOf(Items.BLAZE_ROD) || stack.isOf(Items.LAVA_BUCKET)) return true;
+        if (stack.isOf(Items.COAL_BLOCK) || stack.isOf(Items.DRIED_KELP_BLOCK)) return true;
+        if (stack.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || stack.isIn(net.minecraft.registry.tag.ItemTags.PLANKS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_SLABS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_STAIRS)) return true;
+        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_BUTTONS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_PRESSURE_PLATES) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_DOORS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_TRAPDOORS)) return true;
+        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_FENCES) || stack.isIn(net.minecraft.registry.tag.ItemTags.FENCE_GATES)) return true;
+        if (stack.isOf(Items.STICK) || stack.isOf(Items.BOWL) || stack.isOf(Items.LADDER) || stack.isOf(Items.CRAFTING_TABLE) || stack.isOf(Items.BOOKSHELF) || stack.isOf(Items.CHEST) || stack.isOf(Items.TRAPPED_CHEST) || stack.isOf(Items.JUKEBOX) || stack.isOf(Items.DAYLIGHT_DETECTOR)) return true;
+        if (stack.isOf(Items.BAMBOO) || stack.isOf(Items.SCAFFOLDING)) return true;
+        return false;
     }
 
     private int getFuelTime(ItemStack fuel) {
         if (fuel.isEmpty()) return 0;
-        if (fuel.isOf(Items.COAL)) return 1600;
-        if (fuel.isOf(Items.CHARCOAL)) return 1600;
+        if (fuel.isOf(Items.COAL) || fuel.isOf(Items.CHARCOAL)) return 1600;
         if (fuel.isOf(Items.BLAZE_ROD)) return 2400;
         if (fuel.isOf(Items.LAVA_BUCKET)) return 20000;
+        if (fuel.isOf(Items.COAL_BLOCK)) return 16000;
+        if (fuel.isOf(Items.DRIED_KELP_BLOCK)) return 4000;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || fuel.isIn(net.minecraft.registry.tag.ItemTags.PLANKS)) return 300;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_SLABS)) return 150;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_STAIRS)) return 300;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_FENCES) || fuel.isIn(net.minecraft.registry.tag.ItemTags.FENCE_GATES)) return 300;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_PRESSURE_PLATES)) return 300;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_TRAPDOORS)) return 300;
+        if (fuel.isOf(Items.STICK)) return 100;
+        if (fuel.isOf(Items.BOWL)) return 100;
+        if (fuel.isOf(Items.LADDER)) return 300;
+        if (fuel.isOf(Items.CRAFTING_TABLE)) return 300;
+        if (fuel.isOf(Items.BOOKSHELF)) return 300;
+        if (fuel.isOf(Items.CHEST) || fuel.isOf(Items.TRAPPED_CHEST)) return 300;
+        if (fuel.isOf(Items.JUKEBOX)) return 300;
+        if (fuel.isOf(Items.DAYLIGHT_DETECTOR)) return 300;
+        if (fuel.isOf(Items.BAMBOO)) return 100;
+        if (fuel.isOf(Items.SCAFFOLDING)) return 400;
         return 0;
     }
 
@@ -608,6 +636,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack playerStack = player.getStackInHand(hand);
+        // Prevent using incompatible special items on the wrong golem types
+        // e.g., prevent records on non-jukebox golems to avoid unintended handlers/UI and crashes
+        if (this.golemType != GolemType.JUKEBOX) {
+            JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playableCheck != null) {
+                if (!player.getEntityWorld().isClient()) {
+                    player.sendMessage(Text.literal("This golem can't play records."), true);
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 this.setStripped(true);
