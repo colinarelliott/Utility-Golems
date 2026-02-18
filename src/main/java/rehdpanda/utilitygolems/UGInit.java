@@ -49,7 +49,7 @@ public class UGInit implements ModInitializer {
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started) implements CustomPayload {
+    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started, String schematicName) implements CustomPayload {
         public static final Id<SyncPatternPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_pattern"));
         public static final PacketCodec<RegistryByteBuf, SyncPatternPayload> CODEC = PacketCodec.tuple(
                 PacketCodecs.VAR_INT, SyncPatternPayload::entityId,
@@ -58,6 +58,7 @@ public class UGInit implements ModInitializer {
                 PacketCodecs.VAR_INT, SyncPatternPayload::length,
                 ItemStack.OPTIONAL_PACKET_CODEC, SyncPatternPayload::filter,
                 PacketCodecs.BOOLEAN, SyncPatternPayload::started,
+                PacketCodecs.STRING, SyncPatternPayload::schematicName,
                 SyncPatternPayload::new
         );
 
@@ -143,7 +144,10 @@ public class UGInit implements ModInitializer {
                     if (!payload.filter().isEmpty()) {
                         golem.setHeldItem(payload.filter());
                     }
-                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)")), true);
+                    if (payload.schematicName() != null) {
+                        golem.setSchematicName(payload.schematicName());
+                    }
+                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)") + (golem.getSchematicName().isEmpty() ? "" : (" | Schematic: " + golem.getSchematicName()))), true);
                 }
             });
         });

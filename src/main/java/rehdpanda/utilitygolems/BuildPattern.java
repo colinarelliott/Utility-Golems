@@ -4,9 +4,10 @@ import net.minecraft.text.Text;
 
 public enum BuildPattern {
     NONE("None"),
-    WALL("Build House"),
+    PLATFORM("Platform"),
     REPLACE("Replace Blocks"),
-    TOWER("Large Tower");
+    TOWER("Large Tower"),
+    SCHEMATIC("Schematic");
 
     private final String displayName;
 

@@ -35,7 +35,8 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
                 golem.getWallWidth(),
                 golem.getWallLength(),
                 golem.getHeldItem(),
-                golem.isBuildingStarted()
+                golem.isBuildingStarted(),
+                golem.getSchematicName()
         ));
     }
 
@@ -74,7 +75,7 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
             button.setMessage(Text.literal(golem.isBuildingStarted() ? "§cStop" : "§aStart"));
         }).dimensions(x + 144, y + 77, 25, 20).build());
 
-        if (golem.getBuildPattern() == BuildPattern.WALL) {
+        if (golem.getBuildPattern() == BuildPattern.PLATFORM) {
             // Width adjustment
             this.addDrawableChild(ButtonWidget.builder(Text.literal("W: " + golem.getWallWidth()), button -> {
                 int nextWidth = (golem.getWallWidth() % 10) + 1;
@@ -101,6 +102,50 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
                     this.client.player.sendMessage(Text.literal("Hold a block in your main hand!"), true);
                 }
             }).dimensions(x + 7, y + 97, 162, 20).build());
+        } else if (golem.getBuildPattern() == BuildPattern.SCHEMATIC) {
+            String current = golem.getSchematicName();
+            if (current == null) current = "";
+            final String label = current.isEmpty() ? "<none>" : current;
+
+            // Left arrow button to the left of the name
+            this.addDrawableChild(ButtonWidget.builder(Text.literal("<"), b -> {
+                java.util.List<String> files = listSchematics();
+                if (!files.isEmpty()) {
+                    int idx = files.indexOf(golem.getSchematicName());
+                    if (idx == -1) idx = 0;
+                    idx = (idx - 1 + files.size()) % files.size();
+                    golem.setSchematicName(files.get(idx));
+                    sendSyncPacket(golem);
+                    this.clearAndInit();
+                }
+            }).dimensions(x + 7, y + 97, 18, 20).build());
+
+            // Schematic name button (clicking it opens the folder)
+            this.addDrawableChild(ButtonWidget.builder(Text.literal(label), b -> {
+                java.nio.file.Path dir = getSchematicDir();
+                try {
+                    java.nio.file.Files.createDirectories(dir);
+                } catch (Exception ignored) {}
+                net.minecraft.util.Util.getOperatingSystem().open(dir.toFile());
+            }).dimensions(x + 27, y + 97, 110, 20).build());
+
+            // Right arrow button to the right of the name
+            this.addDrawableChild(ButtonWidget.builder(Text.literal(">"), b -> {
+                java.util.List<String> files = listSchematics();
+                if (!files.isEmpty()) {
+                    int idx = files.indexOf(golem.getSchematicName());
+                    if (idx == -1) idx = 0;
+                    idx = (idx + 1) % files.size();
+                    golem.setSchematicName(files.get(idx));
+                    sendSyncPacket(golem);
+                    this.clearAndInit();
+                }
+            }).dimensions(x + 139, y + 97, 18, 20).build());
+
+            // Refresh button next to the right arrow button
+            this.addDrawableChild(ButtonWidget.builder(Text.literal("\u21BB"), b -> {
+                this.clearAndInit();
+            }).dimensions(x + 159, y + 97, 20, 20).build());
         }
     }
 
@@ -202,5 +247,24 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
                 context.fill(iconX - 1, iconY - 1, iconX + 17, iconY + 17, 0x40FFFFFF);
             }
         }
+    }
+    private java.nio.file.Path getSchematicDir() {
+        java.nio.file.Path configDir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir();
+        return configDir.resolve("utility-golems").resolve("schematics");
+    }
+
+    private java.util.List<String> listSchematics() {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        try {
+            java.nio.file.Path dir = getSchematicDir();
+            if (!java.nio.file.Files.isDirectory(dir)) return result;
+            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.list(dir)) {
+                stream.filter(p -> {
+                    String name = p.getFileName().toString().toLowerCase();
+                    return name.endsWith(".schematic") || name.endsWith(".schem");
+                }).sorted().forEach(p -> result.add(p.getFileName().toString()));
+            }
+        } catch (Exception ignored) {}
+        return result;
     }
 }

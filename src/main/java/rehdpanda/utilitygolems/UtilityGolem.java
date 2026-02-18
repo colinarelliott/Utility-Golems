@@ -101,6 +101,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
+    private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -114,6 +115,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(LAMP_ON, false);
         builder.add(STRIPPED, false);
         builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
+        builder.add(SCHEMATIC_NAME, "");
     }
 
     public void debugLog(String message) {
@@ -182,6 +184,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public ItemStack getSelectedBuyItem() {
         return this.dataTracker.get(SELECTED_BUY_ITEM);
+    }
+
+    public void setSchematicName(String name) {
+        this.dataTracker.set(SCHEMATIC_NAME, name == null ? "" : name);
+    }
+
+    public String getSchematicName() {
+        return this.dataTracker.get(SCHEMATIC_NAME);
     }
 
     private final List<ItemStack> discoveredTrades = new ArrayList<>();
@@ -846,6 +856,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             writeView.putInt("ChestY", this.chestPos.getY());
             writeView.putInt("ChestZ", this.chestPos.getZ());
         }
+        if (!this.getSchematicName().isEmpty()) {
+            writeView.putString("SchematicName", this.getSchematicName());
+        }
     }
 
     @Override
@@ -869,6 +882,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (readView.contains("ChestX")) {
             this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
         }
+        this.setSchematicName(readView.getString("SchematicName", ""));
         updateAttackDamage();
     }
 
