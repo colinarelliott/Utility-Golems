@@ -4021,6 +4021,7 @@ public class GolemAI {
 
         private boolean canDig(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
+            if (!state.getFluidState().isEmpty()) return false;
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (UtilityGolem.isLightSource(state)) return false;
                 if (state.isAir() || state.isIn(BlockTags.REPLACEABLE)) return true;
