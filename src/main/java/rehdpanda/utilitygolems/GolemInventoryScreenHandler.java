@@ -135,6 +135,9 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     @Override
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
-        inventory.onClose(player);
+        this.inventory.onClose(player);
+        if (player.getEntityWorld() != null && this.inventory instanceof GolemChestBlockEntity golemChestBlockEntity) {
+            player.getEntityWorld().addSyncedBlockEvent(golemChestBlockEntity.getPos(), golemChestBlockEntity.getCachedState().getBlock(), 1, 0);
+        }
     }
 }
