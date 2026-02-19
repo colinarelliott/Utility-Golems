@@ -1912,17 +1912,18 @@ public class GolemAI {
         }
 
         private boolean hasLapisItemsToDeposit() {
-            // Deposit regularly to avoid getting full:
-            // - when any stack is full,
-            // - when inventory is full,
-            // - or when 2 or fewer empty slots remain
-            if (hasFullStack() || isInventoryFull()) return true;
+            // Deposit only when inventory is full or almost full.
+            // This keeps the golem mining longer and reduces unnecessary trips to the surface.
+            if (isInventoryFull()) return true;
+            
             int empty = 0;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (inv.getStack(i).isEmpty()) empty++;
             }
-            if (empty <= 2) return true;
+            // Only return to deposit if we have 1 or fewer empty slots remaining
+            if (empty <= 1) return true;
+            
             return false;
         }
 
@@ -2376,7 +2377,10 @@ public class GolemAI {
             }
 
             if (golem.getGolemType() == GolemType.LAPIS) {
-                if (hasPickaxe() && hasShovel()) {
+                // Lapis golems only need to withdraw if they are completely missing a pickaxe or shovel.
+                // This prevents them from returning to the chest just because they have one tool but not both,
+                // or if they have a damaged tool but it hasn't broken yet.
+                if (hasPickaxe() || hasShovel()) {
                     return false;
                 }
                 chestPos = golem.getChestPos();
@@ -3750,7 +3754,13 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.LAPIS) {
                 BlockPos target = findStaircaseOrTunnelBlock();
                 if (target != null) {
-                    golem.debugLog("DigBlockGoal: Lapis staircase/tunnel target " + target.toShortString());
+                    BlockState targetState = world.getBlockState(target);
+                    // If target is stone but we can't dig it, it might be too far
+                    if (!targetState.isAir() && !canDig(target)) {
+                        golem.debugLog("DigBlockGoal: Lapis cannot dig staircase target " + targetState.getBlock().getName().getString() + " at " + target.toShortString() + " (missing tool?)");
+                    } else {
+                        golem.debugLog("DigBlockGoal: Lapis staircase/tunnel target " + target.toShortString());
+                    }
                 }
                 return target;
             }
@@ -3809,7 +3819,6 @@ public class GolemAI {
             BlockPos pos = golem.getBlockPos();
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) {
-                // Try to find a nearby chest if one isn't assigned
                 chestPos = findNearbyChest();
             }
             if (chestPos == null) {
@@ -3829,119 +3838,110 @@ public class GolemAI {
                 golem.debugLog("Lapis: Locking mining direction to " + facing);
             }
 
-            // Locked coordinate to keep it straight
+            // Locked coordinate to keep it straight (the axis perpendicular to mining direction)
             int lockedCoord = (facing.getAxis() == Direction.Axis.Z) ? chestPos.getX() : chestPos.getZ();
-            int currentLockedCoord = (facing.getAxis() == Direction.Axis.Z) ? pos.getX() : pos.getZ();
 
-            // Distance from chest along the mining direction
-            int distFromChest = (facing.getAxis() == Direction.Axis.X)
-                    ? Math.abs(pos.getX() - chestPos.getX())
-                    : Math.abs(pos.getZ() - chestPos.getZ());
-            
-            // The golem might be standing "behind" the chest or on the wrong side.
-            // We only want positive distance in the mining direction.
-            // If facing is EAST, and golem is WEST of chest, distFromChest above will be positive, 
-            // but we should probably be careful.
-            
-            // Correct distFromChest based on direction
+            // The staircase starts ONE block away from the chest.
+            BlockPos startPos = chestPos.offset(facing);
+
+            // Distance from startPos along the mining direction
             int directionalDist = switch (facing) {
-                case EAST -> pos.getX() - chestPos.getX();
-                case WEST -> chestPos.getX() - pos.getX();
-                case SOUTH -> pos.getZ() - chestPos.getZ();
-                case NORTH -> chestPos.getZ() - pos.getZ();
+                case EAST -> pos.getX() - startPos.getX();
+                case WEST -> startPos.getX() - pos.getX();
+                case SOUTH -> pos.getZ() - startPos.getZ();
+                case NORTH -> startPos.getZ() - pos.getZ();
                 default -> 0;
             };
-            
-            // The intended Y level for the 'middle' block at the golem's current horizontal position
-            int intendedY = (directionalDist < 0) ? chestPos.getY() : chestPos.getY() - directionalDist;
 
-            // Check horizontal alignment
-            double distToLine = (facing.getAxis() == Direction.Axis.Z) 
+            // Target depth for the tunnel
+            int targetDepthY = -54;
+
+            // Calculate the intended Y level for the golem's current position.
+            // At directionalDist = 0 (startPos), intendedY = chestPos.getY().
+            // For every 1 block forward, we drop 1 block in Y.
+            int intendedY = chestPos.getY() - Math.max(0, directionalDist);
+            if (intendedY < targetDepthY) intendedY = targetDepthY;
+
+            // Check horizontal alignment (are we on the locked line?)
+            double distToLine = (facing.getAxis() == Direction.Axis.Z)
                     ? Math.abs(golem.getX() - (lockedCoord + 0.5))
                     : Math.abs(golem.getZ() - (lockedCoord + 0.5));
 
-            // If we are not on the locked line or not at the intended Y, our first priority is to get back to it.
-            if (distToLine > 0.35 || pos.getY() != intendedY) {
-                BlockPos targetOnStaircase = (facing.getAxis() == Direction.Axis.Z)
-                        ? new BlockPos(lockedCoord, intendedY, pos.getZ())
-                        : new BlockPos(pos.getX(), intendedY, lockedCoord);
-                
-                // If we are significantly off line horizontally OR we are at the wrong height
-                // Check if we need to dig to get to the staircase position (at intendedY)
-                // Dig a 3-high path at the target horizontal position to ensure we can reach it
-                if (canDig(targetOnStaircase.up(2)) && !golem.getEntityWorld().getBlockState(targetOnStaircase.up(2)).isAir()) {
-                    golem.debugLog("Lapis: Aligning to staircase, digging upper2 at " + targetOnStaircase.up(2).toShortString());
-                    return targetOnStaircase.up(2);
-                }
-                if (canDig(targetOnStaircase.up()) && !golem.getEntityWorld().getBlockState(targetOnStaircase.up()).isAir()) {
-                    golem.debugLog("Lapis: Aligning to staircase, digging upper at " + targetOnStaircase.up().toShortString());
-                    return targetOnStaircase.up();
-                }
-                if (canDig(targetOnStaircase) && !golem.getEntityWorld().getBlockState(targetOnStaircase).isAir()) {
-                    golem.debugLog("Lapis: Aligning to staircase, digging middle at " + targetOnStaircase.toShortString());
-                    return targetOnStaircase;
+            // Only align horizontally to the locked line; do NOT dig straight down to match intendedY.
+            if (distToLine > 0.4) {
+                BlockPos targetOnLine = (facing.getAxis() == Direction.Axis.Z)
+                        ? new BlockPos(lockedCoord, pos.getY(), pos.getZ())
+                        : new BlockPos(pos.getX(), pos.getY(), lockedCoord);
+
+                for (int yOffset = 2; yOffset >= 0; yOffset--) {
+                    BlockPos p = targetOnLine.up(yOffset);
+                    BlockState state = golem.getEntityWorld().getBlockState(p);
+                    if (canDig(p) && !state.isAir()) {
+                        if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
+                            continue;
+                        }
+                        golem.debugLog("Lapis: Aligning horizontally to staircase line, digging at " + p.toShortString());
+                        return p;
+                    }
                 }
 
-                // If blocks are already air, we still target it to navigate there
-                golem.debugLog("Lapis: Path to staircase is clear, navigating to " + targetOnStaircase.toShortString() + " (h-dist: " + String.format("%.2f", distToLine) + ", v-dist: " + (pos.getY() - intendedY) + ")");
-                return targetOnStaircase;
+                if (distToLine > 0.1) {
+                    golem.debugLog("Lapis: Aligning horizontally to staircase line, moving to " + targetOnLine.toShortString());
+                    return targetOnLine;
+                }
             }
 
-            int targetY = -54;
-            if (pos.getY() <= targetY) {
-                golem.debugLog("Lapis: At target depth " + targetY + ", digging tunnel facing " + facing);
-                // At target level, dig a 3-high tunnel for consistency
+            // We are aligned and at the correct height. Now find the next block(s) to dig.
+            // If we are at target depth, dig a tunnel ahead.
+            if (pos.getY() <= targetDepthY) {
                 BlockPos ahead = pos.offset(facing);
-                BlockPos headHigh = ahead.up();
-                BlockPos upperHeadHigh = ahead.up(2);
-                if (canDig(upperHeadHigh) && !golem.getEntityWorld().getBlockState(upperHeadHigh).isAir()) {
-                    golem.debugLog("Lapis: Tunnel target upper2 at " + upperHeadHigh.toShortString());
-                    return upperHeadHigh;
+                for (int yOffset = 2; yOffset >= 0; yOffset--) {
+                    BlockPos p = ahead.up(yOffset);
+                    BlockState state = golem.getEntityWorld().getBlockState(p);
+                    if (canDig(p) && !state.isAir()) {
+                        if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
+                            continue;
+                        }
+                        golem.debugLog("Lapis: Tunnel digging at " + p.toShortString());
+                        return p;
+                    }
                 }
-                if (canDig(headHigh) && !golem.getEntityWorld().getBlockState(headHigh).isAir()) {
-                    golem.debugLog("Lapis: Tunnel target upper at " + headHigh.toShortString());
-                    return headHigh;
-                }
-                if (canDig(ahead) && !golem.getEntityWorld().getBlockState(ahead).isAir()) {
-                    golem.debugLog("Lapis: Tunnel target middle at " + ahead.toShortString());
-                    return ahead;
-                }
-                
-                // If the path is already clear, target it to move forward
-                golem.debugLog("Lapis: Tunnel path is clear, navigating to " + ahead.toShortString());
                 return ahead;
             }
 
-            // Check next steps in the staircase
-            for (int i = 1; i <= 3; i++) {
-                int stepDist = Math.max(0, directionalDist) + i;
-                int stepMiddleY = chestPos.getY() - stepDist;
-                
-                BlockPos stepMiddle = (facing.getAxis() == Direction.Axis.X)
-                        ? new BlockPos(chestPos.getX() + facing.getOffsetX() * stepDist, stepMiddleY, lockedCoord)
-                        : new BlockPos(lockedCoord, stepMiddleY, chestPos.getZ() + facing.getOffsetZ() * stepDist);
+            // Otherwise, dig the next step down in the staircase.
+            // Choose a forward distance so the next step is at most 1 block below our current height.
+            int baseDist = Math.max(0, directionalDist);
+            int nextDist = baseDist + 1;
 
-                BlockPos middle = stepMiddle;
-                BlockPos upper = stepMiddle.up();
-                BlockPos upper2 = stepMiddle.up(2); // 3x1 pattern means 3 blocks high
+            // If we are high above the staircase height for nextDist, advance further so nextY == posY - 1
+            if (pos.getY() > chestPos.getY() - nextDist + 1) {
+                int distForOneDown = chestPos.getY() - (pos.getY() - 1);
+                if (distForOneDown < nextDist) distForOneDown = nextDist;
+                nextDist = distForOneDown;
+            }
 
-                // Order: upper2, upper, middle. This clears the head space first.
-                if (canDig(upper2) && !golem.getEntityWorld().getBlockState(upper2).isAir()) {
-                    golem.debugLog("Lapis: Staircase target upper2 step " + i + " at " + upper2.toShortString());
-                    return upper2;
-                }
-                if (canDig(upper) && !golem.getEntityWorld().getBlockState(upper).isAir()) {
-                    golem.debugLog("Lapis: Staircase target upper step " + i + " at " + upper.toShortString());
-                    return upper;
-                }
-                if (canDig(middle) && !golem.getEntityWorld().getBlockState(middle).isAir()) {
-                    golem.debugLog("Lapis: Staircase target middle step " + i + " at " + middle.toShortString());
-                    return middle;
+            int nextY = Math.max(targetDepthY, chestPos.getY() - nextDist);
+            BlockPos nextStepMiddle = (facing.getAxis() == Direction.Axis.X)
+                    ? new BlockPos(startPos.getX() + facing.getOffsetX() * nextDist, nextY, lockedCoord)
+                    : new BlockPos(lockedCoord, nextY, startPos.getZ() + facing.getOffsetZ() * nextDist);
+
+            // Clear the 3-high path for the next step.
+            for (int yOffset = 2; yOffset >= 0; yOffset--) {
+                BlockPos p = nextStepMiddle.up(yOffset);
+                BlockState state = golem.getEntityWorld().getBlockState(p);
+                if (canDig(p) && !state.isAir()) {
+                    // Skip light sources
+                    if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
+                        continue;
+                    }
+                    golem.debugLog("Lapis: Staircase digging next step at " + p.toShortString());
+                    return p;
                 }
             }
 
-            golem.debugLog("Lapis: No staircase blocks found within reach at intended Y " + intendedY);
-            return null;
+            // If next step is already clear, return it to navigate there.
+            return nextStepMiddle;
         }
 
         private BlockPos findNearbyChest() {
@@ -4021,7 +4021,10 @@ public class GolemAI {
 
         private boolean canDig(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
-            if (golem.getGolemType() == GolemType.LAPIS && state.isAir()) return true;
+            if (golem.getGolemType() == GolemType.LAPIS) {
+                if (UtilityGolem.isLightSource(state)) return false;
+                if (state.isAir() || state.isIn(BlockTags.REPLACEABLE)) return true;
+            }
             if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
                     || state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
                     || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
@@ -4031,6 +4034,9 @@ public class GolemAI {
             if (state.isIn(BlockTags.SHOVEL_MINEABLE) || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)) {
                 return hasShovel();
             }
+            // Add general check for very soft blocks like grass
+            if (state.getHardness(golem.getEntityWorld(), pos) == 0.0f) return true;
+            
             return false;
         }
 

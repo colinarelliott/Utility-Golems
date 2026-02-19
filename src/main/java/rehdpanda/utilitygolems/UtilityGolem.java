@@ -3,6 +3,7 @@ package rehdpanda.utilitygolems;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
@@ -935,6 +936,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public static boolean isTorch(ItemStack stack) {
         return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
+    }
+
+    public static boolean isLightSource(BlockState state) {
+        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
     }
 
     public static boolean isShovel(ItemStack stack) {

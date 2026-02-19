@@ -68,11 +68,11 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             }
 
             switch (anim) {
-                // Slight up-down bob while digging/chopping/farming
+                // Lean in and out (forward/backward) while digging/chopping/farming
                 case DIGGING, CHOPPING, FARMING -> {
-                    float y = (float) Math.sin(p * Math.PI * 2.0) * 0.1f;
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // Leaning in and out
                     matrices.push();
-                    matrices.translate(0.0, y, 0.0);
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
