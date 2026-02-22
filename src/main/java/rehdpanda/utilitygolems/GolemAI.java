@@ -1287,7 +1287,7 @@ public class GolemAI {
             actionTimer = 0;
             golem.setDebugTarget(targetPos);
             updateHeldItem();
-            golem.setAnimation(GolemAnimation.BREWING, 200); // Typical action duration
+            // golem.setAnimation(GolemAnimation.BREWING, 200); // Typical action duration
         }
 
         @Override
@@ -1350,9 +1350,9 @@ public class GolemAI {
             if (targetPos == null) return;
             
             // Ensure animation is active while brewing
-            if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
-                golem.setAnimation(GolemAnimation.BREWING, 40);
-            }
+            // if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
+            //     golem.setAnimation(GolemAnimation.BREWING, 40);
+            // }
 
             // Only search for brewing stand if the current target is no longer a brewing stand
             if (golem.getRandom().nextInt(40) == 0 && !golem.getEntityWorld().getBlockState(targetPos).isOf(Blocks.BREWING_STAND)) {
@@ -1418,11 +1418,13 @@ public class GolemAI {
                 if (fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxCount()) {
                     int slot = findItemInInventory(Items.BLAZE_POWDER);
                     if (slot != -1) {
-                        ItemStack powder = golem.getInventory().removeStack(slot, 1);
+                        ItemStack powder = golem.getInventory().getStack(slot);
+                        int amountToTransfer = Math.min(powder.getCount(), Items.BLAZE_POWDER.getMaxCount() - fuelStack.getCount());
+                        ItemStack toTransfer = golem.getInventory().removeStack(slot, amountToTransfer);
                         if (fuelStack.isEmpty()) {
-                            brewingStand.setStack(4, powder);
+                            brewingStand.setStack(4, toTransfer);
                         } else {
-                            fuelStack.increment(1);
+                            fuelStack.increment(amountToTransfer);
                         }
                         brewingStand.markDirty();
                         return;
@@ -1446,6 +1448,7 @@ public class GolemAI {
                 if (brewingStand.getStack(3).isEmpty()) {
                     int ingredientSlot = findBestIngredientForStand(brewingStand);
                     if (ingredientSlot != -1) {
+                        ItemStack ingredient = golem.getInventory().getStack(ingredientSlot);
                         brewingStand.setStack(3, golem.getInventory().removeStack(ingredientSlot, 1));
                         brewingStand.markDirty();
                         return;
@@ -1479,10 +1482,20 @@ public class GolemAI {
                     ItemStack stack = golem.getInventory().getStack(i);
                     if (isPrimaryIngredient(stack) && !stack.isOf(Items.NETHER_WART)) return i;
                 }
+                
+                // If we don't have primary ingredients, but we HAVE awkward potions, maybe we can use secondary?
+                // For example, making splash awkward potions (though rare) or if the stand has a mix of awkward and regular potions.
+                for (int i = 0; i < golem.getInventory().size(); i++) {
+                    ItemStack stack = golem.getInventory().getStack(i);
+                    if (isSecondaryIngredient(stack)) {
+                        ItemStack standIngredient = stand.getStack(3);
+                        if (standIngredient.isEmpty()) return i;
+                    }
+                }
             }
 
             // Priority 3: If we have regular potions, use secondary ingredients (Gunpowder, etc.)
-            if (hasRegularPotion || hasAwkwardPotion) {
+            if (hasRegularPotion) {
                 for (int i = 0; i < golem.getInventory().size(); i++) {
                     ItemStack stack = golem.getInventory().getStack(i);
                     if (isSecondaryIngredient(stack)) {
@@ -2017,8 +2030,11 @@ public class GolemAI {
                 if (stack.isOf(Items.BLAZE_POWDER)) continue;
                 if (stack.isOf(Items.POTION)) {
                     net.minecraft.component.type.PotionContentsComponent potion = stack.get(DataComponentTypes.POTION_CONTENTS);
-                    if (potion != null && potion.potion().isPresent() && potion.potion().get().matches(net.minecraft.potion.Potions.WATER)) {
-                        continue;
+                    if (potion != null && potion.potion().isPresent()) {
+                         RegistryEntry<net.minecraft.potion.Potion> p = potion.potion().get();
+                         if (p.matches(net.minecraft.potion.Potions.WATER) || p.matches(net.minecraft.potion.Potions.AWKWARD)) {
+                             continue;
+                         }
                     }
                 }
                 return true;
@@ -2237,8 +2253,11 @@ public class GolemAI {
                 if (stack.isOf(Items.BLAZE_POWDER)) continue;
                 if (stack.isOf(Items.POTION)) {
                     net.minecraft.component.type.PotionContentsComponent potion = stack.get(DataComponentTypes.POTION_CONTENTS);
-                    if (potion != null && potion.potion().isPresent() && potion.potion().get().matches(net.minecraft.potion.Potions.WATER)) {
-                        continue;
+                    if (potion != null && potion.potion().isPresent()) {
+                         RegistryEntry<net.minecraft.potion.Potion> p = potion.potion().get();
+                         if (p.matches(net.minecraft.potion.Potions.WATER) || p.matches(net.minecraft.potion.Potions.AWKWARD)) {
+                             continue;
+                         }
                     }
                 }
                 golem.setHeldItem(stack.copyWithCount(1));
@@ -2681,13 +2700,13 @@ public class GolemAI {
             }
 
             if (golem.getGolemType() == GolemType.NETHER_WART) {
-                if (hasIngredients() && hasSecondaryIngredients() && hasGlassBottles() && hasBlazePowder()) {
+                if (hasIngredients() && hasSecondaryIngredients() && hasGlassBottles() && hasBlazePowder() && hasItem(Items.BREWING_STAND)) {
                     // Check if we have at least 1 stack of each. 
                     // Actually, if we have them, we might still want more if we have room in our 6 reserved slots.
                     int supplySlotsUsed = 0;
                     for (int i = 0; i < golem.getInventory().size(); i++) {
                         ItemStack s = golem.getInventory().getStack(i);
-                        if (!s.isEmpty() && (isIngredient(s) || s.isOf(Items.GLASS_BOTTLE) || s.isOf(Items.BLAZE_POWDER))) {
+                        if (!s.isEmpty() && (isIngredient(s) || s.isOf(Items.GLASS_BOTTLE) || s.isOf(Items.BLAZE_POWDER) || s.isOf(Items.BREWING_STAND))) {
                             supplySlotsUsed++;
                         }
                     }
@@ -3070,8 +3089,8 @@ public class GolemAI {
                         if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
                         if (isIngredient(stack) && !hasItem(stack.getItem())) return true;
                         if (stack.isOf(Items.BLAZE_POWDER) && !hasBlazePowder()) return true;
-                        if (stack.isOf(Items.BREWING_STAND)) return true;
-                        if (BrewingGoal.isWaterBottleStatic(stack) || stack.isOf(Items.POTION) || stack.isOf(Items.SPLASH_POTION) || stack.isOf(Items.LINGERING_POTION)) {
+                        if (stack.isOf(Items.BREWING_STAND) && !hasItem(Items.BREWING_STAND)) return true;
+                        if (BrewingGoal.isWaterBottleStatic(stack) || BrewingGoal.isAwkwardPotionStatic(stack)) {
                              // Only withdraw potions/water bottles if we have space in our 3 reserved water/potion slots
                              int potionSlotsUsed = 0;
                              for (int j = 0; j < golem.getInventory().size(); j++) {
@@ -3399,11 +3418,11 @@ public class GolemAI {
                     }
 
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (isIngredient(containerStack) || containerStack.isOf(Items.GLASS_BOTTLE) || containerStack.isOf(Items.BLAZE_POWDER) || containerStack.isOf(Items.BREWING_STAND) || BrewingGoal.isWaterBottleStatic(containerStack)) {
+                        if (isIngredient(containerStack) || containerStack.isOf(Items.GLASS_BOTTLE) || containerStack.isOf(Items.BLAZE_POWDER) || containerStack.isOf(Items.BREWING_STAND) || BrewingGoal.isWaterBottleStatic(containerStack) || BrewingGoal.isAwkwardPotionStatic(containerStack)) {
                             // Nether Wart Golem has a slot reservation system.
                             // 6 slots for ingredients/supplies, 3 slots reserved for water/potions.
                             
-                            boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(containerStack) || containerStack.isOf(Items.POTION) || containerStack.isOf(Items.SPLASH_POTION) || containerStack.isOf(Items.LINGERING_POTION);
+                            boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(containerStack) || BrewingGoal.isAwkwardPotionStatic(containerStack);
                             
                             int supplySlotsUsed = 0;
                             int potionSlotsUsed = 0;

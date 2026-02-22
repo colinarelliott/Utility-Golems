@@ -130,8 +130,8 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                     matrices.pop();
                     return;
                 }
-                // Lean forward a bit when working redstone/brewing/breeding
-                case REDSTONE, BREWING, BREEDING -> {
+                // Lean forward a bit when working redstone/breeding
+                case REDSTONE, BREEDING -> {
                     float angle = -15.0f * (float) Math.sin(p * Math.PI); // Sinusoidal lean for smoother motion
                     matrices.push();
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
