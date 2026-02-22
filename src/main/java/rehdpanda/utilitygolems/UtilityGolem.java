@@ -319,27 +319,6 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         super.onDeath(source);
         if (!this.getEntityWorld().isClient()) {
             removeLight();
-            // Drop material block
-            Block materialBlock = switch (this.golemType) {
-                case LAPIS -> Blocks.LAPIS_BLOCK;
-                case REDSTONE -> Blocks.REDSTONE_BLOCK;
-                case EMERALD -> Blocks.EMERALD_BLOCK;
-                case GOLD -> Blocks.GOLD_BLOCK;
-                case AMETHYST -> Blocks.AMETHYST_BLOCK;
-                case NETHERITE -> Blocks.NETHERITE_BLOCK;
-                case DIAMOND -> Blocks.DIAMOND_BLOCK;
-                case BAMBOO -> Blocks.BAMBOO_BLOCK;
-                case SPONGE -> Blocks.SPONGE;
-                case DEEPSLATE -> Blocks.DEEPSLATE;
-                case FURNACE -> Blocks.FURNACE;
-                case JUKEBOX -> Blocks.JUKEBOX;
-                case LAMP -> Blocks.REDSTONE_LAMP;
-                case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
-                default -> null;
-            };
-            if (materialBlock != null) {
-                Block.dropStack(this.getEntityWorld(), this.getBlockPos(), new ItemStack(materialBlock));
-            }
 
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 ItemStack stack = this.getEquippedStack(slot);

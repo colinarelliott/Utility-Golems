@@ -157,7 +157,6 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if (blockEntity instanceof GolemChestBlockEntity) {
             ItemScatterer.spawn(world, pos, (GolemChestBlockEntity)blockEntity);
-            Block.dropStack(world, pos, new ItemStack(this));
             world.updateComparators(pos, this);
         }
         super.onStateReplaced(state, world, pos, moved);

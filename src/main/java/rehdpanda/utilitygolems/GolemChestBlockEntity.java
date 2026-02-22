@@ -70,7 +70,6 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
                     this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
                 }
             }
-            return true;
         }
         return super.onSyncedBlockEvent(type, data);
     }
