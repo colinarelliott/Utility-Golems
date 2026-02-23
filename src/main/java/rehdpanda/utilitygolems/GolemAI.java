@@ -115,6 +115,16 @@ public class GolemAI {
         golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
     }
+    public static void initAncientGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD, Items.COPPER_SWORD,
+                Items.ANCIENT_DEBRIS, Items.NETHERITE_SCRAP, Items.NETHERITE_INGOT
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
+        golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
+        golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
+    }
     public static void initFurnaceGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));

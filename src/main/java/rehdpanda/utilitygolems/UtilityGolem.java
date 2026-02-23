@@ -726,7 +726,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
-        if (this.golemType == GolemType.NETHERITE && isSword(playerStack)) {
+        if ((this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) && isSword(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }

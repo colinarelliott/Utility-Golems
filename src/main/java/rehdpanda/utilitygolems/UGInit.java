@@ -171,6 +171,7 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.LAPIS_BLOCK);
                                 give(player, Items.EMERALD_BLOCK);
                                 give(player, Items.NETHERITE_BLOCK);
+                                give(player, Items.ANCIENT_DEBRIS);
                                 give(player, Items.REDSTONE_BLOCK);
                                 give(player, Items.AMETHYST_BLOCK);
                                 give(player, Items.DIAMOND_BLOCK);

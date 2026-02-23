@@ -46,6 +46,7 @@ public class UGBlocks {
                 case GOLD -> Blocks.GOLD_BLOCK;
                 case AMETHYST -> Blocks.AMETHYST_BLOCK;
                 case NETHERITE -> Blocks.NETHERITE_BLOCK;
+                case ANCIENT -> Blocks.ANCIENT_DEBRIS;
                 case DIAMOND -> Blocks.DIAMOND_BLOCK;
                 case BAMBOO -> Blocks.OAK_PLANKS;
                 case SPONGE -> Blocks.SPONGE;
@@ -59,11 +60,13 @@ public class UGBlocks {
             float hardness = switch (type) {
                 case BAMBOO -> Blocks.BAMBOO_BLOCK.getHardness();
                 case NETHERITE -> 5.0f; // Vanilla Netherite block is 50.0, which is too much for a chest
+                case ANCIENT -> 30.0f;
                 default -> materialBlock.getHardness();
             };
             float resistance = switch (type) {
                 case BAMBOO -> Blocks.BAMBOO_BLOCK.getBlastResistance();
                 case NETHERITE -> 6.0f; // Vanilla Netherite block is 1200.0
+                case ANCIENT -> 1200.0f;
                 default -> materialBlock.getBlastResistance();
             };
 
