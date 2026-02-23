@@ -103,7 +103,7 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                 }
                 // Energetic head-nodding for trading/giving items
                 case NODDING, TRADING -> {
-                    float angle = -25.0f * (float) Math.sin(p * Math.PI * 2.0); // 2 nods
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // 2 nods, reduced angle
                     matrices.push();
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
                     super.render(state, matrices, queue, cameraState);

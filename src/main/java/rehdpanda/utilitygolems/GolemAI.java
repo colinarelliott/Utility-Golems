@@ -6224,7 +6224,7 @@ public class GolemAI {
             tradeDelay = 0;
             waitingForPiglin = false;
             suspectedTradedItem = null;
-            golem.setAnimation(GolemAnimation.NODDING, 40);
+            golem.setAnimation(GolemAnimation.TRADING, 40);
         }
 
         @Override
@@ -6241,7 +6241,7 @@ public class GolemAI {
 
             // Ensure animation is active while trading
             if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
-                golem.setAnimation(GolemAnimation.NODDING, 40);
+                golem.setAnimation(GolemAnimation.TRADING, 40);
             }
 
             golem.getLookControl().lookAt(targetPiglin, 30.0F, 30.0F);
@@ -6304,7 +6304,7 @@ public class GolemAI {
                     }
                 }
 
-                if (++tradeDelay % 20 == 0) {
+                if (++tradeDelay % 10 == 0) {
                     if (isPiglinReady(targetPiglin) && golem.getHeldItem().isOf(Items.GOLD_INGOT)) {
                         dropGoldIngot();
                         waitingForPiglin = true;
