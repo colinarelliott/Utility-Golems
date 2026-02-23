@@ -2,6 +2,7 @@
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
 <img width="2560" height="1382" alt="2026-02-23_12 27 55" src="https://github.com/user-attachments/assets/c12ca122-643a-4a51-985c-64ad583b5f40" />
+#### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
 - Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (15 varieties)
   
