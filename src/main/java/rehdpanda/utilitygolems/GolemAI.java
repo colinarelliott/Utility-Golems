@@ -2370,6 +2370,7 @@ public class GolemAI {
                 if (++delay % 20 == 0) {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
+                    golem.setAnimation(GolemAnimation.DEPOSITING, 20);
                     depositItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();
@@ -3364,6 +3365,7 @@ public class GolemAI {
                 if (++delay % 20 == 0) {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
+                    golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
                     withdrawItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();

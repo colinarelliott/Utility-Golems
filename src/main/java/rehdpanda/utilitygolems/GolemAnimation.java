@@ -22,5 +22,8 @@ public enum GolemAnimation {
     SMELTING,
     CONNECTING,
     LIGHTING,
-    NODDING
+    NODDING,
+    SEARCHING,
+    DEPOSITING,
+    WITHDRAWING
 }

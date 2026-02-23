@@ -118,6 +118,7 @@ public class UGInit implements ModInitializer {
         LOGGER.info("Utility Golems initializing...");
         UGBlocks.register();
         UGItems.register();
+        UGItems.registerSpawnEggs();
 
         PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
@@ -193,6 +194,12 @@ public class UGInit implements ModInitializer {
                                 return 1;
                             })
             );
+        });
+
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(entries -> {
+            for (GolemType type : GolemType.values()) {
+                entries.add(UGItems.GOLEM_SPAWN_EGGS.get(type));
+            }
         });
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> {

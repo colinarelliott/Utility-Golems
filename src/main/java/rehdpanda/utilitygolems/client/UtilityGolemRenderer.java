@@ -148,6 +148,39 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                     matrices.pop();
                     return;
                 }
+                case SEARCHING -> {
+                    // Nod side to side and tilt forward a bit
+                    float tiltAngle = -10.0f * (float) Math.sin(p * Math.PI);
+                    float swayAngle = 15.0f * (float) Math.sin(p * Math.PI * 2.0);
+                    matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(tiltAngle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(swayAngle));
+                    super.render(state, matrices, queue, cameraState);
+                    matrices.pop();
+                    return;
+                }
+                case DEPOSITING -> {
+                    // Reach forward and down
+                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
+                    float xAngle = -20.0f * (float) Math.sin(p * Math.PI);
+                    matrices.push();
+                    matrices.translate(0.0, 0.0, z);
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(xAngle));
+                    super.render(state, matrices, queue, cameraState);
+                    matrices.pop();
+                    return;
+                }
+                case WITHDRAWING -> {
+                    // Reach forward then pull back
+                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
+                    float xAngle = -15.0f * (float) Math.sin(p * Math.PI);
+                    matrices.push();
+                    matrices.translate(0.0, 0.0, z);
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(xAngle));
+                    super.render(state, matrices, queue, cameraState);
+                    matrices.pop();
+                    return;
+                }
                 case CATCHING_FISH -> {
                     float y = (float) Math.abs(Math.sin(p * Math.PI)) * 0.4f;
                     matrices.push();

@@ -671,6 +671,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public void setSearching(boolean searching) {
         if (searching) {
             this.swingHand(Hand.MAIN_HAND);
+            if (this.getAnimation() == GolemAnimation.IDLE || this.getAnimation() == GolemAnimation.SEARCHING) {
+                this.setAnimation(GolemAnimation.SEARCHING, 20);
+            }
+        } else {
+            if (this.getAnimation() == GolemAnimation.SEARCHING) {
+                this.setAnimation(GolemAnimation.IDLE, 0);
+            }
         }
     }
 
