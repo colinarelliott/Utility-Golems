@@ -64,8 +64,8 @@ public enum GolemType {
         ),
     ANCIENT("ancient_golem", "Ancient Golem", "textures/entity/ancient_golem.png",
             baseAttributes()
-                    .add(EntityAttributes.MAX_HEALTH, 50.0)
-                    .add(EntityAttributes.MOVEMENT_SPEED, 0.28)
+                    .add(EntityAttributes.MAX_HEALTH, 80.0)
+                    .add(EntityAttributes.MOVEMENT_SPEED, 0.3)
                     .add(EntityAttributes.ATTACK_DAMAGE, 0.5)
                     .add(EntityAttributes.ARMOR, 1.0)
                     .add(EntityAttributes.ARMOR_TOUGHNESS, 0.5),

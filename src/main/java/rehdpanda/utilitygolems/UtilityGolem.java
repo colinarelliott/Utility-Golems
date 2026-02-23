@@ -344,7 +344,44 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
+    protected void mobTick(net.minecraft.server.world.ServerWorld world) {
+        // Skip CopperGolemEntity.mobTick which triggers brain.tick and CopperGolemBrain.updateActivity
+        // This ensures the vanilla copper golem brain never runs
+        net.minecraft.util.profiler.Profiler profiler = net.minecraft.util.profiler.Profilers.get();
+        profiler.push("utilityGolemTick");
+        // Custom golem logic can be added here if needed, but currently it's in tick() and goals
+        profiler.pop();
+        // Skip CopperGolemEntity's mobTick entirely
+    }
+
+    @Override
+    protected net.minecraft.entity.ai.brain.Brain.Profile<net.minecraft.entity.passive.CopperGolemEntity> createBrainProfile() {
+        // Return an empty brain profile to ensure the copper golem brain is never initialized
+        return net.minecraft.entity.ai.brain.Brain.createProfile(java.util.Collections.emptyList(), java.util.Collections.emptyList());
+    }
+
+    @Override
+    protected net.minecraft.entity.ai.brain.Brain<?> deserializeBrain(com.mojang.serialization.Dynamic<?> dynamic) {
+        // Return an empty brain to bypass any brain-based AI from CopperGolemEntity
+        return this.createBrainProfile().deserialize(dynamic);
+    }
+
+    @Override
+    public net.minecraft.entity.ai.brain.Brain<net.minecraft.entity.passive.CopperGolemEntity> getBrain() {
+        return (net.minecraft.entity.ai.brain.Brain<net.minecraft.entity.passive.CopperGolemEntity>) super.getBrain();
+    }
+
+    @Override
     public void tick() {
+        if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
+            // Suppression of CopperGolemEntity behaviors is handled by disabling POPPY_SLOT 
+            // and clearing goals in initGoals.
+        }
+        // Proactively prevent any vanilla CopperGolem container targeting each tick (server-side)
+        if (!this.getEntityWorld().isClient()) {
+            this.resetTargetContainerPos();
+        }
+
         super.tick();
 
         if (!this.getEntityWorld().isClient()) {
@@ -873,7 +910,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         ItemStack newStack = playerStack.copy();
         newStack.setCount(1);
         this.setHeldItem(newStack);
-        this.equipStack(CopperGolemEntity.POPPY_SLOT, newStack.copy());
+        // Do NOT equip CopperGolemEntity.POPPY_SLOT for any golem — it triggers vanilla copper golem behaviors we don't want
+        // This ensures tool-using golems never inherit copper golem item-interaction logic
+        // (rendering should rely on HELD_ITEM_SLOT / setHeldItem instead)
+        // Intentionally left blank to avoid POPPY_SLOT usage.
         if (!player.getAbilities().creativeMode) {
             playerStack.decrement(1);
         }
@@ -924,15 +964,36 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
     }
 
-    public static boolean isLightSource(BlockState state) {
-        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
-    }
-
     public static boolean isShovel(ItemStack stack) {
         return stack.isOf(Items.WOODEN_SHOVEL) || stack.isOf(Items.STONE_SHOVEL) ||
                 stack.isOf(Items.IRON_SHOVEL) || stack.isOf(Items.DIAMOND_SHOVEL) ||
                 stack.isOf(Items.NETHERITE_SHOVEL) || stack.isOf(Items.GOLDEN_SHOVEL) ||
                 stack.isOf(Items.COPPER_SHOVEL);
+    }
+
+    public static boolean isBow(ItemStack stack) {
+        return stack.isOf(Items.BOW) || stack.isOf(Items.CROSSBOW);
+    }
+
+    public static boolean isShield(ItemStack stack) {
+        return stack.isOf(Items.SHIELD);
+    }
+
+    public static boolean isTrident(ItemStack stack) {
+        return stack.isOf(Items.TRIDENT);
+    }
+
+    public static boolean isFlintAndSteel(ItemStack stack) {
+        return stack.isOf(Items.FLINT_AND_STEEL);
+    }
+
+    public static boolean isTool(ItemStack stack) {
+        return isPickaxe(stack) || isSword(stack) || isAxe(stack) || isHoe(stack) || isShovel(stack) || isFishingRod(stack) || isShears(stack)
+                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack);
+    }
+
+    public static boolean isLightSource(BlockState state) {
+        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
     }
 
     private BlockPos chestPos;
@@ -1031,7 +1092,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
         if (!item.isEmpty()) {
             this.equipStack(HELD_ITEM_SLOT, item);
-            this.equipStack(CopperGolemEntity.POPPY_SLOT, item);
+            // Never equip the CopperGolemEntity.POPPY_SLOT to avoid vanilla copper golem behaviors being triggered
+            // Rendering/usage will rely solely on HELD_ITEM_SLOT
+            // Intentionally no POPPY_SLOT assignment here.
             updateAttackDamage();
         }
 
@@ -1062,6 +1125,28 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (this.golemType != null) {
             this.golemType.initGoals(this);
         }
+        
+        // Remove any remaining goals that might have been added by CopperGolemEntity after our clear
+        // specifically targeting anything that looks like chest sorting or putting away items if we could identify them.
+        // Since we already cleared them, we are mostly safe unless CopperGolemEntity adds them in a way we don't expect.
+    }
+
+    // ===== Override CopperGolemEntity container interaction hooks to fully disable vanilla chest use =====
+    @Override
+    public void setTargetContainerPos(BlockPos pos) {
+        // Intentionally ignore container targeting to prevent any vanilla copper golem item transport
+    }
+
+    @Override
+    public boolean isViewingContainerAt(net.minecraft.block.entity.ViewerCountManager viewerCountManager, BlockPos pos) {
+        // Never considered as viewing any container
+        return false;
+    }
+
+    @Override
+    public double getContainerInteractionRange() {
+        // Zero range prevents interaction checks from succeeding
+        return 0.0;
     }
 
 
@@ -1083,7 +1168,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private void updateAttackDamage() {
-        if (this.golemType != GolemType.NETHERITE) return;
+        if (this.golemType != GolemType.NETHERITE && this.golemType != GolemType.ANCIENT) return;
         
         float baseDamage = 0.5f; // Default low damage
         ItemStack stack = this.getHeldItem();
