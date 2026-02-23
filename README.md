@@ -1,7 +1,7 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
-<img height="300" alt="2026-01-10_16 42 01" src="https://github.com/user-attachments/assets/ff7c4627-dfcc-4eff-830c-e192b88e66e8" />
+<img height="300" alt="Image of Golems lined up" src="https://github.com/user-attachments/assets/ff7c4627-dfcc-4eff-830c-e192b88e66e8" />
 
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
@@ -49,5 +49,5 @@
     - Fills water bottles with water when given glass bottles.
 
 ### Adds a wrench item which heals golems
-<img width="183" height="104" alt="Screenshot 2026-02-05 at 3 22 47 PM" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
+<img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
 - 500 durability, standard tool

@@ -6,9 +6,11 @@
     "utility-golems:gold_golem_chest",
     "utility-golems:amethyst_golem_chest",
     "utility-golems:netherite_golem_chest",
+    "utility-golems:ancient_golem_chest",
     "utility-golems:diamond_golem_chest",
     "utility-golems:deepslate_golem_chest",
     "utility-golems:bamboo_golem_chest",
-    "utility-golems:sponge_golem_chest"
+    "utility-golems:sponge_golem_chest",
+    "utility-golems:nether_wart_golem_chest"
   ]
 }

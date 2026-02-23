@@ -46,6 +46,7 @@ public class UGBlocks {
                 case GOLD -> Blocks.GOLD_BLOCK;
                 case AMETHYST -> Blocks.AMETHYST_BLOCK;
                 case NETHERITE -> Blocks.NETHERITE_BLOCK;
+                case ANCIENT -> Blocks.ANCIENT_DEBRIS;
                 case DIAMOND -> Blocks.DIAMOND_BLOCK;
                 case BAMBOO -> Blocks.OAK_PLANKS;
                 case SPONGE -> Blocks.SPONGE;
@@ -58,23 +59,32 @@ public class UGBlocks {
 
             float hardness = switch (type) {
                 case BAMBOO -> Blocks.BAMBOO_BLOCK.getHardness();
+                case NETHERITE -> 5.0f; // Vanilla Netherite block is 50.0, which is too much for a chest
+                case ANCIENT -> 30.0f;
                 default -> materialBlock.getHardness();
             };
             float resistance = switch (type) {
                 case BAMBOO -> Blocks.BAMBOO_BLOCK.getBlastResistance();
+                case NETHERITE -> 6.0f; // Vanilla Netherite block is 1200.0
+                case ANCIENT -> 1200.0f;
                 default -> materialBlock.getBlastResistance();
             };
 
             Identifier id = Identifier.of(UGInit.MOD_ID, name);
+            AbstractBlock.Settings settings = AbstractBlock.Settings.copy(materialBlock)
+                    .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
+                    .strength(hardness, resistance)
+                    .luminance(state -> 0)
+                    .nonOpaque();
+
+            if (type != GolemType.BAMBOO && type != GolemType.SPONGE) {
+                settings = settings.requiresTool();
+            }
+
             Block block = Registry.register(
                     Registries.BLOCK,
                     id,
-                    new GolemChestBlock(AbstractBlock.Settings.copy(materialBlock)
-                            .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
-                            .strength(hardness, resistance)
-                            .requiresTool()
-                            .luminance(state -> 0)
-                            .nonOpaque())
+                    new GolemChestBlock(settings)
             );
             GOLEM_CHESTS.put(type, block);
             chestBlocks.add(block);

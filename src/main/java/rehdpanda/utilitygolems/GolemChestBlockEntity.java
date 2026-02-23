@@ -5,6 +5,9 @@ import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.text.Text;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.Map;
@@ -55,6 +58,20 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
             }
         }
         return golemType;
+    }
+
+    @Override
+    public boolean onSyncedBlockEvent(int type, int data) {
+        if (type == 1) {
+            if (this.world != null) {
+                if (data > 0) {
+                    this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
+                } else {
+                    this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
+                }
+            }
+        }
+        return super.onSyncedBlockEvent(type, data);
     }
 
     private static boolean isBlocked(net.minecraft.world.World world, BlockPos pos) {

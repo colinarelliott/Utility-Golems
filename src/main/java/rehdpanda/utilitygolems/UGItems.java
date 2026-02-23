@@ -8,13 +8,15 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
 
 import java.util.List;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UGItems {
     public static Item WRENCH_ITEM;
+    public static final Map<GolemType, Item> GOLEM_SPAWN_EGGS = new HashMap<>();
 
     public static void register() {
         Identifier wrenchId = Identifier.of(UGInit.MOD_ID, "wrench");
@@ -28,6 +30,19 @@ public class UGItems {
                         .maxDamage(500)
                         .component(DataComponentTypes.LORE, new LoreComponent(List.of(Text.translatable("item.utility-golems.wrench.description")))))
         );
+    }
 
+    public static void registerSpawnEggs() {
+        for (GolemType type : GolemType.values()) {
+            Identifier eggId = Identifier.of(UGInit.MOD_ID, type.getName() + "_spawn_egg");
+            // Default colors (copper-like) — actual look comes from the item model/texture; you can recolor the texture later
+            int primary = 0xB87333; // copper-ish
+            int secondary = 0xD9A066; // lighter copper accent
+            Item.Settings settings = new Item.Settings()
+                    .registryKey(RegistryKey.of(RegistryKeys.ITEM, eggId));
+            Item egg = new UtilityGolemSpawnEggItem(settings, type);
+            Registry.register(Registries.ITEM, eggId, egg);
+            GOLEM_SPAWN_EGGS.put(type, egg);
+        }
     }
 }

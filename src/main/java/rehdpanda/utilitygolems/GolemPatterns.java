@@ -32,6 +32,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.GOLD, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.AMETHYST, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.NETHERITE, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.ANCIENT, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.FURNACE, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, true);
@@ -52,6 +53,7 @@ public class GolemPatterns {
             case GOLD -> Blocks.GOLD_BLOCK;
             case AMETHYST -> Blocks.AMETHYST_BLOCK;
             case NETHERITE -> Blocks.NETHERITE_BLOCK;
+            case ANCIENT -> Blocks.ANCIENT_DEBRIS;
             case FURNACE -> Blocks.FURNACE;
             case DIAMOND -> Blocks.DIAMOND_BLOCK;
             case SPONGE -> Blocks.SPONGE;
