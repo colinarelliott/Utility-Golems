@@ -312,9 +312,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;
-        if (this.golemType != null) {
-            this.golemType.initGoals(this);
-        }
+        initGolemsGoals();
         updateAttackDamage();
     }
 
@@ -1169,6 +1167,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setMiningDirection(null); // Reset mining direction when chest changes
     }
 
+    public void initGolemsGoals() {
+        if (this.golemType != null) {
+            this.golemType.initGoals(this);
+        }
+    }
+
     @Override
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
         EntityData data = super.initialize(world, difficulty, spawnReason, entityData);
@@ -1213,9 +1217,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.entity.ai.goal.LongDoorInteractGoal(this, true)));
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
 
-        if (this.golemType != null) {
-            this.golemType.initGoals(this);
-        }
+        initGolemsGoals();
         
         // Remove any remaining goals that might have been added by CopperGolemEntity after our clear
         // specifically targeting anything that looks like chest sorting or putting away items if we could identify them.
