@@ -1259,9 +1259,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private void updateAttackDamage() {
-        if (this.golemType != GolemType.NETHERITE && this.golemType != GolemType.ANCIENT) return;
+        ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(this.getGolemType().getName());
+        float baseDamage = (stats != null) ? (float) stats.attackDamage : 0.5f; 
         
-        float baseDamage = 0.5f; // Default low damage
         ItemStack stack = this.getHeldItem();
         
         if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 6.0f;

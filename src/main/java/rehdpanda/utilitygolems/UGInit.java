@@ -116,6 +116,7 @@ public class UGInit implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Utility Golems initializing...");
+        ConfigManager.load();
         UGBlocks.register();
         UGItems.register();
         UGItems.registerSpawnEggs();

@@ -162,6 +162,20 @@ public enum GolemType {
     }
 
     public DefaultAttributeContainer.Builder getAttributes() {
+        ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(this.name);
+        if (stats != null) {
+            return CopperGolemEntity.createCopperGolemAttributes()
+                    .add(EntityAttributes.TEMPT_RANGE, 10.0)
+                    .add(EntityAttributes.MAX_HEALTH, stats.maxHealth)
+                    .add(EntityAttributes.MOVEMENT_SPEED, stats.movementSpeed)
+                    .add(EntityAttributes.ATTACK_DAMAGE, stats.attackDamage)
+                    .add(EntityAttributes.FOLLOW_RANGE, stats.followRange)
+                    .add(EntityAttributes.KNOCKBACK_RESISTANCE, stats.knockbackResistance)
+                    .add(EntityAttributes.ARMOR, stats.armor)
+                    .add(EntityAttributes.ARMOR_TOUGHNESS, stats.armorToughness)
+                    .add(EntityAttributes.ATTACK_SPEED, stats.attackSpeed)
+                    .add(EntityAttributes.ATTACK_KNOCKBACK, stats.attackKnockback);
+        }
         return attributes;
     }
 
