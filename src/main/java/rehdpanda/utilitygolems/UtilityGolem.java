@@ -569,7 +569,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             // Updated
         }
 
-        if (this.burnTime > 0) {
+        if (this.burnTime > 0 && !getSmeltingResult(this.furnaceInventory.getStack(0)).isEmpty()) {
             updateLightEmission(6);
             if (this.getAnimation() == GolemAnimation.IDLE || this.getAnimationTicks() <= 1) {
                 this.setAnimation(GolemAnimation.SMELTING, 40);
