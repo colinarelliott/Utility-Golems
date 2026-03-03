@@ -25,5 +25,7 @@ public enum GolemAnimation {
     NODDING,
     SEARCHING,
     DEPOSITING,
-    WITHDRAWING
+    WITHDRAWING,
+    PRESSING_BUTTON,
+    SPINNING_HEAD
 }

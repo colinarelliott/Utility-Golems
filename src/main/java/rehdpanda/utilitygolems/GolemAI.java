@@ -2398,17 +2398,25 @@ public class GolemAI {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5);
 
-                if (++delay % 20 == 0) {
+                if (delay > 0) {
+                    delay--;
+                    if (delay == 0) {
+                        if (!hasItemsToDeposit()) {
+                            stop();
+                        }
+                    }
+                    return;
+                }
+
+                if (golem.getRandom().nextInt(10) == 0) {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
-                    golem.setAnimation(GolemAnimation.DEPOSITING, 20);
+                    golem.setAnimation(GolemAnimation.DEPOSITING, 60);
                     depositItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();
                     }
-                    if (!hasItemsToDeposit()) {
-                        stop();
-                    }
+                    delay = 60; // Wait for animation
                 }
             }
         }
@@ -3433,17 +3441,27 @@ public class GolemAI {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5);
 
-                if (++delay % 20 == 0) {
+                if (delay > 0) {
+                    delay--;
+                    if (delay == 0) {
+                        if (golem.getGolemType() == GolemType.NETHER_WART) {
+                            if (!shouldContinue()) {
+                                stop();
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                if (golem.getRandom().nextInt(10) == 0) {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
-                    golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
+                    golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     withdrawItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();
-                        if (!shouldContinue()) {
-                            stop();
-                        }
                     }
+                    delay = 60; // Wait for animation
                 }
             }
         }
@@ -5360,11 +5378,19 @@ public class GolemAI {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(componentPosition.getX() + 0.5, componentPosition.getY() + 0.5, componentPosition.getZ() + 0.5);
 
-                if (++delay % 20 == 0) {
-                    interactWithComponent();
-                    if (golem.getGolemType() == GolemType.REDSTONE) {
-                        stop();
+                if (delay > 0) {
+                    delay--;
+                    if (delay == 0) {
+                        if (golem.getGolemType() == GolemType.REDSTONE) {
+                            stop();
+                        }
                     }
+                    return;
+                }
+
+                if (golem.getRandom().nextInt(10) == 0) {
+                    interactWithComponent();
+                    delay = 20;
                 }
             }
         }
@@ -5374,10 +5400,12 @@ public class GolemAI {
             BlockState state = golem.getEntityWorld().getBlockState(componentPosition);
             Block block = state.getBlock();
             if (block instanceof ButtonBlock button) {
+                golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
                 // Alternative: manually set the state if onUse requires a player
                 golem.getEntityWorld().setBlockState(componentPosition, state.with(ButtonBlock.POWERED, true));
                 golem.getEntityWorld().scheduleBlockTick(componentPosition, block, 20);
             } else if (block instanceof LeverBlock lever) {
+                golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
                 golem.getEntityWorld().setBlockState(componentPosition, state.cycle(LeverBlock.POWERED));
             } else if (block instanceof PressurePlateBlock) {
                 // Golem standing on it already triggers it usually, but we can move him there

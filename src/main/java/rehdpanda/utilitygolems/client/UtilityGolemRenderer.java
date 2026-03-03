@@ -50,6 +50,7 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             renderState.isDebug = utilityGolem.hasCustomName() && "debug".equalsIgnoreCase(utilityGolem.getCustomName().getString());
             renderState.isLampOn = utilityGolem.isLampOn();
             renderState.isStripped = utilityGolem.isStripped();
+            renderState.yawDegrees = utilityGolem.getYaw();
             renderState.animationId = utilityGolem.getAnimation().ordinal();
             renderState.animationProgress = utilityGolem.getAnimationProgress(tickDelta);
         }
@@ -61,6 +62,7 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
         if (state instanceof UtilityGolemRenderState renderState) {
             float p = renderState.animationProgress;
             GolemAnimation anim = renderState.getAnimation();
+            float yawDegrees = renderState.yawDegrees;
             
             // If debug mode is on, we might see it in chat or console
             if (renderState.isDebug && anim != GolemAnimation.IDLE) {
@@ -72,7 +74,9 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                 case DIGGING, CHOPPING, FARMING -> {
                     float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // Leaning in and out
                     matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
@@ -105,7 +109,9 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                 case NODDING, TRADING -> {
                     float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // 2 nods, reduced angle
                     matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
@@ -115,8 +121,10 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                     float z = (float) Math.sin(p * Math.PI) * 0.3f;
                     float angle = -15.0f * (float) Math.sin(p * Math.PI);
                     matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
                     matrices.translate(0.0, 0.0, z);
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
@@ -134,7 +142,9 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                 case REDSTONE, BREEDING -> {
                     float angle = -15.0f * (float) Math.sin(p * Math.PI); // Sinusoidal lean for smoother motion
                     matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
@@ -153,46 +163,25 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
                     float tiltAngle = -10.0f * (float) Math.sin(p * Math.PI);
                     float swayAngle = 15.0f * (float) Math.sin(p * Math.PI * 2.0);
                     matrices.push();
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(tiltAngle));
                     matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(swayAngle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;
                 }
-                case DEPOSITING -> {
-                    // Reach forward and down
-                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
-                    float xAngle = -20.0f * (float) Math.sin(p * Math.PI);
-                    matrices.push();
-                    matrices.translate(0.0, 0.0, z);
-                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(xAngle));
-                    super.render(state, matrices, queue, cameraState);
-                    matrices.pop();
-                    return;
+                case DEPOSITING, WITHDRAWING, SPINNING_HEAD -> {
+                    // These are now handled by CopperGolemEntity's AnimationStates
+                    // which are processed by the superclass's model/renderer.
                 }
-                case WITHDRAWING -> {
-                    // Reach forward then pull back
-                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
-                    float xAngle = -15.0f * (float) Math.sin(p * Math.PI);
+                case PRESSING_BUTTON -> {
+                    // Quick forward lean for button pressing
+                    float angle = -25.0f * (float) Math.sin(p * Math.PI);
                     matrices.push();
-                    matrices.translate(0.0, 0.0, z);
-                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(xAngle));
-                    super.render(state, matrices, queue, cameraState);
-                    matrices.pop();
-                    return;
-                }
-                case CATCHING_FISH -> {
-                    float y = (float) Math.abs(Math.sin(p * Math.PI)) * 0.4f;
-                    matrices.push();
-                    matrices.translate(0.0, y, 0.0);
-                    super.render(state, matrices, queue, cameraState);
-                    matrices.pop();
-                    return;
-                }
-                case CATCHING_RARE_FISH -> {
-                    float y = (float) Math.abs(Math.sin(p * Math.PI)) * 0.8f;
-                    matrices.push();
-                    matrices.translate(0.0, y, 0.0);
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(-yawDegrees));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(angle));
+                    matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(yawDegrees));
                     super.render(state, matrices, queue, cameraState);
                     matrices.pop();
                     return;

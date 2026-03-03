@@ -145,6 +145,24 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.dataTracker.set(ANIMATION_ID, animation == null ? GolemAnimation.IDLE.ordinal() : animation.ordinal());
         this.dataTracker.set(ANIMATION_TICKS, Math.max(0, durationTicks));
         this.dataTracker.set(ANIMATION_START_TICKS, Math.max(1, durationTicks));
+
+        // Sync with CopperGolemEntity states for built-in animations
+        if (animation == GolemAnimation.SPINNING_HEAD) {
+            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+            // Trigger the spin head animation by setting the age to match the timer
+            // Since we can't set the private field, we just let it happen naturally if possible,
+            // or we might need a mixin if we really want to force it.
+            // But wait, CopperGolemEntity's clientTick handles it.
+        } else if (animation == GolemAnimation.DEPOSITING) {
+            this.setState(net.minecraft.entity.passive.CopperGolemState.DROPPING_ITEM);
+        } else if (animation == GolemAnimation.WITHDRAWING) {
+            this.setState(net.minecraft.entity.passive.CopperGolemState.GETTING_ITEM);
+        } else if (animation == GolemAnimation.PRESSING_BUTTON) {
+            // No longer mapping to DROPPING_ITEM to allow custom rendering
+            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+        } else if (animation == GolemAnimation.IDLE) {
+            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+        }
     }
 
     public int getAnimationTicks() {
@@ -447,7 +465,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 this.dataTracker.set(ANIMATION_TICKS, t - 1);
                 if (t - 1 == 0) {
                     // Reset to idle when finished
-                    this.dataTracker.set(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
+                    this.setAnimation(GolemAnimation.IDLE, 0);
                 }
             }
 
@@ -461,11 +479,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 tickJukebox();
                 // Ensure music animation stays active if music is playing
                 if (!this.currentlyPlayingStack.isEmpty() && (this.getAnimation() == GolemAnimation.IDLE || this.getAnimationTicks() <= 1)) {
-                    this.setAnimation(GolemAnimation.PLAYING_MUSIC, 40);
+                    this.setAnimation(GolemAnimation.PLAYING_MUSIC, 60);
                 }
             }
             if (this.golemType == GolemType.LAMP) {
                 tickLamp();
+            }
+
+            // Occasionally spin head when idle
+            if (this.getAnimation() == GolemAnimation.IDLE && this.random.nextInt(200) == 0) {
+                this.setAnimation(GolemAnimation.SPINNING_HEAD, 60);
             }
         }
     }
