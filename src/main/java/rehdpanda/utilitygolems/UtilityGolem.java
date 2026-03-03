@@ -3,6 +3,9 @@ package rehdpanda.utilitygolems;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
+import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
@@ -60,6 +63,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private final SimpleInventory furnaceInventory = new SimpleInventory(3);
     private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
+    private BlockPos jukeboxStartPos = null;
     private ItemStack currentlyPlayingStack = ItemStack.EMPTY;
     private int burnTime;
     private int fuelTime;
@@ -320,12 +324,29 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!this.getEntityWorld().isClient()) {
             removeLight();
 
-            for (EquipmentSlot slot : EquipmentSlot.values()) {
-                ItemStack stack = this.getEquippedStack(slot);
-                if (!stack.isEmpty()) {
-                    net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
+            if (this.golemType == GolemType.JUKEBOX) {
+                BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
+                this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
+
+                if (!this.currentlyPlayingStack.isEmpty()) {
+                    this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE).song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                        stopMusicSound(songEntry.value().soundEvent().value());
+                    });
                 }
+
+                this.currentlyPlayingStack = ItemStack.EMPTY;
+                this.jukeboxCooldown = 0;
+                this.jukeboxStartPos = null;
             }
+
+            // CopperGolemEntity already drops what is in its POPPY_SLOT, but our golem
+            // uses HELD_ITEM_SLOT (MAINHAND). We must drop it manually.
+            ItemStack heldItem = this.getHeldItem();
+            if (!heldItem.isEmpty()) {
+                net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), heldItem.copy());
+                this.setHeldItem(ItemStack.EMPTY);
+            }
+            
             for (int i = 0; i < this.inventory.size(); i++) {
                 ItemStack stack = this.inventory.getStack(i);
                 if (!stack.isEmpty()) {
@@ -395,14 +416,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             this.jukeboxCooldown--;
             if (this.jukeboxCooldown == 0 && !this.currentlyPlayingStack.isEmpty()) {
                 if (!this.getEntityWorld().isClient()) {
-                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
+                    BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
+                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
                     
                     // Stop the music sound if it was playing via playSound
                     this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE).song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
-                        // Unfortunately there is no easy stopSound on World, but typically music discs are handled by JUKEBOX_STOPS_PLAYING event on client
-                        // However since we added a manual playSound, we should ensure it stops. 
-                        // Actually, playSound for RECORDS category might not be easily stoppable from server without a specific packet.
-                        // But JUKEBOX_STOPS_PLAYING should stop all records at that position on the client.
+                        stopMusicSound(songEntry.value().soundEvent().value());
                     });
 
                     if (this.golemType == GolemType.JUKEBOX) {
@@ -416,6 +435,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         this.setSearching(false);
                     }
                     this.currentlyPlayingStack = ItemStack.EMPTY;
+                    this.jukeboxStartPos = null;
                 }
             }
             if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
@@ -602,6 +622,22 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (input.isOf(Items.CLAY)) return new ItemStack(Items.TERRACOTTA);
         if (input.isOf(Items.CACTUS)) return new ItemStack(Items.GREEN_DYE);
         if (input.isOf(Items.NETHERRACK)) return new ItemStack(Items.NETHER_BRICK);
+        // Ores
+        if (input.isOf(Items.ANCIENT_DEBRIS)) return new ItemStack(Items.NETHERITE_SCRAP);
+        // Food
+        if (input.isOf(Items.CHORUS_FRUIT)) return new ItemStack(Items.POPPED_CHORUS_FRUIT);
+        // Blocks
+        if (input.isOf(Items.NETHER_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
+        if (input.isOf(Items.DIAMOND_ORE) || input.isOf(Items.DEEPSLATE_DIAMOND_ORE)) return new ItemStack(Items.DIAMOND);
+        if (input.isOf(Items.EMERALD_ORE) || input.isOf(Items.DEEPSLATE_EMERALD_ORE)) return new ItemStack(Items.EMERALD);
+        if (input.isOf(Items.LAPIS_ORE) || input.isOf(Items.DEEPSLATE_LAPIS_ORE)) return new ItemStack(Items.LAPIS_LAZULI);
+        if (input.isOf(Items.REDSTONE_ORE) || input.isOf(Items.DEEPSLATE_REDSTONE_ORE)) return new ItemStack(Items.REDSTONE);
+        if (input.isOf(Items.COAL_ORE) || input.isOf(Items.DEEPSLATE_COAL_ORE)) return new ItemStack(Items.COAL);
+        if (input.isOf(Items.NETHER_QUARTZ_ORE)) return new ItemStack(Items.QUARTZ);
+        // Miscellaneous
+        if (input.isIn(net.minecraft.registry.tag.ItemTags.SAND)) return new ItemStack(Items.GLASS);
+        if (input.isOf(Items.SEA_PICKLE)) return new ItemStack(Items.LIME_DYE);
+
         return ItemStack.EMPTY;
     }
 
@@ -613,7 +649,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_BUTTONS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_PRESSURE_PLATES) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_DOORS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_TRAPDOORS)) return true;
         if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_FENCES) || stack.isIn(net.minecraft.registry.tag.ItemTags.FENCE_GATES)) return true;
         if (stack.isOf(Items.STICK) || stack.isOf(Items.BOWL) || stack.isOf(Items.LADDER) || stack.isOf(Items.CRAFTING_TABLE) || stack.isOf(Items.BOOKSHELF) || stack.isOf(Items.CHEST) || stack.isOf(Items.TRAPPED_CHEST) || stack.isOf(Items.JUKEBOX) || stack.isOf(Items.DAYLIGHT_DETECTOR)) return true;
-        if (stack.isOf(Items.BAMBOO) || stack.isOf(Items.SCAFFOLDING)) return true;
+        if (stack.isOf(Items.BAMBOO) || stack.isOf(Items.SCAFFOLDING) || stack.isOf(Items.MANGROVE_PROPAGULE)) return true;
+        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOOL) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOOL_CARPETS) || stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isIn(net.minecraft.registry.tag.ItemTags.BANNERS)) return true;
         return false;
     }
 
@@ -640,7 +677,22 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (fuel.isOf(Items.DAYLIGHT_DETECTOR)) return 300;
         if (fuel.isOf(Items.BAMBOO)) return 100;
         if (fuel.isOf(Items.SCAFFOLDING)) return 400;
+        if (fuel.isOf(Items.MANGROVE_PROPAGULE)) return 100;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_BUTTONS)) return 100;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOOL)) return 100;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOOL_CARPETS)) return 67;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) return 100;
+        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.BANNERS)) return 300;
         return 0;
+    }
+
+    private void stopMusicSound(SoundEvent sound) {
+        if (!this.getEntityWorld().isClient() && this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
+            StopSoundS2CPacket stopPacket = new StopSoundS2CPacket(null, SoundCategory.RECORDS);
+            for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
+                player.networkHandler.sendPacket(stopPacket);
+            }
+        }
     }
 
     private void tickJukebox() {
@@ -656,9 +708,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                             this.currentlyPlayingStack.setCount(1);
                             stack.decrement(1);
                             this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                            this.jukeboxStartPos = this.getBlockPos();
                             
                             if (!this.getEntityWorld().isClient()) {
-                                this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
+                                this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
                                 this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
                                 this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                             }
@@ -745,6 +798,35 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 return ActionResult.SUCCESS;
             }
         }
+        if (playerStack.isEmpty() && hand == Hand.MAIN_HAND) {
+            ItemStack golemStack = this.getHeldItem();
+            if (!golemStack.isEmpty()) {
+                if (!player.getEntityWorld().isClient()) {
+                    if (!player.getInventory().insertStack(golemStack)) {
+                        player.dropItem(golemStack, false);
+                    }
+                    this.setHeldItem(ItemStack.EMPTY);
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
+                    if (this.golemType == GolemType.JUKEBOX) {
+                        BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
+                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
+                        
+                        // Stop the music sound if it was playing via playSound
+                        this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE).song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                            stopMusicSound(songEntry.value().soundEvent().value());
+                        });
+
+                        this.currentlyPlayingStack = ItemStack.EMPTY;
+                        this.jukeboxCooldown = 0;
+                        this.jukeboxStartPos = null;
+                        this.setHeldItem(ItemStack.EMPTY);
+                        this.setSearching(false);
+                    }
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
+
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 this.setStripped(true);
@@ -853,10 +935,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!player.getEntityWorld().isClient()) {
             if (this.golemType == GolemType.JUKEBOX) {
                 if (!this.currentlyPlayingStack.isEmpty()) {
+                    BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
+                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
+                    
+                    this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE).song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                        stopMusicSound(songEntry.value().soundEvent().value());
+                    });
+
                     player.dropItem(this.currentlyPlayingStack.copy(), false);
                     this.currentlyPlayingStack = ItemStack.EMPTY;
                     this.jukeboxCooldown = 0;
-                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, this.getBlockPos(), 0);
+                    this.jukeboxStartPos = null;
                     this.setHeldItem(ItemStack.EMPTY);
                     this.setSearching(false);
                     return ActionResult.SUCCESS;
@@ -869,9 +958,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         this.currentlyPlayingStack.setCount(1);
                         player.sendMessage(Text.translatable("record.nowPlaying", songEntry.value().description()), true);
                         this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                        this.jukeboxStartPos = this.getBlockPos();
                         
-                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.getBlockPos(), Item.getRawId(this.currentlyPlayingStack.getItem()));
+                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
                         this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
+                        this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                         
                         this.setHeldItem(this.currentlyPlayingStack.copy());
                         this.setSearching(true);
