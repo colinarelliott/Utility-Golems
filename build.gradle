@@ -1,6 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
+	id "com.modrinth.minotaur" version "2.+"
 }
 
 version = project.mod_version
@@ -80,5 +81,21 @@ publishing {
 		// Notice: This block does NOT have the same function as the block in the top level.
 		// The repositories here will be used for publishing your artifact, not for
 		// retrieving dependencies.
+	}
+}
+
+modrinth {
+	token = System.getenv("MODRINTH_TOKEN") ?: project.findProperty("MODRINTH_TOKEN") ?: (file(".env").exists() ? file(".env").readLines().find { it.startsWith("MODRINTH_TOKEN=") }?.split("=")?.getAt(1) : null)
+	projectId = project.modrinth_id
+	versionNumber = project.mod_version
+	versionName = "${project.archives_base_name} ${project.mod_version}"
+	uploadFile = remapJar
+	gameVersions = [project.minecraft_version]
+	loaders = ["fabric"]
+	dependencies {
+		// scope.type
+		// The scope can be `required`, `optional`, `incompatible`, or `embedded`
+		// The type can be `project` or `version`
+		required.project "fabric-api"
 	}
 }
