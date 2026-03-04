@@ -21,6 +21,12 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.entity.passive.WolfEntity;
+import net.minecraft.entity.passive.CatEntity;
+import net.minecraft.entity.passive.PandaEntity;
+import net.minecraft.entity.passive.LlamaEntity;
+import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
@@ -70,6 +76,46 @@ public class GolemAI {
         return isIngredient(stack) && !isSecondaryIngredient(stack);
     }
 
+    public static boolean isValidBreedingItem(ItemStack stack) {
+        return stack.isOf(Items.WHEAT)
+                || stack.isOf(Items.CARROT)
+                || stack.isOf(Items.POTATO)
+                || stack.isOf(Items.BEETROOT)
+                || stack.isOf(Items.WHEAT_SEEDS)
+                || stack.isOf(Items.PUMPKIN_SEEDS)
+                || stack.isOf(Items.MELON_SEEDS)
+                || stack.isOf(Items.GOLDEN_CARROT)
+                || stack.isOf(Items.GOLDEN_APPLE)
+                || stack.isOf(Items.ENCHANTED_GOLDEN_APPLE)
+                || stack.isOf(Items.DANDELION)
+                || stack.isOf(Items.GLOW_BERRIES)
+                || stack.isOf(Items.SWEET_BERRIES)
+                || stack.isOf(Items.BEEF)
+                || stack.isOf(Items.CHICKEN)
+                || stack.isOf(Items.PORKCHOP)
+                || stack.isOf(Items.RABBIT)
+                || stack.isOf(Items.MUTTON)
+                || stack.isOf(Items.ROTTEN_FLESH)
+                || stack.isOf(Items.COOKED_BEEF)
+                || stack.isOf(Items.COOKED_CHICKEN)
+                || stack.isOf(Items.COOKED_PORKCHOP)
+                || stack.isOf(Items.COOKED_RABBIT)
+                || stack.isOf(Items.COOKED_MUTTON)
+                || stack.isOf(Items.COD)
+                || stack.isOf(Items.SALMON)
+                || stack.isOf(Items.TROPICAL_FISH_BUCKET)
+                || stack.isOf(Items.HAY_BLOCK)
+                || stack.isOf(Items.SEAGRASS)
+                || stack.isOf(Items.BAMBOO)
+                || stack.isIn(net.minecraft.registry.tag.ItemTags.FLOWERS)
+                || stack.isOf(Items.WARPED_FUNGUS)
+                || stack.isOf(Items.CRIMSON_FUNGUS)
+                || stack.isOf(Items.SLIME_BALL)
+                || stack.isOf(Items.CACTUS)
+                || stack.isOf(Items.TORCHFLOWER_SEEDS)
+                || stack.isOf(Items.SPIDER_EYE);
+    }
+
     /// INITIALIZE GOALS
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
@@ -105,6 +151,7 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
     }
     public static void initNetheriteGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
@@ -3904,9 +3951,7 @@ public class GolemAI {
         }
 
         private boolean isValidBreedingItem(ItemStack stack) {
-            return stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) ||
-                    stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
-                    stack.isOf(Items.WHEAT_SEEDS);
+            return GolemAI.isValidBreedingItem(stack);
         }
 
         private ItemStack transferStack(ItemStack stack, Inventory container) {
@@ -5839,24 +5884,45 @@ public class GolemAI {
         private AnimalEntity animalA;
         private AnimalEntity animalB;
         private int delay;
-        private long lastBreedTime;
 
         public BreedAnimalsGoal(UtilityGolem golem) {
             this.golem = golem;
             this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
         }
 
+        private boolean isCompatibleMate(AnimalEntity a, AnimalEntity b) {
+            if (a == b) return false;
+            if (a.getClass() == b.getClass()) return true;
+
+            // Handle Horse/Donkey crossbreeding
+            if (a instanceof AbstractHorseEntity && b instanceof AbstractHorseEntity) {
+                if (a instanceof net.minecraft.entity.passive.HorseEntity || a instanceof net.minecraft.entity.passive.DonkeyEntity) {
+                    if (b instanceof net.minecraft.entity.passive.HorseEntity || b instanceof net.minecraft.entity.passive.DonkeyEntity) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         @Override
         public boolean canStart() {
-            if (golem.getEntityWorld().getTime() < lastBreedTime + 6000) return false;
-            if (!hasBreedingItem()) return false;
+            ItemStack food = getAnyBreedingItem();
+            if (food.isEmpty()) return false;
 
             BlockPos chestPos = golem.getChestPos();
             List<AnimalEntity> animals = golem.getEntityWorld()
                     .getEntitiesByClass(
                             AnimalEntity.class,
-                            golem.getBoundingBox().expand(8.0),
-                            a -> a.isAlive() && a.isInLove() == false
+                            golem.getBoundingBox().expand(16.0),
+                            a -> {
+                                boolean ok = a.isAlive() && a.getBreedingAge() == 0 && !a.isInLove() && a.canEat() && isReadyForBreeding(a);
+                                if (!ok && golem.getRandom().nextInt(100) == 0) {
+                                    golem.debugLog("BreedAnimalsGoal: Animal " + a.getType().getName().getString() + " at " + a.getBlockPos().toShortString() + " NOT READY: alive=" + a.isAlive() + ", age=" + a.getBreedingAge() + ", inLove=" + a.isInLove() + ", canEat=" + a.canEat() + ", isReady=" + isReadyForBreeding(a));
+                                }
+                                return ok;
+                            }
                     );
 
             for (int i = 0; i < animals.size(); i++) {
@@ -5864,20 +5930,76 @@ public class GolemAI {
                     AnimalEntity a = animals.get(i);
                     AnimalEntity b = animals.get(j);
 
-                    if (a.getClass() == b.getClass()
-                            && a.canEat() && a.age > 0
-                            && b.canEat() && b.age > 0) {
-                        
-                        // Only breed if within 32 blocks of chest (if chest is known)
-                        if (chestPos != null) {
-                            if (a.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024) continue;
-                            if (b.squaredDistanceTo(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024) continue;
+                    if (isCompatibleMate(a, b)) {
+                        // Check if we have food for THIS specific animal type
+                        ItemStack specificFood = getBreedingItemFor(a);
+                        if (specificFood.isEmpty()) {
+                            if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: No food for animal " + a.getType().getName().getString());
+                            continue;
                         }
+
+                        if (specificFood.getCount() < 2) {
+                            if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Not enough food (" + specificFood.getCount() + ") for " + a.getType().getName().getString());
+                            continue;
+                        }
+
+                        // RELAXED: Removed chest distance check if we have enough food.
+                        // Golems should be able to breed animals anywhere if they have the food.
+                        // They only need the chest to WITHDRAW more food.
 
                         animalA = a;
                         animalB = b;
+                        golem.debugLog("BreedAnimalsGoal: Selected " + a.getType().getName().getString() + " pair for breeding");
                         return true;
                     }
+                }
+            }
+            if (!animals.isEmpty()) {
+                golem.debugLog("BreedAnimalsGoal: Found " + animals.size() + " animals, but no matching pair could be bred.");
+            }
+            return false;
+        }
+
+        private boolean isReadyForBreeding(AnimalEntity animal) {
+            if (animal instanceof TameableEntity tameable) {
+                if (!tameable.isTamed()) {
+                    if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Animal not tamed.");
+                    return false;
+                }
+                if (animal instanceof WolfEntity || animal instanceof CatEntity) {
+                    if (animal.getHealth() < animal.getMaxHealth()) {
+                        if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Wolf/Cat not at full health.");
+                        return false;
+                    }
+                }
+            }
+            if (animal instanceof AbstractHorseEntity horse) {
+                if (!horse.isTame()) {
+                    if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Horse not tamed.");
+                    return false;
+                }
+            }
+            if (animal instanceof LlamaEntity llama) {
+                if (!llama.isTame()) {
+                    if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Llama not tamed.");
+                    return false;
+                }
+            }
+            if (animal instanceof PandaEntity panda) {
+                if (!hasEnoughBambooNearby(panda)) {
+                    if (golem.getRandom().nextInt(100) == 0) golem.debugLog("BreedAnimalsGoal: Panda needs more bamboo.");
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private boolean hasEnoughBambooNearby(PandaEntity panda) {
+            BlockPos pos = panda.getBlockPos();
+            int bambooCount = 0;
+            for (BlockPos p : BlockPos.iterate(pos.add(-5, -2, -5), pos.add(5, 2, 5))) {
+                if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.BAMBOO)) {
+                    if (++bambooCount >= 8) return true;
                 }
             }
             return false;
@@ -5888,10 +6010,10 @@ public class GolemAI {
             return animalA != null && animalB != null
                     && animalA.isAlive()
                     && animalB.isAlive()
+                    && animalA.getBreedingAge() == 0
+                    && animalB.getBreedingAge() == 0
                     && !animalA.isInLove()
-                    && !animalB.isInLove()
-                    && animalA.age > 0
-                    && animalB.age > 0;
+                    && !animalB.isInLove();
         }
 
         @Override
@@ -5916,9 +6038,13 @@ public class GolemAI {
 
             if (animalA == null || animalB == null) return;
 
-            Vec3d animalAPos = Vec3d.of(animalA.getBlockPos());
-            Vec3d animalBPos = Vec3d.of(animalB.getBlockPos());
-            Vec3d center = animalAPos.add(animalBPos).multiply(0.5);
+            double ax = animalA.getX();
+            double ay = animalA.getY();
+            double az = animalA.getZ();
+            double bx = animalB.getX();
+            double by = animalB.getY();
+            double bz = animalB.getZ();
+            Vec3d center = new Vec3d((ax + bx) * 0.5, (ay + by) * 0.5, (az + bz) * 0.5);
             if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
                 golem.getNavigation().startMovingTo(center.x, center.y, center.z, 1.1D);
             }
@@ -5926,32 +6052,37 @@ public class GolemAI {
 
             if (++delay >= 40) {
                 breed();
-                stop();
+                // Don't call stop() here, let shouldContinue handle it so we can potentially chain if I refactored it more, 
+                // but for now it will just finish this pair and canStart will find next pair immediately since lastBreedTime is gone.
             }
         }
 
         private void breed() {
-            lastBreedTime = golem.getEntityWorld().getTime();
-            ItemStack food = getBreedingItem();
-            if (food.isEmpty()) return;
+            ItemStack food = getBreedingItemFor(animalA);
+            if (food.isEmpty() || food.getCount() < 2) return;
 
-            golem.equipStack(EquipmentSlot.MAINHAND, food);
+            golem.equipStack(EquipmentSlot.MAINHAND, food.copy());
 
-            // Consume 1 item
-            food.decrement(1);
+            boolean isAxolotl = animalA instanceof net.minecraft.entity.passive.AxolotlEntity;
+
+            // Consume 2 items (one for each parent)
+            food.decrement(2);
+
+            if (isAxolotl) {
+                // Return buckets
+                ItemStack bucket = new ItemStack(Items.BUCKET, 2);
+                if (!golem.getInventory().addStack(bucket).isEmpty()) {
+                    net.minecraft.block.Block.dropStack(golem.getEntityWorld(), golem.getBlockPos(), bucket);
+                }
+            }
 
             // Trigger vanilla breeding
             animalA.lovePlayer(null);
             animalB.lovePlayer(null);
         }
 
-        private boolean hasBreedingItem() {
-            return !getBreedingItem().isEmpty();
-        }
-
-        private ItemStack getBreedingItem() {
+        private ItemStack getAnyBreedingItem() {
             SimpleInventory inv = golem.getInventory();
-
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (!stack.isEmpty() && isValidBreedingItem(stack)) {
@@ -5961,12 +6092,32 @@ public class GolemAI {
             return ItemStack.EMPTY;
         }
 
+        private ItemStack getBreedingItemFor(AnimalEntity animal) {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty()) {
+                    // Check standard animal isBreedingItem
+                    if (animal.isBreedingItem(stack)) {
+                        return stack;
+                    }
+                    // Special case for some animals that might not use isBreedingItem correctly in some versions/mods
+                    if (animal instanceof net.minecraft.entity.passive.CowEntity || animal instanceof net.minecraft.entity.passive.SheepEntity) {
+                        if (stack.isOf(Items.WHEAT)) return stack;
+                    }
+                    if (animal instanceof net.minecraft.entity.passive.PigEntity) {
+                        if (stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT)) return stack;
+                    }
+                    if (animal instanceof net.minecraft.entity.passive.ChickenEntity) {
+                        if (stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS)) return stack;
+                    }
+                }
+            }
+            return ItemStack.EMPTY;
+        }
+
         private boolean isValidBreedingItem(ItemStack stack) {
-            return stack.isOf(Items.WHEAT)
-                    || stack.isOf(Items.CARROT)
-                    || stack.isOf(Items.POTATO)
-                    || stack.isOf(Items.BEETROOT)
-                    || stack.isOf(Items.WHEAT_SEEDS);
+            return GolemAI.isValidBreedingItem(stack);
         }
     }
     public static class ChopTreeGoal extends Goal {
@@ -6843,6 +6994,8 @@ public class GolemAI {
                             boolean isSupply = stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BLAZE_POWDER) || stack.isOf(Items.BREWING_STAND);
                             boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(stack) || stack.isOf(Items.POTION) || stack.isOf(Items.SPLASH_POTION) || stack.isOf(Items.LINGERING_POTION);
                             isFamiliar = isIngredient || isSupply || isPotionOrWater;
+                        } else if (golem.getGolemType() == GolemType.AMETHYST) {
+                            isFamiliar = GolemAI.isValidBreedingItem(stack);
                         } else {
                             // Default: only pick up blocks to avoid cluttering inventory with junk
                             isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);
