@@ -2174,6 +2174,8 @@ public class GolemAI {
 
 
         private boolean hasCropsToDeposit() {
+            if (isInventoryFull()) return true;
+
             SimpleInventory inv = golem.getInventory();
             
             for (int i = 0; i < inv.size(); i++) {
@@ -6562,6 +6564,16 @@ public class GolemAI {
         }
 
         private net.minecraft.entity.ItemEntity findNearbyItem() {
+            // Bamboo Golems should prioritize harvesting over picking up items
+            if (golem.getGolemType() == GolemType.BAMBOO) {
+                if (hasMatureCropsNearby()) {
+                    return null;
+                }
+            }
+
+            // If inventory is already full, don't look for items to pick up
+            if (isInventoryFull()) return null;
+
             BlockPos chestPos = golem.getChestPos();
             List<net.minecraft.entity.ItemEntity> items = golem.getEntityWorld().getEntitiesByClass(
                     net.minecraft.entity.ItemEntity.class,
@@ -6623,6 +6635,31 @@ public class GolemAI {
             return items.stream()
                     .min(Comparator.comparingDouble(golem::squaredDistanceTo))
                     .orElse(null);
+        }
+
+        private boolean hasMatureCropsNearby() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) return false;
+
+            for (int x = -10; x <= 10; x++) {
+                for (int z = -10; z <= 10; z++) {
+                    for (int y = -3; y <= 3; y++) {
+                        BlockPos p = chestPos.add(x, y, z);
+                        if (p.equals(chestPos) || golem.isBlacklisted(p)) continue;
+                        if (isMatureCrop(p)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean isMatureCrop(BlockPos pos) {
+            BlockState state = golem.getEntityWorld().getBlockState(pos);
+            Block block = state.getBlock();
+            if (block instanceof CropBlock crop) return crop.isMature(state);
+            if (block instanceof NetherWartBlock) return state.get(NetherWartBlock.AGE) >= 3;
+            if (block instanceof CocoaBlock) return state.get(CocoaBlock.AGE) >= 2;
+            return false;
         }
 
         @Override

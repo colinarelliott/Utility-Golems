@@ -1275,6 +1275,33 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
 
+    @Override
+    public boolean canPickUpLoot() {
+        return false;
+    }
+
+    @Override
+    public boolean canTarget(net.minecraft.entity.LivingEntity target) {
+        if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
+        return super.canTarget(target);
+    }
+
+    @Override
+    public boolean canHaveStatusEffect(net.minecraft.entity.effect.StatusEffectInstance effect) {
+        return super.canHaveStatusEffect(effect);
+    }
+
+    @Override
+    public boolean isPushable() {
+        return true;
+    }
+
+    @Override
+    protected void pushAway(net.minecraft.entity.Entity entity) {
+        if (entity instanceof net.minecraft.entity.passive.AllayEntity) return;
+        super.pushAway(entity);
+    }
+
     public net.minecraft.entity.ai.goal.GoalSelector getGoalSelector() {
         return this.goalSelector;
     }
