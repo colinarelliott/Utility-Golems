@@ -29,6 +29,9 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             if (renderState.isLampOn && type == GolemType.LAMP) {
                 return Identifier.of("utility-golems", "textures/entity/lamp_golem_illuminated.png");
             }
+            if (renderState.isSmelting && type == GolemType.FURNACE) {
+                return Identifier.of("utility-golems", "textures/entity/furnace_golem_illuminated.png");
+            }
             if (renderState.isStripped && type == GolemType.BAMBOO) {
                 return Identifier.of("utility-golems", "textures/entity/stripped_bamboo_golem.png");
             }
@@ -50,6 +53,7 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             renderState.isDebug = utilityGolem.hasCustomName() && "debug".equalsIgnoreCase(utilityGolem.getCustomName().getString());
             renderState.isLampOn = utilityGolem.isLampOn();
             renderState.isStripped = utilityGolem.isStripped();
+            renderState.isSmelting = utilityGolem.isSmelting();
             renderState.yawDegrees = utilityGolem.getYaw();
             renderState.animationId = utilityGolem.getAnimation().ordinal();
             renderState.animationProgress = utilityGolem.getAnimationProgress(tickDelta);

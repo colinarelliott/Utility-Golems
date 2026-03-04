@@ -105,6 +105,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Integer> MINING_DIRECTION = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> SMELTING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     // Animation state syncing (server -> client)
     private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
@@ -125,6 +126,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
         builder.add(SCHEMATIC_NAME, "");
         builder.add(MINING_DIRECTION, -1);
+        builder.add(SMELTING, false);
         builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
@@ -217,6 +219,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public boolean isStripped() {
         return this.dataTracker.get(STRIPPED);
+    }
+    
+    public boolean isSmelting() {
+        return this.dataTracker.get(SMELTING);
     }
 
     public void setBuildPattern(BuildPattern pattern) {
@@ -594,7 +600,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (wasBurning != this.burnTime > 0) {
-            // Updated
+            this.dataTracker.set(SMELTING, this.burnTime > 0);
         }
 
         if (this.burnTime > 0 && !getSmeltingResult(this.furnaceInventory.getStack(0)).isEmpty()) {
