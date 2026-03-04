@@ -49,3 +49,4 @@ replay_*.log
 /tools/
 
 .env
+/UtilityGolem.bbmodel
