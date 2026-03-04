@@ -1053,6 +1053,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
     }
 
+    public static boolean isOre(ItemStack stack) {
+        return stack.isOf(Items.COAL) || stack.isOf(Items.RAW_IRON) || stack.isOf(Items.RAW_COPPER)
+                || stack.isOf(Items.RAW_GOLD) || stack.isOf(Items.DIAMOND) || stack.isOf(Items.EMERALD)
+                || stack.isOf(Items.LAPIS_LAZULI) || stack.isOf(Items.REDSTONE) || stack.isOf(Items.QUARTZ)
+                || stack.isOf(Items.AMETHYST_SHARD) || stack.isOf(Items.IRON_INGOT) || stack.isOf(Items.GOLD_INGOT)
+                || stack.isOf(Items.COPPER_INGOT) || stack.isOf(Items.RAW_IRON_BLOCK) || stack.isOf(Items.RAW_COPPER_BLOCK)
+                || stack.isOf(Items.RAW_GOLD_BLOCK) || stack.isOf(Items.NETHERITE_SCRAP) || stack.isOf(Items.ANCIENT_DEBRIS);
+    }
+
     public static boolean isPickaxe(ItemStack stack) {
         return stack.isOf(Items.WOODEN_PICKAXE) || stack.isOf(Items.STONE_PICKAXE) ||
                 stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.DIAMOND_PICKAXE) ||
@@ -1280,6 +1289,36 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return 0.0;
     }
 
+
+    @Override
+    public boolean tryAttack(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
+        boolean success = super.tryAttack(world, target);
+        if (success && (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
+            this.spawnSweepingAttackParticles(world);
+            this.applySweepingDamage(world, target);
+        }
+        return success;
+    }
+
+    private void spawnSweepingAttackParticles(net.minecraft.server.world.ServerWorld world) {
+        double d = -Math.sin(this.getYaw() * (Math.PI / 180.0));
+        double e = Math.cos(this.getYaw() * (Math.PI / 180.0));
+        world.spawnParticles(net.minecraft.particle.ParticleTypes.SWEEP_ATTACK, this.getX() + d, this.getBodyY(0.5), this.getZ() + e, 0, d, 0.0, e, 0.0);
+    }
+
+    private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
+        float damage = (float)this.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
+        float sweepingDamage = 1.0f + (0.0f * damage); // Default ratio if EnchantmentHelper method not available
+        
+        for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
+            return entity != this && entity != target && !this.isTeammate(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
+        })) {
+            livingEntity.takeKnockback(0.4000000059604645, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
+            livingEntity.damage(world, this.getDamageSources().mobAttack(this), sweepingDamage);
+        }
+        
+        world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, this.getSoundCategory(), 1.0f, 1.0f);
+    }
 
     @Override
     public boolean canPickUpLoot() {

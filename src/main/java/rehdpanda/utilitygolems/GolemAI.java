@@ -115,8 +115,11 @@ public class GolemAI {
                 Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
                 Items.BOW, Items.CROSSBOW, Items.TRIDENT, Items.SHIELD
         ), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
-        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new StayNearChestGoal(golem, 1.2D, 32.0F)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
         golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
     }
@@ -280,6 +283,74 @@ public class GolemAI {
         @Override
         public String toString() {
             return "DebugWrapper[" + innerGoal.toString() + "]";
+        }
+    }
+
+    /// STAY NEAR CHEST GOAL
+    public static class StayNearChestGoal extends Goal {
+        private final UtilityGolem golem;
+        private final double speed;
+        private final float maxDistance;
+        private int searchCooldown;
+
+        public StayNearChestGoal(UtilityGolem golem, double speed, float maxDistance) {
+            this.golem = golem;
+            this.speed = speed;
+            this.maxDistance = maxDistance;
+            this.setControls(EnumSet.of(Control.MOVE));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (searchCooldown > 0) {
+                searchCooldown--;
+                return false;
+            }
+
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) {
+                searchCooldown = 40;
+                return false;
+            }
+
+            double distSq = golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5);
+            if (distSq > maxDistance * maxDistance) {
+                return true;
+            }
+
+            searchCooldown = 20;
+            return false;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) return false;
+
+            double distSq = golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5);
+            // Stop when we get within 8 blocks
+            return distSq > 64;
+        }
+
+        @Override
+        public void start() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos != null) {
+                golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, speed);
+            }
+        }
+
+        @Override
+        public void stop() {
+            golem.getNavigation().stop();
+        }
+
+        @Override
+        public void tick() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos != null) {
+                golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, speed);
+            }
         }
     }
 
@@ -2077,23 +2148,18 @@ public class GolemAI {
         }
 
         private boolean hasLapisItemsToDeposit() {
-            // Deposit only when inventory is full or almost full.
-            // This keeps the golem mining longer and reduces unnecessary trips to the surface.
-            if (isInventoryFull()) return true;
-            
-            int empty = 0;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
-                if (stack.isEmpty()) {
-                    empty++;
-                    continue;
-                }
-                // Check for tools that should never be deposited
+                if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
+                
+                // Deposit any ores of any quantity
+                if (UtilityGolem.isOre(stack)) return true;
+                
+                // Deposit anything that gets to a full stack
+                if (stack.getCount() >= stack.getMaxCount()) return true;
             }
-            // Only return to deposit if we have 1 or fewer empty slots remaining
-            if (empty <= 1) return true;
             
             return false;
         }
@@ -2449,6 +2515,11 @@ public class GolemAI {
                             if (UtilityGolem.isTool(stack)) {
                                 continue;
                             }
+                            
+                            // Only deposit if it's an ore or a full stack
+                            if (!UtilityGolem.isOre(stack) && stack.getCount() < stack.getMaxCount()) {
+                                continue;
+                            }
                         }
                         if (golem.getGolemType() == GolemType.EMERALD) {
                             boolean isBuyListItem = false;
@@ -2593,9 +2664,17 @@ public class GolemAI {
                 // Lapis golems only need to withdraw if they are completely missing a pickaxe or shovel.
                 // This prevents them from returning to the chest just because they have one tool but not both,
                 // or if they have a damaged tool but it hasn't broken yet.
+                // UPDATED: Lapis golems can now mine toolless, so they only withdraw if they find a tool in chest.
+                // If they are already near a target, they should prefer mining over withdrawing.
                 if (hasPickaxe() || hasShovel()) {
                     return false;
                 }
+                
+                // If we already have a target to mine (toolless), don't go back for a tool yet.
+                if (new DigBlockGoal(golem).canStart()) {
+                    return false;
+                }
+                
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
@@ -3863,6 +3942,7 @@ public class GolemAI {
         private int maxBreakingTime;
         private int searchCooldown = 0;
         private boolean isAirTarget = false;
+        private final List<Direction> failedDirections = new ArrayList<>();
 
         public DigBlockGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -3905,12 +3985,28 @@ public class GolemAI {
                         this.maxBreakingTime = 200; // Placeholder, will be recalculated in tick after swap
                         return true;
                     }
+                    
+                    // Lapis golems can dig common blocks even without tools
+                    if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
+                        this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                        return true;
+                    }
                 } else if (needsShovel && !UtilityGolem.isShovel(tool)) {
                     if (hasShovel()) {
                         this.maxBreakingTime = 200; // Placeholder
                         return true;
                     }
+
+                    // Lapis golems can dig common blocks even without tools
+                    if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
+                        this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                        return true;
+                    }
                 } else if (!tool.isEmpty() && (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool))) {
+                    this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                    return true;
+                } else if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
+                    // Fallback for lapis golem for any other block it's allowed to dig
                     this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
                     return true;
                 }
@@ -3956,7 +4052,7 @@ public class GolemAI {
             World world = golem.getEntityWorld();
 
             // 1. Prioritize Visible Ores
-            int oreRange = 8;
+            int oreRange = 12;
             BlockPos.Mutable mutable = new BlockPos.Mutable();
             double minOreDistSq = Double.MAX_VALUE;
             BlockPos bestOre = null;
@@ -3968,9 +4064,9 @@ public class GolemAI {
                         if (golem.isBlacklisted(mutable)) continue;
                         if (isOre(mutable) && canDig(mutable)) {
                             // Lapis golems should only prioritize ores that are not too far above them during staircase mining
-                            if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() > pos.getY() + 2) continue;
+                            if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() > pos.getY() + 3) continue;
 
-                            if (chestPos == null || mutable.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
+                            if (chestPos == null || mutable.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
                                 // Prevent digging under feet
                                 if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() == pos.getY() - 1 && mutable.getX() == pos.getX() && mutable.getZ() == pos.getZ()) continue;
                                 
@@ -4096,6 +4192,37 @@ public class GolemAI {
                 default -> 0;
             };
 
+            // Check if any block in our path is fluid (water/lava)
+            for (int d = 0; d <= directionalDist + 2; d++) {
+                BlockPos pathMiddle = (facing.getAxis() == Direction.Axis.X)
+                        ? new BlockPos(startPos.getX() + facing.getOffsetX() * d, chestPos.getY() - d, lockedCoord)
+                        : new BlockPos(lockedCoord, chestPos.getY() - d, startPos.getZ() + facing.getOffsetZ() * d);
+                
+                for (int yOffset = 0; yOffset <= 2; yOffset++) {
+                    BlockPos p = pathMiddle.up(yOffset);
+                    if (p.getY() < -64) continue;
+                    BlockState state = golem.getEntityWorld().getBlockState(p);
+                    if (!state.getFluidState().isEmpty()) {
+                        golem.debugLog("Lapis: Path blocked by fluid at " + p.toShortString() + ". Retrying in new direction.");
+                        failedDirections.add(facing);
+                        Direction newFacing = null;
+                        for (Direction dir : Direction.Type.HORIZONTAL) {
+                            if (!failedDirections.contains(dir) && dir != facing.getOpposite()) {
+                                newFacing = dir;
+                                break;
+                            }
+                        }
+                        if (newFacing == null) {
+                            // If all directions failed, at least try another one or reset
+                            failedDirections.clear();
+                            newFacing = facing.rotateYClockwise();
+                        }
+                        golem.setMiningDirection(newFacing);
+                        return null; // Stop this goal, it will restart in new direction next tick
+                    }
+                }
+            }
+
             // Target depth for the tunnel
             int targetDepthY = -54;
 
@@ -4149,7 +4276,10 @@ public class GolemAI {
                         return p;
                     }
                 }
-                return ahead;
+                if (distToLine > 0.2 || true) {
+                    return ahead;
+                }
+                return null;
             }
 
             // Otherwise, dig the next step down in the staircase.
@@ -4157,11 +4287,21 @@ public class GolemAI {
             int baseDist = Math.max(0, directionalDist);
             int nextDist = baseDist + 1;
 
-            // If we are high above the staircase height for nextDist, advance further so nextY == posY - 1
-            if (pos.getY() > chestPos.getY() - nextDist + 1) {
-                int distForOneDown = chestPos.getY() - (pos.getY() - 1);
-                if (distForOneDown < nextDist) distForOneDown = nextDist;
-                nextDist = distForOneDown;
+            // If we are high above the staircase height for nextDist, we should dig down at our current location
+            // to reach the staircase slope, rather than jumping ahead.
+            if (pos.getY() > chestPos.getY() - baseDist) {
+                // Target a block directly below or one step ahead at posY - 1
+                nextDist = baseDist;
+            }
+
+            // Limit nextDist so we don't target something too far away
+            if (nextDist > baseDist + 2) {
+                nextDist = baseDist + 1;
+            }
+
+            // If we are already close enough to nextDist, move one further
+            if (directionalDist > nextDist - 0.5) {
+                nextDist++;
             }
 
             int nextY = Math.max(targetDepthY, chestPos.getY() - nextDist);
@@ -4184,7 +4324,13 @@ public class GolemAI {
             }
 
             // If next step is already clear, return it to navigate there.
-            return nextStepMiddle;
+            if (nextDist > directionalDist + 0.4 || distToLine > 0.2) {
+                return nextStepMiddle;
+            }
+            
+            // If even the next step is already clear, look even further
+            // We'll increment directionalDist slightly to find the next actual block in the next AI tick
+            return null;
         }
 
         private BlockPos findNearbyChest() {
@@ -4222,19 +4368,61 @@ public class GolemAI {
         }
 
         private boolean tryPlaceStepUp() {
-            if (golem.getInventory().isEmpty()) return false;
+            if (golem.getInventory().isEmpty()) {
+                golem.debugLog("Lapis: Cannot place step up - inventory empty");
+                return false;
+            }
             
             BlockPos pos = golem.getBlockPos();
-            BlockState underState = golem.getEntityWorld().getBlockState(pos.down());
+            World world = golem.getEntityWorld();
             
-            // If we are in a hole (surrounded by blocks) and the target is above us
+            // If we are in a 1x1 hole or a corner (surrounded by at least 2 blocks) and the target is above us
             if (targetPos != null && targetPos.getY() > pos.getY()) {
-                // Look for a place to put a block to step up
-                // Simplest: place under feet if we're in a 1x1 hole
-                if (golem.getEntityWorld().getBlockState(pos).isAir() || golem.getEntityWorld().getBlockState(pos).isReplaceable()) {
-                    return placeBlockFromInventory(pos);
+                // Check if we are partially surrounded horizontally
+                int blockedSides = 0;
+                for (Direction dir : Direction.Type.HORIZONTAL) {
+                    BlockPos p = pos.offset(dir);
+                    BlockState s = world.getBlockState(p);
+                    if (!s.isAir() && !s.isIn(net.minecraft.registry.tag.BlockTags.REPLACEABLE) && s.isFullCube(world, p)) {
+                        blockedSides++;
+                    }
+                }
+
+                // If at least 2 sides are blocked, and the space above us is clear, we can try to tower up
+                if (blockedSides >= 2) {
+                    BlockState state = world.getBlockState(pos);
+                    BlockState stateUp = world.getBlockState(pos.up(2)); // Head space (assuming 2 blocks high)
+                    if ((state.isAir() || state.isReplaceable()) && (stateUp.isAir() || stateUp.isReplaceable())) {
+                        golem.debugLog("Lapis: In a confined space (" + blockedSides + " sides blocked), towering up at " + pos.toShortString());
+                        return placeBlockFromInventory(pos);
+                    }
                 }
             }
+
+            // Lapis golem staircase reconstruction logic:
+            // If we're a lapis golem and are 'stuck' trying to reach a target,
+            // check if the block below us is missing relative to where it should be.
+            if (golem.getGolemType() == GolemType.LAPIS) {
+                BlockPos under = pos.down();
+                BlockState underState = world.getBlockState(under);
+                if (underState.isAir() || underState.isReplaceable() || !underState.isFullCube(world, under)) {
+                    golem.debugLog("Lapis: Staircase broken below feet (" + underState.getBlock().getName().getString() + "), attempting to reconstruct at " + under.toShortString());
+                    return placeBlockFromInventory(under);
+                }
+                
+                // Also check if we're just stuck in front of a 1-block gap we can't jump
+                Direction facing = golem.getMiningDirection();
+                if (facing != null) {
+                    BlockPos ahead = pos.offset(facing);
+                    BlockPos aheadUnder = ahead.down();
+                    BlockState aheadUnderState = world.getBlockState(aheadUnder);
+                    if (aheadUnderState.isAir() || aheadUnderState.isReplaceable()) {
+                        golem.debugLog("Lapis: Gap detected ahead (" + aheadUnder.toShortString() + "), attempting to fill");
+                        return placeBlockFromInventory(aheadUnder);
+                    }
+                }
+            }
+
             return false;
         }
 
@@ -4245,16 +4433,42 @@ public class GolemAI {
                 if (!stack.isEmpty() && stack.getItem() instanceof net.minecraft.item.BlockItem blockItem) {
                     Block block = blockItem.getBlock();
                     // Prefer dirt or cobblestone-like blocks
-                    if (stack.isIn(net.minecraft.registry.tag.ItemTags.DIRT) || stack.isOf(Items.COBBLESTONE) || stack.isOf(Items.COBBLED_DEEPSLATE)) {
+                    if (stack.isIn(net.minecraft.registry.tag.ItemTags.DIRT) || stack.isOf(Items.COBBLESTONE) || stack.isOf(Items.COBBLED_DEEPSLATE) || stack.isOf(Items.STONE) || stack.isOf(Items.DEEPSLATE)) {
+                        
+                        // Hold the block before placing
+                        ItemStack currentHeld = golem.getHeldItem();
+                        ItemStack toHold = inv.removeStack(i, 1);
+                        golem.setHeldItem(toHold);
+
                         if (golem.getEntityWorld().setBlockState(pos, block.getDefaultState())) {
-                            stack.decrement(1);
                             golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                             golem.getEntityWorld().playSound(null, pos, block.getDefaultState().getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                            
+                            // Swap back to tool if we had one
+                            if (!currentHeld.isEmpty()) {
+                                golem.setHeldItem(currentHeld);
+                            } else {
+                                golem.setHeldItem(ItemStack.EMPTY);
+                            }
+
                             // Teleport golem slightly up if we placed under feet
                             if (pos.equals(golem.getBlockPos())) {
-                                golem.setPosition(golem.getX(), golem.getY() + 1.0, golem.getZ());
+                                golem.setPosition(golem.getX(), golem.getY() + 1.1, golem.getZ());
+                                golem.getJumpControl().setActive();
+                                golem.setVelocity(golem.getVelocity().add(0, 0.2, 0));
                             }
+                            
+                            // Reset navigation so it recalculates its path
+                            golem.getNavigation().stop();
+                            
                             return true;
+                        } else {
+                            // Failed to place, put it back or drop it
+                            ItemStack remaining = inv.addStack(toHold);
+                            if (!remaining.isEmpty()) {
+                                golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
+                            }
+                            golem.setHeldItem(currentHeld);
                         }
                     }
                 }
@@ -4268,6 +4482,12 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (UtilityGolem.isLightSource(state)) return false;
                 if (state.isAir() || state.isIn(BlockTags.REPLACEABLE)) return true;
+                
+                // Lapis golems can dig common blocks even without tools, but it's slower
+                if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
+                        || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)) {
+                    return true;
+                }
             }
             if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
                     || state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
@@ -4350,6 +4570,31 @@ public class GolemAI {
                 golem.setAnimation(GolemAnimation.DIGGING, 40);
             }
 
+            // stuck check
+            Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
+            if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
+                stuckTicks++;
+            } else {
+                stuckTicks = 0;
+            }
+            lastPos = currentPos;
+
+            if (stuckTicks > 80) { // Slightly more aggressive than 100
+                golem.debugLog("DigBlockGoal: Stuck at " + golem.getBlockPos().toShortString() + " trying to reach " + targetPos.toShortString());
+                if (golem.getGolemType() == GolemType.LAPIS && tryPlaceStepUp()) {
+                    golem.debugLog("Lapis: Attempting to place step up");
+                    stuckTicks = 0;
+                    return;
+                }
+                
+                if (stuckTicks > 120) { // If still stuck after trying to place
+                    golem.debugLog("DigBlockGoal: Blacklisting unreachable block at " + targetPos.toShortString());
+                    golem.blacklistPosition(targetPos);
+                    stop();
+                    return;
+                }
+            }
+
             // Auto-switch tool
             ItemStack currentHeld = golem.getHeldItem();
             boolean needsPickaxe = targetState.isIn(BlockTags.BASE_STONE_OVERWORLD) || targetState.isIn(BlockTags.BASE_STONE_NETHER)
@@ -4371,28 +4616,6 @@ public class GolemAI {
             double verticalDist = Math.abs(dy);
 
             if (horizontalDistSq > 9.0D || verticalDist > 2.0D) {
-                // stuck check
-                Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
-                if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
-                    stuckTicks++;
-                } else {
-                    stuckTicks = 0;
-                }
-                lastPos = currentPos;
-
-                if (stuckTicks > 100) {
-                    golem.debugLog("DigBlockGoal: Stuck at " + golem.getBlockPos().toShortString() + " trying to reach " + targetPos.toShortString());
-                    if (golem.getGolemType() == GolemType.LAPIS && tryPlaceStepUp()) {
-                        golem.debugLog("Lapis: Attempting to place step up");
-                        stuckTicks = 0;
-                        return;
-                    }
-                    golem.debugLog("DigBlockGoal: Blacklisting unreachable block at " + targetPos.toShortString());
-                    golem.blacklistPosition(targetPos);
-                    stop();
-                    return;
-                }
-
                 // If it's high up or far below, move to the XZ position at our current height
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
                     boolean possible;
@@ -4415,13 +4638,21 @@ public class GolemAI {
             } else if (isAirTarget) {
                 // If it's air and we're close, we've "reached" it
                 // For navigation targets, 0.2 is the threshold used in findTargetBlock
-                double alignmentDist = (golem.getMiningDirection() != null && golem.getMiningDirection().getAxis() == Direction.Axis.X)
+                Direction facing = golem.getMiningDirection();
+                double alignmentDist = (facing != null && facing.getAxis() == Direction.Axis.X)
                         ? Math.abs(golem.getZ() - (targetPos.getZ() + 0.5))
                         : Math.abs(golem.getX() - (targetPos.getX() + 0.5));
                 
+                double directionalDist = (facing != null)
+                        ? (facing.getAxis() == Direction.Axis.X)
+                                ? Math.abs(golem.getX() - (targetPos.getX() + 0.5))
+                                : Math.abs(golem.getZ() - (targetPos.getZ() + 0.5))
+                        : 0;
+
                 // If it's the exact same block we're in, we've definitely reached it
-                if (alignmentDist <= 0.1 || targetPos.equals(golem.getBlockPos())) {
-                    golem.debugLog("DigBlockGoal: Reached air alignment target " + targetPos.toShortString());
+                // We also check if we are aligned AND close enough to the target on the mining axis
+                if (alignmentDist <= 0.2 && directionalDist <= 0.4 || targetPos.equals(golem.getBlockPos())) {
+                    golem.debugLog("DigBlockGoal: Reached air alignment target " + targetPos.toShortString() + " (align: " + alignmentDist + ", dir: " + directionalDist + ")");
                     stop();
                     return;
                 }
@@ -4489,14 +4720,6 @@ public class GolemAI {
                 serverWorld.breakBlock(targetPos, false, golem);
 
                 List<ItemStack> drops = state.getDroppedStacks(builder);
-                for (ItemStack drop : drops) {
-                    ItemStack remaining = golem.getInventory().addStack(drop);
-                    if (!remaining.isEmpty()) {
-                        Block.dropStack(serverWorld, targetPos, remaining);
-                    }
-                }
-                
-                // Damage the tool
                 if (!tool.isEmpty()) {
                     if (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool)) {
                         tool.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
@@ -6612,6 +6835,9 @@ public class GolemAI {
                             boolean isEmerald = stack.isOf(Items.EMERALD) || stack.isOf(Items.EMERALD_BLOCK);
                             boolean isOnSellingList = golem.getDiscoveredTrades().stream().anyMatch(tradeStack -> ItemStack.areItemsEqual(tradeStack, stack));
                             isFamiliar = isEmerald || isOnSellingList;
+                        } else if (golem.getGolemType() == GolemType.NETHERITE || golem.getGolemType() == GolemType.ANCIENT) {
+                            // Netherite golems pick up anything (especially from mobs they killed)
+                            isFamiliar = true;
                         } else if (golem.getGolemType() == GolemType.NETHER_WART) {
                             boolean isIngredient = isIngredient(stack);
                             boolean isSupply = stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BLAZE_POWDER) || stack.isOf(Items.BREWING_STAND);
