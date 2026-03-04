@@ -56,10 +56,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleInventory inventory = new SimpleInventory(9);
     private final SimpleInventory furnaceInventory = new SimpleInventory(3);
+    private final SimpleInventory jukeboxInventory = new SimpleInventory(9);
     private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
     private BlockPos jukeboxStartPos = null;
     private ItemStack currentlyPlayingStack = ItemStack.EMPTY;
+    private int currentJukeboxSlot = -1;
     private int burnTime;
     private int fuelTime;
     private int cookTime;
@@ -106,6 +108,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Integer> MINING_DIRECTION = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> SMELTING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> JUKEBOX_PLAYING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> JUKEBOX_SHUFFLE = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> JUKEBOX_REPEAT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     // Animation state syncing (server -> client)
     private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
@@ -127,6 +132,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(SCHEMATIC_NAME, "");
         builder.add(MINING_DIRECTION, -1);
         builder.add(SMELTING, false);
+        builder.add(JUKEBOX_PLAYING, false);
+        builder.add(JUKEBOX_SHUFFLE, false);
+        builder.add(JUKEBOX_REPEAT, false);
         builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
@@ -223,6 +231,34 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     
     public boolean isSmelting() {
         return this.dataTracker.get(SMELTING);
+    }
+
+    public boolean isJukeboxPlaying() {
+        return this.dataTracker.get(JUKEBOX_PLAYING);
+    }
+
+    public void setJukeboxPlaying(boolean playing) {
+        this.dataTracker.set(JUKEBOX_PLAYING, playing);
+    }
+
+    public boolean isJukeboxShuffle() {
+        return this.dataTracker.get(JUKEBOX_SHUFFLE);
+    }
+
+    public void setJukeboxShuffle(boolean shuffle) {
+        this.dataTracker.set(JUKEBOX_SHUFFLE, shuffle);
+    }
+
+    public boolean isJukeboxRepeat() {
+        return this.dataTracker.get(JUKEBOX_REPEAT);
+    }
+
+    public void setJukeboxRepeat(boolean repeat) {
+        this.dataTracker.set(JUKEBOX_REPEAT, repeat);
+    }
+
+    public SimpleInventory getJukeboxInventory() {
+        return jukeboxInventory;
     }
 
     public void setBuildPattern(BuildPattern pattern) {
@@ -718,7 +754,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return 0;
     }
 
-    private void stopMusicSound() {
+    public void stopMusicSound() {
         if (!this.getEntityWorld().isClient() && this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld) {
             StopSoundS2CPacket stopPacket = new StopSoundS2CPacket(null, SoundCategory.RECORDS);
             for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
@@ -727,35 +763,107 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
     }
 
-    private void tickJukebox() {
-        if (this.jukeboxCooldown == 0 && this.currentlyPlayingStack.isEmpty()) {
-            SimpleInventory inv = this.getInventory();
-            for (int i = 0; i < inv.size(); i++) {
-                ItemStack stack = inv.getStack(i);
-                if (!stack.isEmpty()) {
-                    JukeboxPlayableComponent playable = stack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-                    if (playable != null) {
-                        playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
-                            this.currentlyPlayingStack = stack.copy();
-                            this.currentlyPlayingStack.setCount(1);
-                            stack.decrement(1);
-                            this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
-                            this.jukeboxStartPos = this.getBlockPos();
-                            
-                            if (!this.getEntityWorld().isClient()) {
-                                this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
-                                this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
-                                this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
-                            }
+    public void stopJukebox() {
+        this.stopMusicSound();
+        if (this.jukeboxStartPos != null) {
+            this.getEntityWorld().syncWorldEvent(null, net.minecraft.world.WorldEvents.JUKEBOX_STOPS_PLAYING, this.jukeboxStartPos, 0);
+        }
+        this.currentlyPlayingStack = ItemStack.EMPTY;
+        this.jukeboxCooldown = 0;
+        this.jukeboxStartPos = null;
+        this.setHeldItem(ItemStack.EMPTY);
+        this.setSearching(false);
+        this.setAnimation(GolemAnimation.IDLE, 0);
+    }
 
-                            // Equipping the record so it's visible and might help with client-side playing
-                            this.setHeldItem(this.currentlyPlayingStack.copy());
-                            this.setSearching(true);
-                        });
-                        break;
-                    }
+    private void tickJukebox() {
+        if (!this.isJukeboxPlaying()) {
+            if (this.jukeboxCooldown > 0 || !this.currentlyPlayingStack.isEmpty()) {
+                this.stopJukebox();
+            }
+            return;
+        }
+
+        if (this.jukeboxCooldown > 0) {
+            this.jukeboxCooldown--;
+            if (this.jukeboxCooldown == 0) {
+                this.stopMusicSound();
+                this.currentlyPlayingStack = ItemStack.EMPTY;
+                this.setHeldItem(ItemStack.EMPTY);
+                this.setSearching(false);
+                this.setAnimation(GolemAnimation.IDLE, 0);
+                
+                // If it was playing from playlist, try to play next
+                if (this.isJukeboxPlaying()) {
+                    playNextFromPlaylist();
                 }
             }
+            return;
+        }
+
+        if (this.isJukeboxPlaying() && this.currentlyPlayingStack.isEmpty()) {
+            playNextFromPlaylist();
+        }
+    }
+
+    private void playNextFromPlaylist() {
+        if (!this.isJukeboxPlaying()) return;
+
+        List<Integer> validSlots = new ArrayList<>();
+        for (int i = 0; i < jukeboxInventory.size(); i++) {
+            if (!jukeboxInventory.getStack(i).isEmpty()) {
+                validSlots.add(i);
+            }
+        }
+
+        if (validSlots.isEmpty()) {
+            this.setJukeboxPlaying(false);
+            return;
+        }
+
+        int nextSlot = -1;
+        if (this.isJukeboxShuffle()) {
+            nextSlot = validSlots.get(this.random.nextInt(validSlots.size()));
+        } else {
+            // Find next slot after currentJukeboxSlot
+            for (int slot : validSlots) {
+                if (slot > currentJukeboxSlot) {
+                    nextSlot = slot;
+                    break;
+                }
+            }
+            
+            // If no next slot and repeat is on, go back to start
+            if (nextSlot == -1 && this.isJukeboxRepeat()) {
+                nextSlot = validSlots.get(0);
+            }
+        }
+
+        if (nextSlot != -1) {
+            this.currentJukeboxSlot = nextSlot;
+            ItemStack stack = jukeboxInventory.getStack(nextSlot);
+            JukeboxPlayableComponent playable = stack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playable != null) {
+                playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
+                    this.currentlyPlayingStack = stack.copy();
+                    this.currentlyPlayingStack.setCount(1);
+                    this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                    this.jukeboxStartPos = this.getBlockPos();
+                    
+                    if (!this.getEntityWorld().isClient()) {
+                        this.jukeboxStartPos = this.getBlockPos();
+                        this.getEntityWorld().syncWorldEvent(null, net.minecraft.world.WorldEvents.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
+                        this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
+                        this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
+                    }
+
+                    this.setHeldItem(this.currentlyPlayingStack.copy());
+                    this.setSearching(true);
+                });
+            }
+        } else {
+            this.setJukeboxPlaying(false);
+            this.currentJukeboxSlot = -1;
         }
     }
 
@@ -830,7 +938,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 return ActionResult.SUCCESS;
             }
         }
-        if (playerStack.isEmpty() && hand == Hand.MAIN_HAND) {
+        if (playerStack.isEmpty() && hand == Hand.MAIN_HAND && this.golemType != GolemType.JUKEBOX) {
             ItemStack golemStack = this.getHeldItem();
             if (!golemStack.isEmpty()) {
                 if (!player.getEntityWorld().isClient()) {
@@ -839,24 +947,6 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     }
                     this.setHeldItem(ItemStack.EMPTY);
                     this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
-                    if (this.golemType == GolemType.JUKEBOX) {
-                        BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
-                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
-                        
-                        // Stop the music sound if it was playing via playSound
-                        JukeboxPlayableComponent playable = this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-                        if (playable != null) {
-                            playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
-                                stopMusicSound();
-                            });
-                        }
-
-                        this.currentlyPlayingStack = ItemStack.EMPTY;
-                        this.jukeboxCooldown = 0;
-                        this.jukeboxStartPos = null;
-                        this.setHeldItem(ItemStack.EMPTY);
-                        this.setSearching(false);
-                    }
                 }
                 return ActionResult.SUCCESS;
             }
@@ -967,54 +1057,30 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
         }
 
-        if (!player.getEntityWorld().isClient()) {
-            if (this.golemType == GolemType.JUKEBOX) {
-                if (!this.currentlyPlayingStack.isEmpty()) {
-                    BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
-                    this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);
-                    
-                    JukeboxPlayableComponent playable = this.currentlyPlayingStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-                    if (playable != null) {
-                        playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
-                            stopMusicSound();
-                        });
-                    }
-
-                    player.dropItem(this.currentlyPlayingStack.copy(), false);
-                    this.currentlyPlayingStack = ItemStack.EMPTY;
-                    this.jukeboxCooldown = 0;
-                    this.jukeboxStartPos = null;
-                    this.setHeldItem(ItemStack.EMPTY);
-                    this.setSearching(false);
-                    return ActionResult.SUCCESS;
-                }
-
-                JukeboxPlayableComponent playable = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-                if (playable != null) {
-                    playable.song().resolveEntry(this.getEntityWorld().getRegistryManager()).ifPresent(songEntry -> {
-                        this.currentlyPlayingStack = playerStack.copy();
-                        this.currentlyPlayingStack.setCount(1);
-                        player.sendMessage(Text.translatable("record.nowPlaying", songEntry.value().description()), true);
-                        this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
-                        this.jukeboxStartPos = this.getBlockPos();
-                        
-                        this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
-                        this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
-                        this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
-                        
-                        this.setHeldItem(this.currentlyPlayingStack.copy());
-                        this.setSearching(true);
-
+        if (this.golemType == GolemType.JUKEBOX) {
+            JukeboxPlayableComponent playable = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playable != null) {
+                if (!player.getEntityWorld().isClient()) {
+                    ItemStack disc = playerStack.copy();
+                    disc.setCount(1);
+                    ItemStack remaining = this.jukeboxInventory.addStack(disc);
+                    if (remaining.isEmpty()) {
                         if (!player.getAbilities().creativeMode) {
                             playerStack.decrement(1);
                         }
-                    });
-                    return ActionResult.SUCCESS;
+                        player.sendMessage(Text.literal("Added to playlist"), true);
+                    } else {
+                        player.sendMessage(Text.literal("Playlist is full"), true);
+                    }
                 }
-            } else {
+                return ActionResult.SUCCESS;
+            }
+
+            // Always open the Jukebox UI for Jukebox Golems
+            if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
                     @Override
-                    public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
+                    public Integer getScreenOpeningData(ServerPlayerEntity player) {
                         return UtilityGolem.this.getId();
                     }
 
@@ -1025,12 +1091,29 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
                     @Override
                     public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
-                        return new GolemInventoryScreenHandler(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
+                        return new GolemJukeboxScreenHandler(syncId, playerInventory, UtilityGolem.this.jukeboxInventory, UtilityGolem.this);
                     }
                 });
-                return ActionResult.SUCCESS;
             }
+            return ActionResult.SUCCESS;
         }
+
+        player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
+            @Override
+            public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
+                return UtilityGolem.this.getId();
+            }
+
+            @Override
+            public Text getDisplayName() {
+                return UtilityGolem.this.getDisplayName();
+            }
+
+            @Override
+            public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                return new GolemInventoryScreenHandler(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
+            }
+        });
         return ActionResult.SUCCESS;
     }
 
@@ -1147,10 +1230,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putBoolean("Stripped", this.isStripped());
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.writeData(writeView.get("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
+        net.minecraft.inventory.Inventories.writeData(writeView.get("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
         if (!this.currentlyPlayingStack.isEmpty()) {
             writeView.put("PlayingDisc", ItemStack.CODEC, this.currentlyPlayingStack);
         }
         writeView.putInt("JukeboxCooldown", this.jukeboxCooldown);
+        writeView.putInt("CurrentJukeboxSlot", this.currentJukeboxSlot);
+        writeView.putBoolean("JukeboxPlaying", this.isJukeboxPlaying());
+        writeView.putBoolean("JukeboxShuffle", this.isJukeboxShuffle());
+        writeView.putBoolean("JukeboxRepeat", this.isJukeboxRepeat());
         writeView.putInt("BurnTime", this.burnTime);
         writeView.putInt("FuelTime", this.fuelTime);
         writeView.putInt("CookTime", this.cookTime);
@@ -1184,8 +1272,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setStripped(readView.getBoolean("Stripped", false));
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
         net.minecraft.inventory.Inventories.readData(readView.getReadView("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
+        net.minecraft.inventory.Inventories.readData(readView.getReadView("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);
         this.jukeboxCooldown = readView.getInt("JukeboxCooldown", 0);
+        this.currentJukeboxSlot = readView.getInt("CurrentJukeboxSlot", -1);
+        this.setJukeboxPlaying(readView.getBoolean("JukeboxPlaying", false));
+        this.setJukeboxShuffle(readView.getBoolean("JukeboxShuffle", false));
+        this.setJukeboxRepeat(readView.getBoolean("JukeboxRepeat", false));
         this.burnTime = readView.getInt("BurnTime", 0);
         this.fuelTime = readView.getInt("FuelTime", 0);
         this.cookTime = readView.getInt("CookTime", 0);
