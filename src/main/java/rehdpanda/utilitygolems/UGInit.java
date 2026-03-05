@@ -96,6 +96,20 @@ public class UGInit implements ModInitializer {
         }
     }
 
+    public record JukeboxActionPayload(int entityId, int actionId) implements CustomPayload {
+        public static final Id<JukeboxActionPayload> ID = new Id<>(Identifier.of(MOD_ID, "jukebox_action"));
+        public static final PacketCodec<RegistryByteBuf, JukeboxActionPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, JukeboxActionPayload::entityId,
+                PacketCodecs.VAR_INT, JukeboxActionPayload::actionId,
+                JukeboxActionPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
     public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
@@ -111,17 +125,30 @@ public class UGInit implements ModInitializer {
     public static final ScreenHandlerType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
             Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_furnace"), new ScreenHandlerType<>(GolemFurnaceScreenHandler::new, FeatureSet.empty()));
 
+    public static final ScreenHandlerType<GolemJukeboxScreenHandler> GOLEM_JUKEBOX_HANDLER =
+            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_jukebox"), new ExtendedScreenHandlerType<>(
+                    (syncId, playerInventory, entityId) -> {
+                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        if (entity instanceof UtilityGolem golem) {
+                            return new GolemJukeboxScreenHandler(syncId, playerInventory, golem.getJukeboxInventory(), golem);
+                        }
+                        return new GolemJukeboxScreenHandler(syncId, playerInventory);
+                    }, PacketCodecs.INTEGER
+            ));
+
 
 
     @Override
     public void onInitialize() {
         LOGGER.info("Utility Golems initializing...");
+        ConfigManager.load();
         UGBlocks.register();
         UGItems.register();
         UGItems.registerSpawnEggs();
 
         PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(JukeboxActionPayload.ID, JukeboxActionPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
@@ -129,6 +156,25 @@ public class UGInit implements ModInitializer {
                 Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     golem.setSelectedBuyItem(payload.selectedItem());
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(JukeboxActionPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    switch (payload.actionId()) {
+                        case 0 -> {
+                            boolean playing = !golem.isJukeboxPlaying();
+                            golem.setJukeboxPlaying(playing);
+                            if (!playing) {
+                                golem.stopJukebox();
+                            }
+                        }
+                        case 1 -> golem.setJukeboxShuffle(!golem.isJukeboxShuffle());
+                        case 2 -> golem.setJukeboxRepeat(!golem.isJukeboxRepeat());
+                    }
                 }
             });
         });

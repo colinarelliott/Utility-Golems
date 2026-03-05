@@ -47,3 +47,9 @@ replay_*.log
 /out/
 /classes/
 /tools/
+
+.env
+/UtilityGolem.bbmodel
+/GolemChest.bbmodel
+/GolemChestLeft.bbmodel
+/GolemChestRight.bbmodel

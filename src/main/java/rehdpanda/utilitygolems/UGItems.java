@@ -35,9 +35,6 @@ public class UGItems {
     public static void registerSpawnEggs() {
         for (GolemType type : GolemType.values()) {
             Identifier eggId = Identifier.of(UGInit.MOD_ID, type.getName() + "_spawn_egg");
-            // Default colors (copper-like) — actual look comes from the item model/texture; you can recolor the texture later
-            int primary = 0xB87333; // copper-ish
-            int secondary = 0xD9A066; // lighter copper accent
             Item.Settings settings = new Item.Settings()
                     .registryKey(RegistryKey.of(RegistryKeys.ITEM, eggId));
             Item egg = new UtilityGolemSpawnEggItem(settings, type);

@@ -5,6 +5,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.gui.screen.ingame.FurnaceScreen;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import rehdpanda.utilitygolems.client.GolemJukeboxScreen;
 import net.minecraft.client.render.entity.CopperGolemEntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
@@ -24,6 +25,7 @@ public class UGClient implements ClientModInitializer {
     public void onInitializeClient() {
         HandledScreens.register(UGInit.GOLEM_SCREEN_HANDLER_TYPE, GolemInventoryScreen::new);
         HandledScreens.register(UGInit.GOLEM_FURNACE_HANDLER, FurnaceScreen::new);
+        HandledScreens.register(UGInit.GOLEM_JUKEBOX_HANDLER, GolemJukeboxScreen::new);
 
         // Register block entity renderer using the non-deprecated API
         BlockEntityRendererFactories.register(UGBlocks.GOLEM_CHEST_BLOCK_ENTITY, GolemChestBlockEntityRenderer::new);

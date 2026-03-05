@@ -9,6 +9,8 @@ public class UtilityGolemRenderState extends CopperGolemEntityRenderState {
     public boolean isDebug;
     public boolean isLampOn;
     public boolean isStripped;
+    public boolean isSmelting;
+    public float yawDegrees;
 
     // Animation state copied from entity each frame
     public int animationId;

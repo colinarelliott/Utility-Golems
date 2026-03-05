@@ -1,0 +1,169 @@
+{
+  "golems": {
+    "lapis_golem": {
+      "maxHealth": 20.0,
+      "movementSpeed": 0.25,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "redstone_golem": {
+      "maxHealth": 5.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "emerald_golem": {
+      "maxHealth": 30.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 2.0,
+      "followRange": 16.0,
+      "knockbackResistance": 0.5,
+      "armor": 2.0,
+      "armorToughness": 1.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.2
+    },
+    "gold_golem": {
+      "maxHealth": 20.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "amethyst_golem": {
+      "maxHealth": 15.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "netherite_golem": {
+      "maxHealth": 80.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "ancient_golem": {
+      "maxHealth": 80.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 1.0,
+      "armorToughness": 0.5,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "furnace_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "bamboo_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "diamond_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.2,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "sponge_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "deepslate_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "jukebox_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "lamp_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    },
+    "nether_wart_golem": {
+      "maxHealth": 40.0,
+      "movementSpeed": 0.3,
+      "attackDamage": 0.5,
+      "followRange": 16.0,
+      "knockbackResistance": 0.0,
+      "armor": 0.0,
+      "armorToughness": 0.0,
+      "attackSpeed": 1.0,
+      "attackKnockback": 0.0
+    }
+  }
+}
