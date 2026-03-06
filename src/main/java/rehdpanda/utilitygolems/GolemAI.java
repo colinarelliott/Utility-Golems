@@ -2090,9 +2090,9 @@ public class GolemAI {
             if (golem.squaredDistanceTo(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5) < 4.0D) {
                 golem.getNavigation().stop(); // Stop moving once close enough
                 actionTimer++;
-                if (actionTimer >= 20) {
+                // Fill first bottle after 20 ticks (1s), then subsequent bottles every 10 ticks (0.5s)
+                if (actionTimer >= 20 && actionTimer % 10 == 0) {
                     fillBottle();
-                    actionTimer = 0;
                     if (isInventoryFull()) {
                         waterPos = null;
                         golem.setHeldItem(ItemStack.EMPTY);
