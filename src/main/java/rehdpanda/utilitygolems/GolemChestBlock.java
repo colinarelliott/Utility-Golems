@@ -146,9 +146,25 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
 
     @Override
     protected boolean onSyncedBlockEvent(BlockState state, World world, BlockPos pos, int type, int data) {
-        super.onSyncedBlockEvent(state, world, pos, type, data);
         BlockEntity blockEntity = world.getBlockEntity(pos);
-        return blockEntity == null ? false : blockEntity.onSyncedBlockEvent(type, data);
+        if (blockEntity instanceof GolemChestBlockEntity) {
+            boolean result = blockEntity.onSyncedBlockEvent(type, data);
+            
+            // Handle double chest synchronization
+            ChestType chestType = state.get(CHEST_TYPE);
+            if (chestType != ChestType.SINGLE) {
+                BlockPos otherPos = pos.offset(getFacing(state));
+                BlockState otherState = world.getBlockState(otherPos);
+                if (otherState.isOf(state.getBlock()) && otherState.get(CHEST_TYPE) == chestType.getOpposite()) {
+                    BlockEntity otherBE = world.getBlockEntity(otherPos);
+                    if (otherBE instanceof GolemChestBlockEntity) {
+                        otherBE.onSyncedBlockEvent(type, data);
+                    }
+                }
+            }
+            return result;
+        }
+        return false;
     }
 
 
