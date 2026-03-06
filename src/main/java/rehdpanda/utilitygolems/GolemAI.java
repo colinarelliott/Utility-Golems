@@ -1031,6 +1031,7 @@ public class GolemAI {
         private BlockPos chestPos;
         private int fishingTime;
         private int maxFishingTime;
+        private int castingTicks;
 
         public FishGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -1131,20 +1132,31 @@ public class GolemAI {
         @Override
         public void start() {
             fishingTime = 0;
+            castingTicks = 20;
             maxFishingTime = 100 + golem.getRandom().nextInt(200); // 5-15 seconds
-            golem.setAnimation(GolemAnimation.FISHING, maxFishingTime);
+            golem.setAnimation(GolemAnimation.WITHDRAWING, castingTicks);
         }
 
         @Override
         public boolean shouldContinue() {
             ItemStack rod = golem.getHeldItem();
             BlockState chestState = chestPos != null ? golem.getEntityWorld().getBlockState(chestPos) : null;
-            return waterPos != null && golem.getEntityWorld().getBlockState(waterPos).isOf(Blocks.WATER) &&
-                    chestPos != null && chestState != null && chestState.getBlock() == golem.getGolemType().getChestBlock() &&
-                    !rod.isEmpty() && UtilityGolem.isFishingRod(rod) &&
-                    fishingTime < maxFishingTime && !isInventoryFull() &&
-                    golem.getBlockPos().getSquaredDistance(waterPos.getX(), waterPos.getY(), waterPos.getZ()) < 400 &&
-                    golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024; // within 32 blocks of chest
+            
+            // Basic validity checks
+            if (waterPos == null || !golem.getEntityWorld().getBlockState(waterPos).isOf(Blocks.WATER) ||
+                chestPos == null || chestState == null || chestState.getBlock() != golem.getGolemType().getChestBlock() ||
+                rod.isEmpty() || !UtilityGolem.isFishingRod(rod) ||
+                isInventoryFull()) {
+                return false;
+            }
+
+            // Distance checks
+            if (golem.getBlockPos().getSquaredDistance(waterPos.getX(), waterPos.getY(), waterPos.getZ()) >= 400 ||
+                golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) >= 1024) {
+                return false;
+            }
+
+            return fishingTime < maxFishingTime;
         }
 
         private boolean isInventoryFull() {
@@ -1166,6 +1178,16 @@ public class GolemAI {
         @Override
         public void tick() {
             if (waterPos == null) return;
+
+            if (castingTicks > 0) {
+                castingTicks--;
+                golem.getLookControl().lookAt(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5);
+                golem.setFishingTarget(null);
+                if (castingTicks == 0) {
+                    golem.setAnimation(GolemAnimation.FISHING, maxFishingTime);
+                }
+                return;
+            }
 
             double dx = golem.getX() - (waterPos.getX() + 0.5);
             double dy = golem.getY() - (waterPos.getY() + 0.5);
@@ -1244,7 +1266,9 @@ public class GolemAI {
             }
             
             fishingTime = 0;
+            castingTicks = 20;
             maxFishingTime = 100 + golem.getRandom().nextInt(200);
+            golem.setAnimation(GolemAnimation.WITHDRAWING, castingTicks);
         }
     }
     public static class PlaceBrewingStandGoal extends Goal {
@@ -2254,12 +2278,15 @@ public class GolemAI {
 
         private boolean hasSpongeItemsToDeposit() {
             SimpleInventory inv = golem.getInventory();
+            int itemCount = 0;
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (stack.isEmpty()) continue;
-                if (!UtilityGolem.isTool(stack)) return true;
+                if (!UtilityGolem.isTool(stack)) {
+                    itemCount += stack.getCount();
+                }
             }
-            return false;
+            return itemCount >= 16 || isInventoryFull();
         }
 
         private boolean hasDiamondItemsToDeposit() {
@@ -2550,12 +2577,12 @@ public class GolemAI {
                 if (golem.getRandom().nextInt(10) == 0) {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
-                    golem.setAnimation(GolemAnimation.DEPOSITING, 60);
+                    golem.setAnimation(GolemAnimation.DEPOSITING, 100);
                     depositItems();
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         updateHeldItem();
                     }
-                    delay = 60; // Wait for animation
+                    delay = 100; // Wait for animation
                 }
             }
         }
