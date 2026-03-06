@@ -2766,9 +2766,19 @@ public class GolemAI {
                 return false;
             }
             if (golem.getGolemType() == GolemType.EMERALD) {
-                if (hasEmeralds() || (golem.getSelectedBuyItem() != null && golem.getSelectedBuyItem().isEmpty())) {
-                    return false;
+                // If we are set to buy something, we need emeralds.
+                // If we are NOT set to buy something, we are selling, so we need sellable items.
+                ItemStack selectedBuy = golem.getSelectedBuyItem();
+                if (selectedBuy != null && !selectedBuy.isEmpty()) {
+                    if (hasEmeralds()) {
+                        return false;
+                    }
+                } else {
+                    if (isInventoryFull()) {
+                        return false;
+                    }
                 }
+
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
@@ -3378,6 +3388,18 @@ public class GolemAI {
                     }
                     if (golem.getGolemType() == GolemType.EMERALD) {
                         if (stack.isOf(Items.EMERALD)) return true;
+                        
+                        // Check if it's a sellable item
+                        List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
+                        for (VillagerEntity villager : villagers) {
+                            for (TradeOffer offer : villager.getOffers()) {
+                                if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
+                                    if (offer.getFirstBuyItem().matches(stack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(stack))) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
                     }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
@@ -3672,6 +3694,27 @@ public class GolemAI {
                             ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
                             golem.getInventory().addStack(toWithdraw);
                             withdrawnSomething = true;
+                        } else {
+                            // Check if it's a sellable item
+                            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
+                            boolean isSellable = false;
+                            for (VillagerEntity villager : villagers) {
+                                for (TradeOffer offer : villager.getOffers()) {
+                                    if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
+                                        if (offer.getFirstBuyItem().matches(containerStack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(containerStack))) {
+                                            isSellable = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (isSellable) break;
+                            }
+
+                            if (isSellable) {
+                                ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                                golem.getInventory().addStack(toWithdraw);
+                                withdrawnSomething = true;
+                            }
                         }
                     }
 
