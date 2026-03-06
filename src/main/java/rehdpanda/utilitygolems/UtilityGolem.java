@@ -2,6 +2,8 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvent;
@@ -1182,7 +1184,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public static boolean isTorch(ItemStack stack) {
-        return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
+        return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH) || stack.isOf(Items.COPPER_TORCH);
     }
 
     public static boolean isShovel(ItemStack stack) {
@@ -1214,7 +1216,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public static boolean isLightSource(BlockState state) {
-        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
+        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.COPPER_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.COPPER_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
     }
 
     private BlockPos chestPos;
@@ -1307,6 +1309,52 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     public void setChestPos(BlockPos chestPos) {
         this.chestPos = chestPos;
         this.setMiningDirection(null); // Reset mining direction when chest changes
+    }
+
+    public Inventory getChestInventory(BlockPos pos) {
+        BlockState state = this.getEntityWorld().getBlockState(pos);
+        if (state.getBlock() instanceof GolemChestBlock block) {
+            return GolemChestBlockEntity.getInventory(block, state, this.getEntityWorld(), pos, false);
+        }
+        BlockEntity be = this.getEntityWorld().getBlockEntity(pos);
+        if (be instanceof Inventory inv) {
+            return inv;
+        }
+        return null;
+    }
+
+    public BlockPos findNearbyChest() {
+        if (this.chestPos != null) {
+            if (this.isBlacklisted(this.chestPos)) {
+                this.chestPos = null;
+            } else {
+                BlockEntity be = this.getEntityWorld().getBlockEntity(this.chestPos);
+                BlockState bs = this.getEntityWorld().getBlockState(this.chestPos);
+                if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                    return this.chestPos;
+                }
+            }
+        }
+
+        BlockPos pos = this.getBlockPos();
+        int range = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS) ? 32 : 16;
+        int verticalRange = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS) ? 15 : 4;
+        
+        for (int x = -range; x <= range; x++) {
+            for (int y = -verticalRange; y <= verticalRange; y++) {
+                for (int z = -range; z <= range; z++) {
+                    BlockPos p = pos.add(x, y, z);
+                    if (this.isBlacklisted(p)) continue;
+                    BlockEntity be = this.getEntityWorld().getBlockEntity(p);
+                    BlockState bs = this.getEntityWorld().getBlockState(p);
+                    if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                        this.setChestPos(p);
+                        return p;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public void initGolemsGoals() {
