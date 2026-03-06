@@ -802,6 +802,16 @@ public class GolemAI {
                 return false;
             }
 
+            // Check if we should even try following a player.
+            // For lamp golems, if we're following a Lapis Golem that's alive, we don't start following the player.
+            // But if the Lapis Golem is gone, we should start following the player.
+            if (golem.getGolemType() == GolemType.LAMP) {
+                List<UtilityGolem> lapisGolems = golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(16.0), g -> g.getGolemType() == GolemType.LAPIS && g.isAlive());
+                if (!lapisGolems.isEmpty()) {
+                    return false;
+                }
+            }
+
             float searchRange = maxDistance;
             if (golem.getGolemType() == GolemType.LAMP && golem.isLampOn()) {
                 searchRange = 128.0F; // Large search range for lamp golems
@@ -822,6 +832,13 @@ public class GolemAI {
         public boolean shouldContinue() {
             if (golem.getGolemType() == GolemType.LAMP) {
                 if (!golem.isLampOn()) return false;
+                
+                // If a Lapis Golem is nearby, stop following the player
+                List<UtilityGolem> lapisGolems = golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(16.0), g -> g.getGolemType() == GolemType.LAPIS && g.isAlive());
+                if (!lapisGolems.isEmpty()) {
+                    return false;
+                }
+                
                 return targetPlayer != null && targetPlayer.isAlive() && targetPlayer.getEntityWorld() == golem.getEntityWorld();
             }
             return targetPlayer != null && targetPlayer.isAlive() && golem.squaredDistanceTo(targetPlayer) < (double)(maxDistance * maxDistance * 2);
@@ -4520,6 +4537,30 @@ public class GolemAI {
             // If we are high above the staircase height for nextDist, we should dig down at our current location
             // to reach the staircase slope, rather than jumping ahead.
             if (pos.getY() > chestPos.getY() - baseDist) {
+                // Check if we are at surface and trying to find the entrance
+                // If we are more than 2 blocks above the intended staircase height,
+                // try to find the entrance (the point where the staircase actually starts dropping)
+                if (pos.getY() > chestPos.getY() - baseDist + 2) {
+                    for (int d = 0; d <= 256; d++) {
+                        BlockPos p = startPos.offset(facing, d);
+                        int intendedYForD = chestPos.getY() - d;
+                        if (intendedYForD < targetDepthY) intendedYForD = targetDepthY;
+                        
+                        // Check if the staircase exists at this distance (at least 2 blocks high air/replaceable)
+                        BlockPos pIntended = p.withY(intendedYForD);
+                        if (golem.getEntityWorld().getBlockState(pIntended).isAir() && 
+                            golem.getEntityWorld().getBlockState(pIntended.up()).isAir()) {
+                            golem.debugLog("Lapis: Found existing staircase entrance at distance " + d + ", moving to " + pIntended.toShortString());
+                            return pIntended;
+                        }
+                        
+                        // If we hit a solid block where the staircase should be, stop searching
+                        if (!golem.getEntityWorld().getBlockState(pIntended).isAir() && d > directionalDist) {
+                           break;
+                        }
+                    }
+                }
+                
                 // Target a block directly below or one step ahead at posY - 1
                 nextDist = baseDist;
             }
@@ -4928,10 +4969,13 @@ public class GolemAI {
             }
             
             // Material score
-            if (stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.NETHERITE_SHOVEL)) score += 5;
-            else if (stack.isOf(Items.DIAMOND_PICKAXE) || stack.isOf(Items.DIAMOND_SHOVEL)) score += 4;
-            else if (stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.IRON_SHOVEL)) score += 3;
-            else if (stack.isOf(Items.GOLDEN_PICKAXE) || stack.isOf(Items.GOLDEN_SHOVEL)) score += 6; // Gold is fast
+            if (stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.NETHERITE_SHOVEL)) score += 500;
+            else if (stack.isOf(Items.DIAMOND_PICKAXE) || stack.isOf(Items.DIAMOND_SHOVEL)) score += 400;
+            else if (stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.IRON_SHOVEL)) score += 300;
+            else if (stack.isOf(Items.GOLDEN_PICKAXE) || stack.isOf(Items.GOLDEN_SHOVEL)) score += 600; // Gold is fast
+            else if (stack.isOf(Items.STONE_PICKAXE) || stack.isOf(Items.STONE_SHOVEL)) score += 200;
+            else if (stack.isOf(Items.WOODEN_PICKAXE) || stack.isOf(Items.WOODEN_SHOVEL)) score += 100;
+            else if (stack.isOf(Items.COPPER_PICKAXE) || stack.isOf(Items.COPPER_SHOVEL)) score += 250;
             
             return score;
         }
@@ -4984,9 +5028,12 @@ public class GolemAI {
 
                 List<ItemStack> drops = state.getDroppedStacks(builder);
                 for (ItemStack drop : drops) {
-                    net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(serverWorld, targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5, drop);
-                    itemEntity.setToDefaultPickupDelay();
-                    serverWorld.spawnEntity(itemEntity);
+                    ItemStack remaining = golem.getInventory().addStack(drop);
+                    if (!remaining.isEmpty()) {
+                        net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(serverWorld, targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5, remaining);
+                        itemEntity.setToDefaultPickupDelay();
+                        serverWorld.spawnEntity(itemEntity);
+                    }
                 }
 
                 if (!tool.isEmpty()) {
@@ -7421,7 +7468,7 @@ public class GolemAI {
                             boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(stack) || stack.isOf(Items.POTION) || stack.isOf(Items.SPLASH_POTION) || stack.isOf(Items.LINGERING_POTION);
                             isFamiliar = isIngredient || isSupply || isPotionOrWater;
                         } else if (golem.getGolemType() == GolemType.LAPIS) {
-                            // Lapis golems pick up ores and raw ores
+                            // Lapis golems pick up ores, raw ores, and mining-related blocks/tools
                             isFamiliar = stack.isIn(net.minecraft.registry.tag.ItemTags.COAL_ORES)
                                     || stack.isIn(net.minecraft.registry.tag.ItemTags.IRON_ORES)
                                     || stack.isIn(net.minecraft.registry.tag.ItemTags.COPPER_ORES)
@@ -7434,7 +7481,11 @@ public class GolemAI {
                                     || stack.isOf(Items.RAW_IRON) || stack.isOf(Items.RAW_GOLD) || stack.isOf(Items.RAW_COPPER)
                                     || stack.isOf(Items.COAL) || stack.isOf(Items.DIAMOND) || stack.isOf(Items.EMERALD)
                                     || stack.isOf(Items.LAPIS_LAZULI) || stack.isOf(Items.REDSTONE)
-                                    || stack.isOf(Items.ANCIENT_DEBRIS);
+                                    || stack.isOf(Items.ANCIENT_DEBRIS)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.PICKAXES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.SHOVELS)
+                                    || stack.isOf(Items.COBBLESTONE) || stack.isOf(Items.COBBLED_DEEPSLATE)
+                                    || stack.isOf(Items.DIRT) || stack.isOf(Items.GRAVEL) || stack.isOf(Items.SAND);
                         } else {
                             // Default: only pick up blocks to avoid cluttering inventory with junk
                             isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);

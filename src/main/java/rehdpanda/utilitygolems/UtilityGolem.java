@@ -929,18 +929,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack playerStack = player.getStackInHand(hand);
-        // Prevent using incompatible special items on the wrong golem types
-        // e.g., prevent records on non-jukebox golems to avoid unintended handlers/UI and crashes
-        if (this.golemType != GolemType.JUKEBOX) {
-            JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-            if (playableCheck != null) {
+
+        // SHIFT+RIGHT CLICK to take item back or toggle lamp
+        if (player.isSneaking() && hand == Hand.MAIN_HAND) {
+            if (this.golemType == GolemType.LAMP) {
                 if (!player.getEntityWorld().isClient()) {
-                    player.sendMessage(Text.literal("This golem can't play records."), true);
+                    this.setLampOn(!this.isLampOn());
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
                 }
                 return ActionResult.SUCCESS;
             }
-        }
-        if (playerStack.isEmpty() && hand == Hand.MAIN_HAND && this.golemType != GolemType.JUKEBOX) {
+
             ItemStack golemStack = this.getHeldItem();
             if (!golemStack.isEmpty()) {
                 if (!player.getEntityWorld().isClient()) {
@@ -949,6 +948,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     }
                     this.setHeldItem(ItemStack.EMPTY);
                     this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
+
+        // Prevent using incompatible special items on the wrong golem types
+        // e.g., prevent records on non-jukebox golems to avoid unintended handlers/UI and crashes
+        if (this.golemType != GolemType.JUKEBOX) {
+            JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playableCheck != null) {
+                if (!player.getEntityWorld().isClient()) {
+                    player.sendMessage(Text.literal("This golem can't play records."), true);
                 }
                 return ActionResult.SUCCESS;
             }
@@ -1050,13 +1061,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
             return ActionResult.SUCCESS;
         } else if (this.golemType == GolemType.LAMP) {
-            if (player.isSneaking()) {
-                if (!player.getEntityWorld().isClient()) {
-                    this.setLampOn(!this.isLampOn());
-                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
-                }
-                return ActionResult.SUCCESS;
-            }
+            // Already handled in Shift+Right Click logic
         }
 
         if (this.golemType == GolemType.JUKEBOX) {
