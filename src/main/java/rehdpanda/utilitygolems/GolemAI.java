@@ -16,6 +16,8 @@ import net.minecraft.block.SweetBerryBushBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.*;
@@ -1399,8 +1401,18 @@ public class GolemAI {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.add(x, y, z);
                         if (golem.getEntityWorld().getBlockState(p).isOf(Blocks.BREWING_STAND)) {
-                            golem.debugLog("BrewingGoal: Found brewing stand at " + p.toShortString());
-                            return p;
+                            // Check if any other golem is already targeting this brewing stand
+                            boolean alreadyTargeted = false;
+                            for (UtilityGolem other : golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(32.0D), g -> g != golem)) {
+                                if (p.equals(other.getDebugTarget())) {
+                                    alreadyTargeted = true;
+                                    break;
+                                }
+                            }
+                            if (!alreadyTargeted) {
+                                golem.debugLog("BrewingGoal: Found available brewing stand at " + p.toShortString());
+                                return p;
+                            }
                         }
                     }
                 }
@@ -1565,6 +1577,15 @@ public class GolemAI {
                             ItemStack waterBottle = golem.getInventory().removeStack(waterSlot, 1);
                             brewingStand.setStack(i, waterBottle);
                             brewingStand.markDirty();
+                            // Also try to fill other empty slots if we have more water bottles
+                            for (int j = i + 1; j < 3; j++) {
+                                if (brewingStand.getStack(j).isEmpty()) {
+                                    int nextWaterSlot = findWaterBottleInInventory();
+                                    if (nextWaterSlot != -1) {
+                                        brewingStand.setStack(j, golem.getInventory().removeStack(nextWaterSlot, 1));
+                                    }
+                                }
+                            }
                             return;
                         }
                     }
@@ -1606,22 +1627,22 @@ public class GolemAI {
             if (hasAwkwardPotion) {
                 for (int i = 0; i < golem.getInventory().size(); i++) {
                     ItemStack stack = golem.getInventory().getStack(i);
-                    if (isPrimaryIngredient(stack) && !stack.isOf(Items.NETHER_WART)) return i;
-                }
-                
-                // If we don't have primary ingredients, but we HAVE awkward potions, maybe we can use secondary?
-                // For example, making splash awkward potions (though rare) or if the stand has a mix of awkward and regular potions.
-                for (int i = 0; i < golem.getInventory().size(); i++) {
-                    ItemStack stack = golem.getInventory().getStack(i);
-                    if (isSecondaryIngredient(stack)) {
-                        ItemStack standIngredient = stand.getStack(3);
-                        if (standIngredient.isEmpty()) return i;
+                    if (isPrimaryIngredient(stack) && !stack.isOf(Items.NETHER_WART)) {
+                        // Fermented Spider Eye is a special case. It's used on many potions.
+                        // But some recipes might prefer other ingredients first if available.
+                        // Actually, many potions are made FROM awkward potions + primary ingredient.
+                        // We'll just return the first primary ingredient that isn't nether wart.
+                        return i;
                     }
                 }
             }
 
             // Priority 3: If we have regular potions, use secondary ingredients (Gunpowder, etc.)
             if (hasRegularPotion) {
+                // Check for fermented spider eye specifically for recipes like Night Vision -> Invisibility
+                int fse = findItemInInventory(Items.FERMENTED_SPIDER_EYE);
+                if (fse != -1) return fse;
+
                 for (int i = 0; i < golem.getInventory().size(); i++) {
                     ItemStack stack = golem.getInventory().getStack(i);
                     if (isSecondaryIngredient(stack)) {
@@ -2625,16 +2646,25 @@ public class GolemAI {
                                 continue;
                             }
                         }
-                        if (golem.getGolemType() == GolemType.SPONGE) {
-                            if (UtilityGolem.isTool(stack)) {
-                                continue;
-                            }
-                        }
                         if (golem.getGolemType() == GolemType.NETHERITE || golem.getGolemType() == GolemType.ANCIENT) {
                             if (UtilityGolem.isTool(stack)) {
                                 continue;
                             }
                             if (stack.isOf(UGItems.GOLEM_SPAWN_EGGS.get(golem.getGolemType()))) {
+                                continue;
+                            }
+                        }
+                        if (golem.getGolemType() == GolemType.SPONGE) {
+                            if (UtilityGolem.isTool(stack)) {
+                                continue;
+                            }
+                        }
+                        if (golem.getGolemType() == GolemType.NETHER_WART) {
+                            // Don't deposit glass bottles, ingredients, blaze powder, brewing stands, or water/awkward potions
+                            if (stack.isOf(Items.GLASS_BOTTLE) || isIngredient(stack) || stack.isOf(Items.BLAZE_POWDER) || stack.isOf(Items.BREWING_STAND)) {
+                                continue;
+                            }
+                            if (BrewingGoal.isWaterBottleStatic(stack) || BrewingGoal.isAwkwardPotionStatic(stack)) {
                                 continue;
                             }
                         }
@@ -2915,21 +2945,31 @@ public class GolemAI {
                             supplySlotsUsed++;
                         }
                     }
-                    if (supplySlotsUsed >= 6) return false;
+                    if (supplySlotsUsed >= 6) {
+                         searchCooldown = 100 + golem.getRandom().nextInt(100); // Wait 5-10s
+                         return false;
+                    }
                 }
                 
                 // Don't withdraw if inventory is full (regardless of supply slots)
-                if (isInventoryFull()) return false;
+                if (isInventoryFull()) {
+                     searchCooldown = 100 + golem.getRandom().nextInt(100);
+                     return false;
+                }
 
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
                 }
                 if (chestPos == null) {
-                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    searchCooldown = 100 + golem.getRandom().nextInt(100);
                     return false;
                 }
-                return hasNeededItemsInChest(chestPos);
+                boolean hasNeeded = hasNeededItemsInChest(chestPos);
+                if (!hasNeeded) {
+                    searchCooldown = 100 + golem.getRandom().nextInt(100);
+                }
+                return hasNeeded;
             }
 
             return false;
@@ -3676,7 +3716,15 @@ public class GolemAI {
                                 }
                                 
                                 if (!alreadyHasItem) {
-                                    ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                                    int maxToWithdraw = 8;
+                                    if (containerStack.isOf(Items.BLAZE_POWDER) || containerStack.isOf(Items.GLASS_BOTTLE)) {
+                                        maxToWithdraw = 16;
+                                    }
+                                    if (containerStack.isOf(Items.BREWING_STAND)) {
+                                        maxToWithdraw = 1;
+                                    }
+                                    
+                                    ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), Math.min(containerStack.getMaxCount(), maxToWithdraw)));
                                     golemInv.addStack(toWithdraw);
                                     withdrawnSomething = true;
                                     
@@ -4085,6 +4133,14 @@ public class GolemAI {
                 else if (tool.isOf(Items.COPPER_SHOVEL)) speed = 5.0f;
             }
 
+            // Apply efficiency enchantment
+            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
+                if (efficiencyLevel > 0) {
+                    speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+                }
+            }
+
             // Player mining formula is roughly (hardness * 30) / speed if using correct tool
             // We want it slower than player, so let's use a higher multiplier
             return Math.max(20, (int) (hardness * 60 / speed));
@@ -4107,7 +4163,9 @@ public class GolemAI {
                     for (int z = -oreRange; z <= oreRange; z++) {
                         mutable.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
                         if (golem.isBlacklisted(mutable)) continue;
-                        if (isOre(mutable) && canDig(mutable)) {
+                        
+                        boolean isOre = isOre(mutable);
+                        if (isOre && canDig(mutable)) {
                             // Lapis golems should only prioritize ores that are not too far above them during staircase mining
                             if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() > pos.getY() + 3) continue;
 
@@ -4119,6 +4177,16 @@ public class GolemAI {
                                 if (distSq < minOreDistSq) {
                                     minOreDistSq = distSq;
                                     bestOre = mutable.toImmutable();
+                                }
+                            }
+                        } else if (golem.getGolemType() == GolemType.LAPIS && isOre) {
+                            // If it's an ore but we can't dig it (because it's hidden), check if we can dig the block above it
+                            BlockPos above = mutable.up();
+                            if (canDig(above)) {
+                                double distSq = above.getSquaredDistance(pos);
+                                if (distSq < minOreDistSq) {
+                                    minOreDistSq = distSq;
+                                    bestOre = above.toImmutable();
                                 }
                             }
                         }
@@ -4182,7 +4250,9 @@ public class GolemAI {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             if (!(state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
                     || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
-                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES))) {
+                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES)
+                    || state.isOf(Blocks.NETHER_QUARTZ_ORE)
+                    || state.isOf(Blocks.ANCIENT_DEBRIS))) {
                 return false;
             }
 
@@ -4192,7 +4262,7 @@ public class GolemAI {
             for (Direction direction : Direction.values()) {
                 mutable.set(pos, direction);
                 BlockState neighborState = golem.getEntityWorld().getBlockState(mutable);
-                if (neighborState.isAir() || !neighborState.isFullCube(golem.getEntityWorld(), mutable)) {
+                if (neighborState.isAir() || neighborState.isIn(BlockTags.REPLACEABLE) || !neighborState.isFullCube(golem.getEntityWorld(), mutable)) {
                     return true;
                 }
             }
@@ -4530,21 +4600,24 @@ public class GolemAI {
                 
                 // Lapis golems can dig common blocks even without tools, but it's slower
                 if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
-                        || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)) {
+                        || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)
+                        || state.isOf(Blocks.NETHERRACK) || state.isOf(Blocks.SOUL_SAND) || state.isOf(Blocks.SOUL_SOIL)) {
                     return true;
                 }
             }
             if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
                     || state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
                     || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
-                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES)) {
+                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES)
+                    || state.isOf(Blocks.NETHER_QUARTZ_ORE)
+                    || state.isOf(Blocks.ANCIENT_DEBRIS)) {
                 return hasPickaxe();
             }
             if (state.isIn(BlockTags.SHOVEL_MINEABLE) || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)) {
                 return hasShovel();
             }
             // Add general check for very soft blocks like grass
-            if (state.getHardness(golem.getEntityWorld(), pos) == 0.0f) return true;
+            if (state.getHardness(golem.getEntityWorld(), pos) <= 0.2f) return true;
             
             return false;
         }
@@ -4626,6 +4699,19 @@ public class GolemAI {
 
             if (stuckTicks > 80) { // Slightly more aggressive than 100
                 golem.debugLog("DigBlockGoal: Stuck at " + golem.getBlockPos().toShortString() + " trying to reach " + targetPos.toShortString());
+                
+                // If we've been stuck for a very long time, try to teleport back to the chest or clear the goal
+                if (stuckTicks > 300) {
+                    BlockPos chestPos = golem.getChestPos();
+                    if (chestPos != null) {
+                        golem.debugLog("DigBlockGoal: Extremely stuck, teleporting to chest.");
+                        golem.requestTeleport(chestPos.getX() + 0.5, chestPos.getY() + 1.0, chestPos.getZ() + 0.5);
+                    }
+                    stuckTicks = 0;
+                    targetPos = null;
+                    return;
+                }
+
                 if (golem.getGolemType() == GolemType.LAPIS && tryPlaceStepUp()) {
                     golem.debugLog("Lapis: Attempting to place step up");
                     stuckTicks = 0;
@@ -4729,24 +4815,72 @@ public class GolemAI {
             }
         }
 
+        private int getToolScore(ItemStack stack, BlockPos target) {
+            if (stack.isEmpty()) return 0;
+            int score = 0;
+            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                var registry = serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                
+                // Efficiency is always good
+                score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.EFFICIENCY), stack) * 10;
+                
+                BlockState state = serverWorld.getBlockState(target);
+                boolean isOre = state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
+                        || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
+                        || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES)
+                        || state.isOf(Blocks.NETHER_QUARTZ_ORE) || state.isOf(Blocks.ANCIENT_DEBRIS);
+                
+                if (isOre) {
+                    // Fortune is great for ores
+                    score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.FORTUNE), stack) * 50;
+                    // Silk Touch is also good for some ores (e.g. coal, diamond if you want the block)
+                    score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SILK_TOUCH), stack) * 30;
+                } else {
+                    // For stone/dirt, Silk Touch might be preferred (e.g. Grass block)
+                    if (state.isOf(Blocks.GRASS_BLOCK)) {
+                        score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SILK_TOUCH), stack) * 50;
+                    }
+                }
+            }
+            
+            // Material score
+            if (stack.isOf(Items.NETHERITE_PICKAXE) || stack.isOf(Items.NETHERITE_SHOVEL)) score += 5;
+            else if (stack.isOf(Items.DIAMOND_PICKAXE) || stack.isOf(Items.DIAMOND_SHOVEL)) score += 4;
+            else if (stack.isOf(Items.IRON_PICKAXE) || stack.isOf(Items.IRON_SHOVEL)) score += 3;
+            else if (stack.isOf(Items.GOLDEN_PICKAXE) || stack.isOf(Items.GOLDEN_SHOVEL)) score += 6; // Gold is fast
+            
+            return score;
+        }
+
         private void swapTool(java.util.function.Predicate<ItemStack> toolPredicate) {
             SimpleInventory inv = golem.getInventory();
             ItemStack currentHeld = golem.getHeldItem();
+            
+            int bestSlot = -1;
+            int bestScore = getToolScore(currentHeld, targetPos);
+            
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (toolPredicate.test(stack)) {
-                    ItemStack newTool = inv.removeStack(i, 1);
-                    if (!currentHeld.isEmpty()) {
-                        ItemStack remaining = inv.addStack(currentHeld);
-                        if (!remaining.isEmpty()) {
-                            golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
-                        }
+                    int score = getToolScore(stack, targetPos);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestSlot = i;
                     }
-                    golem.setHeldItem(newTool);
-                    // Recalculate maxBreakingTime for the new tool
-                    this.maxBreakingTime = calculateBreakingTime(newTool, targetPos);
-                    break;
                 }
+            }
+            
+            if (bestSlot != -1) {
+                ItemStack newTool = inv.removeStack(bestSlot, 1);
+                if (!currentHeld.isEmpty()) {
+                    ItemStack remaining = inv.addStack(currentHeld);
+                    if (!remaining.isEmpty()) {
+                        golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
+                    }
+                }
+                golem.setHeldItem(newTool);
+                // Recalculate maxBreakingTime for the new tool
+                this.maxBreakingTime = calculateBreakingTime(newTool, targetPos);
             }
         }
 
@@ -4765,6 +4899,12 @@ public class GolemAI {
                 serverWorld.breakBlock(targetPos, false, golem);
 
                 List<ItemStack> drops = state.getDroppedStacks(builder);
+                for (ItemStack drop : drops) {
+                    net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(serverWorld, targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5, drop);
+                    itemEntity.setToDefaultPickupDelay();
+                    serverWorld.spawnEntity(itemEntity);
+                }
+
                 if (!tool.isEmpty()) {
                     if (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool)) {
                         tool.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
@@ -6215,6 +6355,14 @@ public class GolemAI {
                 else if (tool.isOf(Items.WOODEN_AXE)) speed = 2.0f;
             }
 
+            // Apply efficiency enchantment
+            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
+                if (efficiencyLevel > 0) {
+                    speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+                }
+            }
+
             return Math.max(1, (int) (hardness * 30 / speed));
         }
 
@@ -6437,24 +6585,57 @@ public class GolemAI {
             }
         }
 
+        private int getToolScore(ItemStack stack, BlockPos target) {
+            if (stack.isEmpty()) return 0;
+            int score = 0;
+            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                var registry = serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.EFFICIENCY), stack) * 10;
+                
+                BlockState state = serverWorld.getBlockState(target);
+                if (state.isIn(BlockTags.LOGS)) {
+                    // Silk touch on logs?
+                    score += EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SILK_TOUCH), stack) * 20;
+                }
+            }
+            
+            if (stack.isOf(Items.NETHERITE_AXE)) score += 5;
+            else if (stack.isOf(Items.DIAMOND_AXE)) score += 4;
+            else if (stack.isOf(Items.IRON_AXE)) score += 3;
+            else if (stack.isOf(Items.GOLDEN_AXE)) score += 6;
+            
+            return score;
+        }
+
         private void swapTool(java.util.function.Predicate<ItemStack> toolPredicate) {
             SimpleInventory inv = golem.getInventory();
             ItemStack currentHeld = golem.getHeldItem();
+            
+            int bestSlot = -1;
+            int bestScore = getToolScore(currentHeld, targetPos);
+            
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (toolPredicate.test(stack)) {
-                    ItemStack newTool = inv.removeStack(i, 1);
-                    if (!currentHeld.isEmpty()) {
-                        ItemStack remaining = inv.addStack(currentHeld);
-                        if (!remaining.isEmpty()) {
-                            golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
-                        }
+                    int score = getToolScore(stack, targetPos);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestSlot = i;
                     }
-                    golem.setHeldItem(newTool);
-                    // Recalculate maxBreakingTime for the new tool
-                    this.maxBreakingTime = calculateBreakingTime(newTool, targetPos);
-                    break;
                 }
+            }
+            
+            if (bestSlot != -1) {
+                ItemStack newTool = inv.removeStack(bestSlot, 1);
+                if (!currentHeld.isEmpty()) {
+                    ItemStack remaining = inv.addStack(currentHeld);
+                    if (!remaining.isEmpty()) {
+                        golem.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(golem.getEntityWorld(), golem.getX(), golem.getY(), golem.getZ(), remaining));
+                    }
+                }
+                golem.setHeldItem(newTool);
+                // Recalculate maxBreakingTime for the new tool
+                this.maxBreakingTime = calculateBreakingTime(newTool, targetPos);
             }
         }
 
@@ -6996,6 +7177,21 @@ public class GolemAI {
                             isFamiliar = isIngredient || isSupply || isPotionOrWater;
                         } else if (golem.getGolemType() == GolemType.AMETHYST) {
                             isFamiliar = GolemAI.isValidBreedingItem(stack);
+                        } else if (golem.getGolemType() == GolemType.LAPIS) {
+                            // Lapis golems pick up ores and raw ores
+                            isFamiliar = stack.isIn(net.minecraft.registry.tag.ItemTags.COAL_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.IRON_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.COPPER_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.GOLD_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.DIAMOND_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.EMERALD_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.LAPIS_ORES)
+                                    || stack.isIn(net.minecraft.registry.tag.ItemTags.REDSTONE_ORES)
+                                    || stack.isOf(Items.QUARTZ)
+                                    || stack.isOf(Items.RAW_IRON) || stack.isOf(Items.RAW_GOLD) || stack.isOf(Items.RAW_COPPER)
+                                    || stack.isOf(Items.COAL) || stack.isOf(Items.DIAMOND) || stack.isOf(Items.EMERALD)
+                                    || stack.isOf(Items.LAPIS_LAZULI) || stack.isOf(Items.REDSTONE)
+                                    || stack.isOf(Items.ANCIENT_DEBRIS);
                         } else {
                             // Default: only pick up blocks to avoid cluttering inventory with junk
                             isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);
