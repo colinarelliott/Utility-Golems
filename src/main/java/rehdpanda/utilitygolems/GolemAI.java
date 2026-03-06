@@ -798,7 +798,16 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
-            List<PlayerEntity> players = golem.getEntityWorld().getEntitiesByClass(PlayerEntity.class, golem.getBoundingBox().expand(maxDistance), player -> true);
+            if (golem.getGolemType() == GolemType.LAMP && !golem.isLampOn()) {
+                return false;
+            }
+
+            float searchRange = maxDistance;
+            if (golem.getGolemType() == GolemType.LAMP && golem.isLampOn()) {
+                searchRange = 128.0F; // Large search range for lamp golems
+            }
+
+            List<PlayerEntity> players = golem.getEntityWorld().getEntitiesByClass(PlayerEntity.class, golem.getBoundingBox().expand(searchRange), player -> true);
             if (players.isEmpty()) return false;
             
             // Find closest player
@@ -811,6 +820,10 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
+            if (golem.getGolemType() == GolemType.LAMP) {
+                if (!golem.isLampOn()) return false;
+                return targetPlayer != null && targetPlayer.isAlive() && targetPlayer.getEntityWorld() == golem.getEntityWorld();
+            }
             return targetPlayer != null && targetPlayer.isAlive() && golem.squaredDistanceTo(targetPlayer) < (double)(maxDistance * maxDistance * 2);
         }
 
