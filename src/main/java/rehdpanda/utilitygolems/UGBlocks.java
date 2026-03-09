@@ -56,6 +56,7 @@ public class UGBlocks {
                 case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
                 case MEDIC -> Blocks.TARGET;
                 case CACTUS -> Blocks.CACTUS;
+                case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
                 default -> Blocks.AIR;
             };
 

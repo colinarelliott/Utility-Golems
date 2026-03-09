@@ -13,6 +13,7 @@
   "block.utility-golems.furnace_golem_chest": "Furnace Chest",
   "block.utility-golems.jukebox_golem_chest": "Jukebox Chest",
   "block.utility-golems.nether_wart_golem_chest": "Nether Wart Chest",
+  "block.utility-golems.honeycomb_golem_chest": "Honeycomb Chest",
   "container.utility-golems.lapis_golem_chest_double": "Lapis Double Chest",
   "container.utility-golems.redstone_golem_chest_double": "Redstone Double Chest",
   "container.utility-golems.emerald_golem_chest_double": "Emerald Double Chest",
@@ -27,6 +28,7 @@
   "container.utility-golems.furnace_golem_chest_double": "Furnace Double Chest",
   "container.utility-golems.jukebox_golem_chest_double": "Jukebox Double Chest",
   "container.utility-golems.nether_wart_golem_chest_double": "Nether Wart Double Chest",
+  "container.utility-golems.honeycomb_golem_chest_double": "Honeycomb Double Chest",
 
   "item.utility-golems.lapis_golem_chest": "Lapis Chest",
   "item.utility-golems.redstone_golem_chest": "Redstone Chest",
@@ -42,6 +44,7 @@
   "item.utility-golems.furnace_golem_chest": "Furnace Chest",
   "item.utility-golems.jukebox_golem_chest": "Jukebox Chest",
   "item.utility-golems.nether_wart_golem_chest": "Nether Wart Chest",
+  "item.utility-golems.honeycomb_golem_chest": "Honeycomb Chest",
   "item.utility-golems.wrench": "Wrench",
   "item.utility-golems.wrench.description": "Used to repair damaged golems",
   
@@ -64,6 +67,7 @@
   "item.utility-golems.nether_wart_golem_spawn_egg": "Nether Wart Golem Spawn Egg",
   "item.utility-golems.medic_golem_spawn_egg": "Medic Golem Spawn Egg",
   "item.utility-golems.cactus_golem_spawn_egg": "Cactus Golem Spawn Egg",
+  "item.utility-golems.honeycomb_golem_spawn_egg": "Honeycomb Golem Spawn Egg",
   
   "item.utility-golems.lapis_chest": "Lapis Chest",
   "item.utility-golems.redstone_chest": "Redstone Chest",
@@ -71,6 +75,7 @@
   "item.utility-golems.gold_chest": "Gold Chest",
   "item.utility-golems.amethyst_chest": "Amethyst Chest",
   "item.utility-golems.netherite_chest": "Netherite Chest",
+  "item.utility-golems.honeycomb_chest": "Honeycomb Chest",
 
   "entity.utility-golems.lapis_golem": "Lapis Golem",
   "entity.utility-golems.redstone_golem": "Redstone Golem",
@@ -90,5 +95,6 @@
   "entity.utility-golems.nether_wart_golem": "Nether Wart Golem",
   "entity.utility-golems.medic_golem": "Medic Golem",
   "entity.utility-golems.cactus_golem": "Cactus Golem",
+  "entity.utility-golems.honeycomb_golem": "Honeycomb Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection"
 }

@@ -86,6 +86,10 @@ public enum GolemType {
     CACTUS("cactus_golem", "Cactus Golem", "textures/entity/cactus_golem.png",
             GolemAI::initCactusGoals,
             null
+    ),
+    HONEYCOMB("honeycomb_golem", "Honeycomb Golem", "textures/entity/honeycomb_golem.png",
+            GolemAI::initHoneycombGoals,
+            null
     );
 
 

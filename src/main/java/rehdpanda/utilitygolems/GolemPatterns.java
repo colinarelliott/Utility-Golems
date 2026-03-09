@@ -46,6 +46,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.MEDIC, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.HONEYCOMB, facing, false);
         }
     }
 
@@ -70,6 +71,7 @@ public class GolemPatterns {
             case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
             case MEDIC -> Blocks.TARGET;
             case CACTUS -> Blocks.CACTUS;
+            case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
             default -> Blocks.LAPIS_BLOCK;
         };
 

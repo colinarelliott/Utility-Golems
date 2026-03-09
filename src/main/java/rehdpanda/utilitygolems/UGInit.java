@@ -327,8 +327,10 @@ public class UGInit implements ModInitializer {
                                 give(player, Items.SPONGE);
                                 give(player, Items.COBBLED_DEEPSLATE);
                                 give(player, Items.CARVED_PUMPKIN);
+                                give(player, Items.HONEYCOMB_BLOCK);
                                 give(player, Items.TARGET);
                                 give(player, UGItems.WRENCH_ITEM);
+                                give(player, UGItems.GOLEM_SPAWN_EGGS.get(GolemType.HONEYCOMB));
 
                                 ItemStack nameTag = new ItemStack(Items.NAME_TAG);
                                 nameTag.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, Text.literal("debug"));

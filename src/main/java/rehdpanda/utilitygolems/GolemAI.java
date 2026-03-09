@@ -1,5 +1,6 @@
 package rehdpanda.utilitygolems;
 
+import net.minecraft.block.CampfireBlock;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.TrapdoorBlock;
 import net.minecraft.block.FenceGateBlock;
@@ -296,6 +297,17 @@ public class GolemAI {
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new DeleteBlacklistedItemsGoal(golem, 1.1D, 16)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+    }
+
+    public static void initHoneycombGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                Items.GLASS_BOTTLE, Items.SHEARS
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new HoneyBabysitterGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
+        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     
     /// DEBUG WRAPPER
@@ -2511,9 +2523,22 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.JUKEBOX) return hasJukeboxItemsToDeposit();
             if (golem.getGolemType() == GolemType.DIAMOND) return hasDiamondItemsToDeposit();
             if (golem.getGolemType() == GolemType.NETHER_WART) return hasNetherWartItemsToDeposit();
+            if (golem.getGolemType() == GolemType.HONEYCOMB) return hasHoneycombItemsToDeposit();
             if (golem.getGolemType() == GolemType.NETHERITE || golem.getGolemType() == GolemType.ANCIENT) return hasNetheriteItemsToDeposit();
             if (golem.getGolemType() == GolemType.LAPIS) return hasLapisItemsToDeposit();
             return hasFullStack() || (isInventoryFull() && hasAnythingToDeposit());
+        }
+
+        private boolean hasHoneycombItemsToDeposit() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isEmpty()) continue;
+                if (UtilityGolem.isTool(stack)) continue;
+                if (stack.isOf(Items.GLASS_BOTTLE)) continue;
+                return true;
+            }
+            return false;
         }
 
         private boolean hasAnythingToDeposit() {
@@ -2767,7 +2792,7 @@ public class GolemAI {
         @Override
         public void start() {
             delay = 0;
-            if (golem.getGolemType() == GolemType.NETHER_WART) {
+            if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                 updateHeldItem();
             }
         }
@@ -2777,6 +2802,7 @@ public class GolemAI {
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (stack.isEmpty()) continue;
+                if (UtilityGolem.isTool(stack)) continue;
                 if (stack.isOf(Items.GLASS_BOTTLE)) continue;
                 if (isIngredient(stack)) continue;
                 if (stack.isOf(Items.BLAZE_POWDER)) continue;
@@ -2836,7 +2862,7 @@ public class GolemAI {
             }
             golem.setSearching(false);
             chestPos = null;
-            if (golem.getGolemType() == GolemType.NETHER_WART) {
+            if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                 golem.setHeldItem(ItemStack.EMPTY);
             }
             searchCooldown = 20 + golem.getRandom().nextInt(20);
@@ -2909,7 +2935,7 @@ public class GolemAI {
                     golem.setSearching(true);
                     golem.setAnimation(GolemAnimation.DEPOSITING, 100);
                     depositItems();
-                    if (golem.getGolemType() == GolemType.NETHER_WART) {
+                    if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                         updateHeldItem();
                     }
                     delay = 100; // Wait for animation
@@ -2935,10 +2961,6 @@ public class GolemAI {
                 for (int i = 0; i < golemInv.size(); i++) {
                     ItemStack stack = golemInv.getStack(i);
                     if (!stack.isEmpty() && !UtilityGolem.isTool(stack)) {
-                        // Never deposit the item the golem is currently holding in hand
-                        if (ItemStack.areItemsAndComponentsEqual(stack, golem.getHeldItem())) {
-                            continue;
-                        }
                         if (golem.getGolemType() == GolemType.LAPIS) {
                             if (UtilityGolem.isTool(stack)) {
                                 continue;
@@ -3033,6 +3055,11 @@ public class GolemAI {
                                 if (!BrewingGoal.isRegularPotionStatic(stack)) {
                                     continue;
                                 }
+                            }
+                        }
+                        if (golem.getGolemType() == GolemType.HONEYCOMB) {
+                            if (stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.SHEARS)) {
+                                continue;
                             }
                         }
                         ItemStack remaining = transferStack(stack, container);
@@ -3201,6 +3228,24 @@ public class GolemAI {
                 return false;
             }
             if (golem.getGolemType() == GolemType.AMETHYST) {
+                chestPos = golem.getChestPos();
+                if (chestPos == null) {
+                    chestPos = findNearbyChest();
+                }
+                if (chestPos == null) {
+                    searchCooldown = 40 + golem.getRandom().nextInt(40);
+                    return false;
+                }
+                return hasNeededItemsInChest(chestPos);
+            }
+
+            if (golem.getGolemType() == GolemType.HONEYCOMB) {
+                if (hasGlassBottles() && hasShears()) {
+                    return false;
+                }
+                if (isInventoryFull()) {
+                    return false;
+                }
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
@@ -3725,6 +3770,10 @@ public class GolemAI {
                             }
                         }
                     }
+                    if (golem.getGolemType() == GolemType.HONEYCOMB) {
+                        if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
+                        if (stack.isOf(Items.SHEARS) && !hasShears()) return true;
+                    }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
                         if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
                         if (isIngredient(stack) && !hasItem(stack.getItem())) return true;
@@ -3797,7 +3846,7 @@ public class GolemAI {
         @Override
         public void start() {
             delay = 0;
-            if (golem.getGolemType() == GolemType.NETHER_WART) {
+            if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                 updateHeldItem();
             }
         }
@@ -3811,21 +3860,32 @@ public class GolemAI {
                     ItemStack stack = container.getStack(i);
                     if (stack.isEmpty()) continue;
                     
-                    if (stack.isOf(Items.BLAZE_POWDER) && !hasBlazePowder()) {
-                        golem.setHeldItem(stack.copyWithCount(1));
-                        return;
-                    }
-                    if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) {
-                        golem.setHeldItem(stack.copyWithCount(1));
-                        return;
-                    }
-                    if (isIngredient(stack) && !hasIngredients()) {
-                        golem.setHeldItem(stack.copyWithCount(1));
-                        return;
-                    }
-                    if (isSecondaryIngredient(stack) && !hasSecondaryIngredients()) {
-                        golem.setHeldItem(stack.copyWithCount(1));
-                        return;
+                    if (golem.getGolemType() == GolemType.NETHER_WART) {
+                        if (stack.isOf(Items.BLAZE_POWDER) && !hasBlazePowder()) {
+                            golem.setHeldItem(stack.copyWithCount(1));
+                            return;
+                        }
+                        if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) {
+                            golem.setHeldItem(stack.copyWithCount(1));
+                            return;
+                        }
+                        if (isIngredient(stack) && !hasIngredients()) {
+                            golem.setHeldItem(stack.copyWithCount(1));
+                            return;
+                        }
+                        if (isSecondaryIngredient(stack) && !hasSecondaryIngredients()) {
+                            golem.setHeldItem(stack.copyWithCount(1));
+                            return;
+                        }
+                    } else if (golem.getGolemType() == GolemType.HONEYCOMB) {
+                        if (stack.isOf(Items.SHEARS) && !hasShears()) {
+                             golem.setHeldItem(stack.copyWithCount(1));
+                             return;
+                        }
+                        if (stack.isOf(Items.GLASS_BOTTLE) && !hasGlassBottles()) {
+                             golem.setHeldItem(stack.copyWithCount(1));
+                             return;
+                        }
                     }
                 }
             }
@@ -3921,7 +3981,7 @@ public class GolemAI {
             }
             golem.setSearching(false);
             chestPos = null;
-            if (golem.getGolemType() == GolemType.NETHER_WART) {
+            if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                 golem.setHeldItem(ItemStack.EMPTY);
             }
         }
@@ -3995,7 +4055,7 @@ public class GolemAI {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     boolean res = withdrawItems();
                     golem.debugLog("WithdrawItemsGoal: withdrawItems result: " + res);
-                    if (golem.getGolemType() == GolemType.NETHER_WART) {
+                    if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                         updateHeldItem();
                     }
                     delay = 60; // Wait for animation
@@ -7853,6 +7913,8 @@ public class GolemAI {
                             boolean isSupply = stack.isOf(Items.GLASS_BOTTLE) || stack.isOf(Items.BLAZE_POWDER) || stack.isOf(Items.BREWING_STAND);
                             boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(stack) || stack.isOf(Items.POTION) || stack.isOf(Items.SPLASH_POTION) || stack.isOf(Items.LINGERING_POTION);
                             isFamiliar = isIngredient || isSupply || isPotionOrWater;
+                        } else if (golem.getGolemType() == GolemType.HONEYCOMB) {
+                            isFamiliar = stack.isOf(Items.HONEYCOMB) || stack.isOf(Items.HONEY_BOTTLE) || stack.isOf(Items.SHEARS) || stack.isOf(Items.GLASS_BOTTLE);
                         } else if (golem.getGolemType() == GolemType.LAPIS) {
                             // Lapis golems pick up ores, raw ores, and mining-related blocks/tools
                             isFamiliar = stack.isIn(net.minecraft.registry.tag.ItemTags.COAL_ORES)
@@ -8011,6 +8073,196 @@ public class GolemAI {
 
         public boolean isRecord() {
             return golem.getHeldItem().get(DataComponentTypes.JUKEBOX_PLAYABLE) != null;
+        }
+    }
+    public static class HoneyBabysitterGoal extends Goal {
+        private final UtilityGolem golem;
+        private BlockPos targetPos;
+        private int actionCooldown = 0;
+        private int smokeCooldown = 0;
+
+        public HoneyBabysitterGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public void start() {
+            updateHeldItem();
+        }
+
+        @Override
+        public boolean canStart() {
+            if (actionCooldown > 0) {
+                actionCooldown--;
+                return false;
+            }
+            targetPos = findTargetHive();
+            return targetPos != null;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            if (targetPos == null) return false;
+            BlockState state = golem.getEntityWorld().getBlockState(targetPos);
+            return isHive(state) && getHoneyLevel(state) >= 5;
+        }
+
+        @Override
+        public void stop() {
+            targetPos = null;
+            golem.setHeldItem(ItemStack.EMPTY);
+        }
+
+        @Override
+        public void tick() {
+            if (targetPos == null) return;
+
+            golem.getLookControl().lookAt(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
+
+            double dist = golem.getBlockPos().getSquaredDistance(targetPos);
+            if (dist > 9.0) { // 3 blocks
+                golem.getNavigation().startMovingTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 1.1D);
+            } else {
+                golem.getNavigation().stop();
+                
+                updateHeldItem();
+                
+                // Smoke logic - purely visual particles
+                if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                    if (golem.getEntityWorld().getRandom().nextInt(5) == 0) {
+                        double px = targetPos.getX() + 0.5 + (golem.getEntityWorld().getRandom().nextDouble() - 0.5);
+                        double py = targetPos.getY() + 0.5 + (golem.getEntityWorld().getRandom().nextDouble() - 0.5);
+                        double pz = targetPos.getZ() + 0.5 + (golem.getEntityWorld().getRandom().nextDouble() - 0.5);
+                        serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.CAMPFIRE_COSY_SMOKE, px, py, pz, 1, 0, 0.07, 0, 0);
+                    }
+                }
+
+                if (smokeCooldown > 0) {
+                    smokeCooldown--;
+                } else if (smokeCooldown == 0) {
+                    smokeCooldown = 40; // Initial "smoking" time
+                } else {
+                    harvestHive();
+                    actionCooldown = 40;
+                }
+
+                // If we've been smoking for a while, harvest
+                if (smokeCooldown > 0) {
+                   smokeCooldown--;
+                   if (smokeCooldown == 1) {
+                       harvestHive();
+                       actionCooldown = 40;
+                   }
+                }
+            }
+        }
+
+        private void updateHeldItem() {
+            int shearsIdx = findItem(Items.SHEARS);
+            if (shearsIdx != -1) {
+                golem.setHeldItem(golem.getInventory().getStack(shearsIdx).copyWithCount(1));
+                return;
+            }
+
+            int bottleIdx = findItem(Items.GLASS_BOTTLE);
+            if (bottleIdx != -1) {
+                golem.setHeldItem(golem.getInventory().getStack(bottleIdx).copyWithCount(1));
+                return;
+            }
+        }
+
+        private BlockPos findTargetHive() {
+            BlockPos pos = golem.getBlockPos();
+            World world = golem.getEntityWorld();
+            for (BlockPos testPos : BlockPos.iterate(pos.add(-8, -4, -8), pos.add(8, 4, 8))) {
+                BlockState state = world.getBlockState(testPos);
+                if (isHive(state) && getHoneyLevel(state) >= 5) {
+                    return testPos.toImmutable();
+                }
+            }
+            return null;
+        }
+
+        private boolean isHive(BlockState state) {
+            return state.isIn(BlockTags.BEEHIVES);
+        }
+
+        private int getHoneyLevel(BlockState state) {
+            if (state.contains(net.minecraft.state.property.Properties.HONEY_LEVEL)) {
+                return state.get(net.minecraft.state.property.Properties.HONEY_LEVEL);
+            }
+            return 0;
+        }
+
+        private void harvestHive() {
+            World world = golem.getEntityWorld();
+            BlockState state = world.getBlockState(targetPos);
+            
+            // Try harvest honeycomb first (shears)
+            int shearsIdx = findItem(Items.SHEARS);
+            if (shearsIdx != -1) {
+                harvestHoneycomb(world, targetPos, state, shearsIdx);
+                return;
+            }
+
+            // Try harvest honey (glass bottle)
+            int bottleIdx = findItem(Items.GLASS_BOTTLE);
+            if (bottleIdx != -1) {
+                harvestHoney(world, targetPos, state, bottleIdx);
+                return;
+            }
+        }
+
+        private void harvestHoneycomb(World world, BlockPos pos, BlockState state, int slot) {
+            if (world.isClient()) return;
+            
+            golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
+            world.playSound(null, pos, SoundEvents.BLOCK_BEEHIVE_SHEAR, SoundCategory.BLOCKS, 1.0F, 1.0F);
+            
+            // Reset honey level without angering bees (simulate silk touch/smoke behavior)
+            if (world instanceof ServerWorld serverWorld) {
+                // In vanilla, bees are calmed by smoke. We simulate this by directly setting state
+                // and ensuring no angry bees are spawned.
+                world.setBlockState(pos, state.with(net.minecraft.state.property.Properties.HONEY_LEVEL, 0), 3);
+                
+                ItemStack honeycombs = new ItemStack(Items.HONEYCOMB, 3);
+                if (!golem.getInventory().addStack(honeycombs).isEmpty()) {
+                    Block.dropStack(world, pos, honeycombs);
+                }
+                golem.setHeldItem(honeycombs.copyWithCount(1));
+                
+                // Damage shears
+                ItemStack shears = golem.getInventory().getStack(slot);
+                shears.damage(1, serverWorld, null, (item) -> {});
+            }
+        }
+
+        private void harvestHoney(World world, BlockPos pos, BlockState state, int slot) {
+            if (world.isClient()) return;
+
+            golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
+            world.playSound(null, pos, SoundEvents.ITEM_BOTTLE_FILL_DRAGONBREATH, SoundCategory.BLOCKS, 1.0F, 1.0F);
+
+            // Reset honey level
+            world.setBlockState(pos, state.with(net.minecraft.state.property.Properties.HONEY_LEVEL, 0), 3);
+
+            // Consume bottle
+            golem.getInventory().getStack(slot).decrement(1);
+
+            // Add honey bottle
+            ItemStack honeyBottle = new ItemStack(Items.HONEY_BOTTLE);
+            if (!golem.getInventory().addStack(honeyBottle).isEmpty()) {
+                Block.dropStack(world, pos, honeyBottle);
+            }
+            golem.setHeldItem(honeyBottle.copy());
+        }
+
+        private int findItem(Item item) {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isOf(item)) return i;
+            }
+            return -1;
         }
     }
     public static class PlaceBlockGoal extends Goal {
