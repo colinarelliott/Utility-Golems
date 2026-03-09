@@ -1285,7 +1285,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public static boolean isTool(ItemStack stack) {
         return isPickaxe(stack) || isSword(stack) || isAxe(stack) || isHoe(stack) || isShovel(stack) || isFishingRod(stack) || isShears(stack)
-                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack);
+                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack) || stack.isOf(Items.BUCKET) || stack.isOf(Items.WATER_BUCKET);
     }
 
     public static boolean isLightSource(BlockState state) {
@@ -1293,6 +1293,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private BlockPos chestPos;
+    private BlockPos farmTarget;
 
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
@@ -1379,6 +1380,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return chestPos;
     }
 
+    public BlockPos getFarmTarget() {
+        return farmTarget;
+    }
+
+    public void setFarmTarget(BlockPos farmTarget) {
+        this.farmTarget = farmTarget;
+    }
+
     public void setChestPos(BlockPos chestPos) {
         this.chestPos = chestPos;
         this.setMiningDirection(null); // Reset mining direction when chest changes
@@ -1410,8 +1419,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         BlockPos pos = this.getBlockPos();
-        int range = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS) ? 32 : 16;
-        int verticalRange = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS) ? 15 : 4;
+        int range = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 32 : 16;
+        int verticalRange = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 15 : 4;
         
         for (int x = -range; x <= range; x++) {
             for (int y = -verticalRange; y <= verticalRange; y++) {

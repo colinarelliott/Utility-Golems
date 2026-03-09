@@ -2243,7 +2243,18 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.NETHER_WART) return hasNetherWartItemsToDeposit();
             if (golem.getGolemType() == GolemType.NETHERITE || golem.getGolemType() == GolemType.ANCIENT) return hasNetheriteItemsToDeposit();
             if (golem.getGolemType() == GolemType.LAPIS) return hasLapisItemsToDeposit();
-            return hasFullStack() || isInventoryFull();
+            return hasFullStack() || (isInventoryFull() && hasAnythingToDeposit());
+        }
+
+        private boolean hasAnythingToDeposit() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isEmpty()) continue;
+                if (UtilityGolem.isTool(stack)) continue;
+                return true;
+            }
+            return false;
         }
 
         private boolean hasNetheriteItemsToDeposit() {
@@ -2320,7 +2331,9 @@ public class GolemAI {
                     itemCount += stack.getCount();
                 }
             }
-            return itemCount >= 16 || isInventoryFull();
+            if (itemCount >= 16) return true;
+            if (isInventoryFull() && itemCount > 0) return true;
+            return false;
         }
 
         private boolean hasDiamondItemsToDeposit() {
@@ -2402,8 +2415,6 @@ public class GolemAI {
 
 
         private boolean hasCropsToDeposit() {
-            if (isInventoryFull()) return true;
-
             SimpleInventory inv = golem.getInventory();
             
             for (int i = 0; i < inv.size(); i++) {
@@ -2416,6 +2427,18 @@ public class GolemAI {
                             if (getSeedCount(stack.getItem()) > 16) return true;
                             continue;
                         }
+                    }
+                    return true;
+                }
+            }
+            
+            if (isInventoryFull()) {
+                // If inventory is full, we must deposit SOMETHING that isn't a tool or bucket
+                for (int i = 0; i < inv.size(); i++) {
+                    ItemStack stack = inv.getStack(i);
+                    if (stack.isEmpty()) continue;
+                    if (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isTool(stack)) {
+                        continue;
                     }
                     return true;
                 }
@@ -5072,7 +5095,12 @@ public class GolemAI {
             }
             if (chestPos == null) return false;
 
-            return targetPos != null;
+            targetPos = findTargetPos();
+            if (targetPos != null) {
+                golem.setFarmTarget(targetPos);
+                return true;
+            }
+            return false;
         }
 
         private BlockPos findNearbyChest() {
@@ -5083,13 +5111,14 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return null;
 
-            // Search the whole 10x10 area around the chest for tasks
+            // Search the whole 16x16 area around the chest for tasks
             // This is more robust than only searching around water centers
-            for (int x = -10; x <= 10; x++) {
-                for (int z = -10; z <= 10; z++) {
+            List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
+            for (int x = -16; x <= 16; x++) {
+                for (int z = -16; z <= 16; z++) {
                     for (int y = -3; y <= 3; y++) {
                         BlockPos p = chestPos.add(x, y, z);
-                        if (p.equals(chestPos) || golem.isBlacklisted(p)) {
+                        if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) {
                             continue;
                         }
 
@@ -5105,7 +5134,7 @@ public class GolemAI {
             BlockPos waterPos = findWaterCenter(chestPos);
             if (waterPos == null && hasWaterBucket()) {
                 BlockPos waterSpot = findPlaceForWater(chestPos);
-                if (waterSpot != null) return waterSpot;
+                if (waterSpot != null && !otherGolemsTargets.contains(waterSpot)) return waterSpot;
             }
 
             // If we have water, search for tilling and planting
@@ -5114,7 +5143,7 @@ public class GolemAI {
                     for (int z = -4; z <= 4; z++) {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos p = waterPos.add(x, y, z);
-                            if (p.equals(waterPos) || golem.isBlacklisted(p)) {
+                            if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) {
                                 continue;
                             }
                             if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) {
@@ -5125,11 +5154,11 @@ public class GolemAI {
                 }
             } else if (!hasWaterBucket()) {
                 // Fallback: search around chest if no water exists and we can't make it
-                for (int x = -10; x <= 10; x++) {
-                    for (int z = -10; z <= 10; z++) {
+                for (int x = -16; x <= 16; x++) {
+                    for (int z = -16; z <= 16; z++) {
                         for (int y = -3; y <= 3; y++) {
                             BlockPos p = chestPos.add(x, y, z);
-                            if (p.equals(chestPos) || golem.isBlacklisted(p)) continue;
+                            if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
                             if (shouldTill(p, null) || shouldPlant(p, null)) return p;
                         }
                     }
@@ -5137,6 +5166,18 @@ public class GolemAI {
             }
 
             return null;
+        }
+
+        private List<BlockPos> getOtherGolemsTargets() {
+            List<BlockPos> targets = new ArrayList<>();
+            List<UtilityGolem> golems = golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(32.0), g -> g != golem && g.getGolemType() == GolemType.BAMBOO);
+            for (UtilityGolem g : golems) {
+                BlockPos target = g.getFarmTarget();
+                if (target != null) {
+                    targets.add(target);
+                }
+            }
+            return targets;
         }
 
         private boolean isWater(BlockPos pos) {
@@ -5379,6 +5420,7 @@ public class GolemAI {
                 if (stuckTicks > 100) {
                     golem.blacklistPosition(targetPos);
                     targetPos = null;
+                    golem.setFarmTarget(null);
                     return;
                 }
 
@@ -5387,6 +5429,7 @@ public class GolemAI {
                     if (!possible) {
                         golem.blacklistPosition(targetPos);
                         targetPos = null;
+                        golem.setFarmTarget(null);
                         return;
                     }
                 }
@@ -5404,8 +5447,14 @@ public class GolemAI {
                     performFarmAction();
                     farmActionTime = 0;
                     targetPos = findTargetPos();
+                    golem.setFarmTarget(targetPos);
                 }
             }
+        }
+
+        @Override
+        public void stop() {
+            golem.setFarmTarget(null);
         }
 
         private void ensureCorrectTool() {
@@ -5483,6 +5532,7 @@ public class GolemAI {
                     }
                 }
                 targetPos = null;
+                golem.setFarmTarget(null);
                 return;
             }
 
@@ -5505,6 +5555,7 @@ public class GolemAI {
                     }
                 }
                 targetPos = null;
+                golem.setFarmTarget(null);
                 return;
             }
             
@@ -5512,6 +5563,7 @@ public class GolemAI {
             // then we should NOT be doing other farm actions yet.
             if (waterPos != null && !isWater(waterPos)) {
                 targetPos = null;
+                golem.setFarmTarget(null);
                 return;
             }
 
@@ -5536,6 +5588,7 @@ public class GolemAI {
                     golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                 }
                 targetPos = null;
+                golem.setFarmTarget(null);
                 return;
             }
 
@@ -5546,10 +5599,17 @@ public class GolemAI {
                 
                 // Damage hoe
                 ItemStack hoe = golem.getHeldItem();
-                if (world instanceof ServerWorld serverWorld) {
-                    hoe.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                if (UtilityGolem.isHoe(hoe)) {
+                    if (world instanceof ServerWorld serverWorld) {
+                        hoe.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                    }
                 }
+                
+                // Swing hand to show action
+                golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                
                 targetPos = null; // Reset target after action
+                golem.setFarmTarget(null);
                 return;
             }
 
@@ -5586,6 +5646,9 @@ public class GolemAI {
                                 world.playSound(null, targetPos, net.minecraft.sound.SoundEvents.BLOCK_GRASS_PLACE, net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
                             }
 
+                            // Swing hand to show action
+                            golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+
                             // After planting, if we have a hoe in inventory, swap back to it
                             if (hasHoe() && !UtilityGolem.isHoe(golem.getHeldItem())) {
                                 swapToHoe();
@@ -5593,6 +5656,7 @@ public class GolemAI {
                         }
                 }
                 targetPos = null; // Reset target after action
+                golem.setFarmTarget(null);
             }
         }
 
