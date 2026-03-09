@@ -1340,6 +1340,30 @@ public class GolemAI {
             // Damage the fishing rod
             ItemStack rod = golem.getHeldItem();
             if (!rod.isEmpty() && UtilityGolem.isFishingRod(rod)) {
+                // Apply Lure and Luck of the Sea if possible
+                if (serverWorld.getRegistryManager() != null) {
+                    var registry = serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                    int lureLevel = EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.LURE), rod);
+                    int luckLevel = EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.LUCK_OF_THE_SEA), rod);
+                    
+                    // Lure reduces wait time by 5 seconds (100 ticks) per level
+                    maxFishingTime = Math.max(20, maxFishingTime - (lureLevel * 100));
+                    
+                    // Luck of the Sea increases treasure chance (simplified)
+                    if (luckLevel > 0 && chance >= 85) {
+                        // If we already rolled junk/treasure, make it even better
+                        if (golem.getRandom().nextInt(10) < luckLevel) {
+                            loot = Items.ENCHANTED_BOOK.getDefaultStack();
+                            var enchantmentRegistry = serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                            var optionalEnchantment = enchantmentRegistry.getRandom(golem.getRandom());
+                            if (optionalEnchantment.isPresent()) {
+                                loot.addEnchantment(optionalEnchantment.get(), net.minecraft.util.math.MathHelper.nextInt(golem.getRandom(), 2, 4));
+                            }
+                            golem.setAnimation(GolemAnimation.CATCHING_RARE_FISH, 20);
+                        }
+                    }
+                }
+                
                 rod.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
             }
             
@@ -4370,29 +4394,15 @@ public class GolemAI {
             if (hardness < 0) return 200; // Unbreakable
 
             float speed = 1.0f;
-            if (UtilityGolem.isPickaxe(tool)) {
-                if (tool.isOf(Items.GOLDEN_PICKAXE)) speed = 9.0f;
-                else if (tool.isOf(Items.NETHERITE_PICKAXE)) speed = 12.0f;
-                else if (tool.isOf(Items.DIAMOND_PICKAXE)) speed = 12.0f;
-                else if (tool.isOf(Items.IRON_PICKAXE)) speed = 6.0f;
-                else if (tool.isOf(Items.STONE_PICKAXE)) speed = 4.0f;
-                else if (tool.isOf(Items.WOODEN_PICKAXE)) speed = 2.0f;
-                else if (tool.isOf(Items.COPPER_PICKAXE)) speed = 5.0f;
-            } else if (UtilityGolem.isShovel(tool)) {
-                if (tool.isOf(Items.GOLDEN_SHOVEL)) speed = 9.0f;
-                else if (tool.isOf(Items.NETHERITE_SHOVEL)) speed = 12.0f;
-                else if (tool.isOf(Items.DIAMOND_SHOVEL)) speed = 12.0f;
-                else if (tool.isOf(Items.IRON_SHOVEL)) speed = 6.0f;
-                else if (tool.isOf(Items.STONE_SHOVEL)) speed = 4.0f;
-                else if (tool.isOf(Items.WOODEN_SHOVEL)) speed = 2.0f;
-                else if (tool.isOf(Items.COPPER_SHOVEL)) speed = 5.0f;
-            }
-
-            // Apply efficiency enchantment
-            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
-                int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
-                if (efficiencyLevel > 0) {
-                    speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+            if (tool != null && !tool.isEmpty()) {
+                speed = tool.getMiningSpeedMultiplier(state);
+                
+                // If the tool is efficient against this block, apply efficiency enchantment
+                if (speed > 1.0f && golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                    int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
+                    if (efficiencyLevel > 0) {
+                        speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+                    }
                 }
             }
 
@@ -6684,26 +6694,15 @@ public class GolemAI {
             if (hardness < 0) return 200;
 
             float speed = 1.0f;
-            if (UtilityGolem.isShears(tool)) {
-                if (state.isIn(BlockTags.LEAVES)) {
-                    speed = 15.0f;
-                } else {
-                    speed = 1.0f;
-                }
-            } else if (UtilityGolem.isAxe(tool)) {
-                if (tool.isOf(Items.GOLDEN_AXE)) speed = 12.0f;
-                else if (tool.isOf(Items.NETHERITE_AXE)) speed = 9.0f;
-                else if (tool.isOf(Items.DIAMOND_AXE)) speed = 8.0f;
-                else if (tool.isOf(Items.IRON_AXE)) speed = 6.0f;
-                else if (tool.isOf(Items.STONE_AXE)) speed = 4.0f;
-                else if (tool.isOf(Items.WOODEN_AXE)) speed = 2.0f;
-            }
-
-            // Apply efficiency enchantment
-            if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
-                int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
-                if (efficiencyLevel > 0) {
-                    speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+            if (tool != null && !tool.isEmpty()) {
+                speed = tool.getMiningSpeedMultiplier(state);
+                
+                // If the tool is efficient against this block, apply efficiency enchantment
+                if (speed > 1.0f && golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                    int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), tool);
+                    if (efficiencyLevel > 0) {
+                        speed += (float)(efficiencyLevel * efficiencyLevel + 1);
+                    }
                 }
             }
 

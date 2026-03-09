@@ -7,6 +7,9 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
@@ -1620,9 +1623,30 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public boolean tryAttack(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
         boolean success = super.tryAttack(world, target);
-        if (success && (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
-            this.spawnSweepingAttackParticles(world);
-            this.applySweepingDamage(world, target);
+        if (success) {
+            if (target instanceof net.minecraft.entity.LivingEntity livingTarget) {
+                // Apply knockback enchantment
+                int knockbackLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), this.getHeldItem());
+                if (knockbackLevel > 0) {
+                    livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
+                    this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
+                }
+
+                // Apply fire aspect enchantment
+                int fireAspectLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), this.getHeldItem());
+                if (fireAspectLevel > 0) {
+                    livingTarget.setOnFireFor(fireAspectLevel * 4);
+                }
+
+                // Apply post-attack effects
+                EnchantmentHelper.onTargetDamaged(world, livingTarget, this.getDamageSources().mobAttack(this));
+            }
+
+            // Netherite/Ancient sweeping attack
+            if ((this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
+                this.spawnSweepingAttackParticles(world);
+                this.applySweepingDamage(world, target);
+            }
         }
         return success;
     }
@@ -1635,7 +1659,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
         float damage = (float)this.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
-        float sweepingDamage = 1.0f + (0.0f * damage); // Default ratio if EnchantmentHelper method not available
+        int sweepingLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), this.getHeldItem());
+        float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
         for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
             return entity != this && entity != target && !this.isTeammate(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
@@ -1698,11 +1723,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         
         ItemStack stack = this.getHeldItem();
         
-        if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 6.0f;
-        else if (stack.isOf(Items.DIAMOND_SWORD)) baseDamage += 5.0f;
-        else if (stack.isOf(Items.IRON_SWORD)) baseDamage += 3.0f;
-        else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 2.0f;
-        else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 1.5f;
+        if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 8.0f;
+        else if (stack.isOf(Items.DIAMOND_SWORD)) baseDamage += 7.0f;
+        else if (stack.isOf(Items.IRON_SWORD)) baseDamage += 6.0f;
+        else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 5.0f;
+        else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 4.0f;
         else if (stack.isOf(Items.GOLDEN_SWORD)) baseDamage += 4.0f;
         
         var instance = this.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
