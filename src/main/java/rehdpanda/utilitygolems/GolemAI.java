@@ -4903,7 +4903,9 @@ public class GolemAI {
         }
 
         private int stuckTicks = 0;
+        private int loopCounter = 0;
         private Vec3d lastPos = Vec3d.ZERO;
+        private BlockPos lastTargetPos = null;
 
         @Override
         public void tick() {
@@ -4934,16 +4936,63 @@ public class GolemAI {
                     if (chestPos != null) {
                         golem.debugLog("DigBlockGoal: Extremely stuck, teleporting to chest.");
                         golem.requestTeleport(chestPos.getX() + 0.5, chestPos.getY() + 1.0, chestPos.getZ() + 0.5);
+                        
+                        if (golem.getGolemType() == GolemType.LAPIS) {
+                            if (targetPos.equals(lastTargetPos)) {
+                                loopCounter++;
+                                golem.debugLog("Lapis: Stuck on same target " + loopCounter + " times");
+                            } else {
+                                lastTargetPos = targetPos;
+                                loopCounter = 1;
+                            }
+                            
+                            if (loopCounter >= 3) {
+                                golem.debugLog("Lapis: Stuck loop detected, forcing new direction");
+                                Direction current = golem.getMiningDirection();
+                                if (current != null) {
+                                    failedDirections.add(current);
+                                    Direction newFacing = null;
+                                    for (Direction dir : Direction.Type.HORIZONTAL) {
+                                        if (!failedDirections.contains(dir) && dir != current.getOpposite()) {
+                                            newFacing = dir;
+                                            break;
+                                        }
+                                    }
+                                    if (newFacing == null) {
+                                        failedDirections.clear();
+                                        newFacing = current.rotateYClockwise();
+                                    }
+                                    golem.setMiningDirection(newFacing);
+                                    loopCounter = 0;
+                                }
+                            }
+                        }
                     }
                     stuckTicks = 0;
                     targetPos = null;
                     return;
                 }
 
-                if (golem.getGolemType() == GolemType.LAPIS && tryPlaceStepUp()) {
-                    golem.debugLog("Lapis: Attempting to place step up");
-                    stuckTicks = 0;
-                    return;
+                if (golem.getGolemType() == GolemType.LAPIS) {
+                    if (tryPlaceStepUp()) {
+                        golem.debugLog("Lapis: Attempting to place step up");
+                        stuckTicks = 0;
+                        return;
+                    }
+                    
+                    // Try to dig our way out if stuck in a cave
+                    BlockPos above = golem.getBlockPos().up(2);
+                    if (canDig(above)) {
+                        BlockState state = golem.getEntityWorld().getBlockState(above);
+                        if (!state.isAir() && !UtilityGolem.isLightSource(state)) {
+                            golem.debugLog("Lapis: Stuck in cave? Digging out at " + above.toShortString());
+                            targetPos = above;
+                            maxBreakingTime = calculateBreakingTime(golem.getHeldItem(), targetPos);
+                            breakingTime = 0;
+                            stuckTicks = 0;
+                            return;
+                        }
+                    }
                 }
                 
                 if (stuckTicks > 120) { // If still stuck after trying to place
@@ -4974,7 +5023,10 @@ public class GolemAI {
             double horizontalDistSq = dx * dx + dz * dz;
             double verticalDist = Math.abs(dy);
 
-            if (horizontalDistSq > 9.0D || verticalDist > 2.0D) {
+            double reachDistSq = golem.getGolemType() == GolemType.LAPIS ? 16.0D : 9.0D;
+            double reachVertical = golem.getGolemType() == GolemType.LAPIS ? 4.0D : 2.0D;
+
+            if (horizontalDistSq > reachDistSq || verticalDist > reachVertical) {
                 // If it's high up or far below, move to the XZ position at our current height
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
                     boolean possible;
