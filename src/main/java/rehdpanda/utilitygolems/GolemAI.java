@@ -1643,8 +1643,14 @@ public class GolemAI {
                             }
                             if (chestPos != null && golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5) < 16.0D) {
                                 Inventory chestInv = golem.getChestInventory(chestPos);
-                                if (chestInv != null && golem.getEntityWorld().getBlockState(chestPos).getBlock() == golem.getGolemType().getChestBlock()) {
-                                    remaining = transferStackToChest(remaining, chestInv);
+                                if (chestInv != null) {
+                                    BlockState chestState = golem.getEntityWorld().getBlockState(chestPos);
+                                    if (chestState.getBlock() == golem.getGolemType().getChestBlock()) {
+                                        remaining = transferStackToChest(remaining, chestInv);
+                                    } else if (golem.getGolemType() == GolemType.NETHER_WART && isFullyFinished(remaining)) {
+                                        // Nether Wart Golems can deposit completed potions in normal chests
+                                        remaining = transferStackToChest(remaining, chestInv);
+                                    }
                                 }
                             }
                         }
@@ -2225,8 +2231,14 @@ public class GolemAI {
                     BlockPos chestPos = golem.getChestPos();
                     if (chestPos != null && golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5) < 16.0D) {
                         Inventory chestInv = golem.getChestInventory(chestPos);
-                        if (chestInv != null && golem.getEntityWorld().getBlockState(chestPos).getBlock() == golem.getGolemType().getChestBlock()) {
-                            remaining = transferStackToChest(remaining, chestInv);
+                        if (chestInv != null) {
+                            BlockState chestState = golem.getEntityWorld().getBlockState(chestPos);
+                            if (chestState.getBlock() == golem.getGolemType().getChestBlock()) {
+                                remaining = transferStackToChest(remaining, chestInv);
+                            } else if (golem.getGolemType() == GolemType.NETHER_WART && BrewingGoal.isRegularPotionStatic(remaining)) {
+                                // Nether Wart Golems can deposit completed potions in normal chests
+                                remaining = transferStackToChest(remaining, chestInv);
+                            }
                         }
                     }
                     if (!remaining.isEmpty()) {
@@ -2577,6 +2589,9 @@ public class GolemAI {
         }
 
         private boolean isSapling(ItemStack stack) {
+            if (golem.getGolemType() == GolemType.DEEPSLATE) {
+                return stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER) || stack.isOf(Items.CHORUS_FRUIT);
+            }
             return stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS);
         }
 
@@ -2792,6 +2807,13 @@ public class GolemAI {
                             }
                             if (BrewingGoal.isWaterBottleStatic(stack) || BrewingGoal.isAwkwardPotionStatic(stack)) {
                                 continue;
+                            }
+                            
+                            // If this isn't a Nether Wart Golem Chest, only deposit completed potions
+                            if (golem.getEntityWorld().getBlockState(chestPos).getBlock() != golem.getGolemType().getChestBlock()) {
+                                if (!BrewingGoal.isRegularPotionStatic(stack)) {
+                                    continue;
+                                }
                             }
                         }
                         ItemStack remaining = transferStack(stack, container);
@@ -6648,8 +6670,10 @@ public class GolemAI {
                                 double leafPenalty = hasShearsInInventory() ? 10.0 : 1000.0;
                                 // Add a Y penalty to favor lower blocks (like the base of the tree)
                                 double yPenalty = (p.getY() - golem.getY()) * 4.0;
+                                double chorusFlowerBonus = isChorusFlower(p) ? -1000.0 : 0.0;
+                                double bottomChorusPenalty = isBottomChorus(p) ? 500.0 : 0.0;
                                 
-                                double score = distSq + (isLog(p) ? 0 : leafPenalty) + Math.max(0, yPenalty);
+                                double score = distSq + (isLog(p) ? 0 : leafPenalty) + Math.max(0, yPenalty) + chorusFlowerBonus + bottomChorusPenalty;
 
                                 // If it's a 2x2 tree, we want to leave a spiral staircase
                                 if (treeBase != null && isPartOf2x2(p, treeBase)) {
@@ -6669,7 +6693,7 @@ public class GolemAI {
             }
             
             // If the closest block is not at the ground level of the tree, try to find the base of that same tree
-            if (closest != null && isLog(closest)) {
+            if (closest != null && isLog(closest) && !isChorus(closest)) {
                 // If it's part of a 2x2, we already handled priority. 
                 // If it's NOT part of 2x2, we still want to go to the base.
                 if (treeBase == null || !isPartOf2x2(closest, treeBase)) {
@@ -6735,7 +6759,9 @@ public class GolemAI {
                                 double distSq = p.getSquaredDistance(golem.getX(), golem.getY(), golem.getZ());
                                 // Heavy bias towards logs to prioritize them over leaves
                                 double leafPenalty = hasShearsInInventory() ? 10.0 : 1000.0;
-                                double score = distSq + (isLog(p) ? 0 : leafPenalty);
+                                double chorusFlowerBonus = isChorusFlower(p) ? -100.0 : 0.0;
+                                double bottomChorusPenalty = isBottomChorus(p) ? 50.0 : 0.0;
+                                double score = distSq + (isLog(p) ? 0 : leafPenalty) + chorusFlowerBonus + bottomChorusPenalty;
 
                                 // If it's a 2x2 tree, we want to leave a spiral staircase
                                 if (treeBase != null && isPartOf2x2(p, treeBase)) {
@@ -6759,6 +6785,7 @@ public class GolemAI {
         private boolean canChop(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             if (state.isIn(BlockTags.LOGS)) return true;
+            if (state.isOf(Blocks.CHORUS_PLANT) || state.isOf(Blocks.CHORUS_FLOWER)) return true;
             if (state.isIn(BlockTags.LEAVES)) {
                 // Deepslate golems with shears should always be allowed to collect leaves.
                 if (golem.getGolemType() == GolemType.DEEPSLATE && hasShearsInInventory()) {
@@ -6792,9 +6819,23 @@ public class GolemAI {
             return false;
         }
 
+        private boolean isChorus(BlockPos pos) {
+            BlockState state = golem.getEntityWorld().getBlockState(pos);
+            return state.isOf(Blocks.CHORUS_PLANT) || state.isOf(Blocks.CHORUS_FLOWER);
+        }
+
+        private boolean isChorusFlower(BlockPos pos) {
+            return golem.getEntityWorld().getBlockState(pos).isOf(Blocks.CHORUS_FLOWER);
+        }
+
+        private boolean isBottomChorus(BlockPos pos) {
+            BlockState state = golem.getEntityWorld().getBlockState(pos);
+            return state.isOf(Blocks.CHORUS_PLANT) && golem.getEntityWorld().getBlockState(pos.down()).isOf(Blocks.END_STONE);
+        }
+
         private boolean isLog(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
-            return state.isIn(BlockTags.LOGS);
+            return state.isIn(BlockTags.LOGS) || state.isOf(Blocks.CHORUS_PLANT) || state.isOf(Blocks.CHORUS_FLOWER);
         }
 
         @Override

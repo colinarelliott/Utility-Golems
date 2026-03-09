@@ -1436,6 +1436,24 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 }
             }
         }
+
+        // Nether wart golems can fallback to normal chests if no golem chest found
+        if (this.getGolemType() == GolemType.NETHER_WART) {
+            for (int x = -range; x <= range; x++) {
+                for (int y = -verticalRange; y <= verticalRange; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        if (this.isBlacklisted(p)) continue;
+                        BlockEntity be = this.getEntityWorld().getBlockEntity(p);
+                        BlockState bs = this.getEntityWorld().getBlockState(p);
+                        if (be instanceof Inventory && (bs.getBlock() == net.minecraft.block.Blocks.CHEST || bs.getBlock() == net.minecraft.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.block.Blocks.BARREL)) {
+                            this.setChestPos(p);
+                            return p;
+                        }
+                    }
+                }
+            }
+        }
         return null;
     }
 
