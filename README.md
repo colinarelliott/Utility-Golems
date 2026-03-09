@@ -78,3 +78,16 @@
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
 
 - 500 durability, standard tool
+
+### Included Languages
+  - `en_us.json` (US English)
+  - `zh_cn.json` (Mandarin Chinese)
+  - `hi_in.json` (Hindi)
+  - `es_es.json` (Spanish)
+  - `fr_fr.json` (French)
+  - `ar_sa.json` (Arabic)
+  - `bn_in.json` (Bengali)
+  - `pt_br.json` (Portuguese)
+  - `ru_ru.json` (Russian)
+  - `ur_pk.json` (Urdu)
+  - `id_id.json` (Indonesian)
