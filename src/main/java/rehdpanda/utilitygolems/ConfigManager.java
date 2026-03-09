@@ -75,6 +75,7 @@ public class ConfigManager {
             golems.put("nether_wart_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("smoker_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("blast_furnace_golem", new GolemStats(40.0, 0.3, 0.5));
+            golems.put("medic_golem", new GolemStats(40.0, 0.3, 0.5));
         }
     }
 

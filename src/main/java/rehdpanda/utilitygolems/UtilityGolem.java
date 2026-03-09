@@ -1033,6 +1033,26 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 return ActionResult.SUCCESS;
             }
 
+            if (this.golemType == GolemType.MEDIC) {
+                ItemStack wrench = ItemStack.EMPTY;
+                for (int i = 0; i < this.inventory.size(); i++) {
+                    if (this.inventory.getStack(i).isOf(UGItems.WRENCH_ITEM)) {
+                        wrench = this.inventory.removeStack(i);
+                        break;
+                    }
+                }
+                if (!wrench.isEmpty()) {
+                    if (!player.getEntityWorld().isClient()) {
+                        if (!player.getInventory().insertStack(wrench)) {
+                            player.dropItem(wrench, false);
+                        }
+                        this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                        this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
+                    }
+                    return ActionResult.SUCCESS;
+                }
+            }
+
             ItemStack golemStack = this.getHeldItem();
             if (!golemStack.isEmpty()) {
                 if (!player.getEntityWorld().isClient()) {
@@ -1114,6 +1134,24 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (this.golemType == GolemType.LAMP && isTorch(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.MEDIC && playerStack.isOf(UGItems.WRENCH_ITEM)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack disc = playerStack.copy();
+                disc.setCount(1);
+                ItemStack remaining = this.inventory.addStack(disc);
+                if (remaining.isEmpty()) {
+                    if (!player.getAbilities().creativeMode) {
+                        playerStack.decrement(1);
+                    }
+                    this.equipStack(EquipmentSlot.MAINHAND, disc);
+                    player.sendMessage(Text.literal("Gave wrench to Medic Golem"), true);
+                } else {
+                    player.sendMessage(Text.literal("Medic Golem's inventory is full"), true);
+                }
             }
             return ActionResult.SUCCESS;
         }
@@ -1453,6 +1491,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public BlockPos findNearbyChest() {
+        if (this.getGolemType() == GolemType.MEDIC) return null;
         if (this.chestPos != null) {
             if (this.isBlacklisted(this.chestPos)) {
                 this.chestPos = null;

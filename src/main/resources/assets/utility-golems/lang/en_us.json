@@ -62,6 +62,7 @@
   "item.utility-golems.smoker_golem_spawn_egg": "Smoker Golem Spawn Egg",
   "item.utility-golems.blast_furnace_golem_spawn_egg": "Blast Furnace Golem Spawn Egg",
   "item.utility-golems.nether_wart_golem_spawn_egg": "Nether Wart Golem Spawn Egg",
+  "item.utility-golems.medic_golem_spawn_egg": "Medic Golem Spawn Egg",
   
   "item.utility-golems.lapis_chest": "Lapis Chest",
   "item.utility-golems.redstone_chest": "Redstone Chest",
@@ -86,5 +87,6 @@
   "entity.utility-golems.blast_furnace_golem": "Blast Furnace Golem",
   "entity.utility-golems.jukebox_golem": "Jukebox Golem",
   "entity.utility-golems.nether_wart_golem": "Nether Wart Golem",
+  "entity.utility-golems.medic_golem": "Medic Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection"
 }

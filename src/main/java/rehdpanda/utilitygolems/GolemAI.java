@@ -276,6 +276,14 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
+    public static void initMedicGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                UGItems.WRENCH_ITEM
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new HealGolemsGoal(golem)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+    }
     
     /// DEBUG WRAPPER
     public static class DebugGoalWrapper extends Goal {
@@ -8269,6 +8277,126 @@ public class GolemAI {
             startFacing = null;
             // Removed patternProgress = 0; to allow the golem to resume if it gets interrupted.
             // Progress is only reset in canStart() if the pattern is changed.
+        }
+    }
+    /// HEAL GOLEMS GOAL
+    public static class HealGolemsGoal extends Goal {
+        private final UtilityGolem golem;
+        private UtilityGolem targetGolem;
+        private int healCooldown = 0;
+
+        public HealGolemsGoal(UtilityGolem golem) {
+            this.golem = golem;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (healCooldown > 0) {
+                healCooldown--;
+                return false;
+            }
+            if (!hasWrench()) return false;
+            
+            targetGolem = findDamagedGolem();
+            return targetGolem != null;
+        }
+
+        private boolean hasWrench() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private UtilityGolem findDamagedGolem() {
+            List<UtilityGolem> golems = golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(10.0D), 
+                e -> e != golem && e.getHealth() < e.getMaxHealth());
+            if (golems.isEmpty()) return null;
+            golems.sort(Comparator.comparingDouble(golem::squaredDistanceTo));
+            return golems.get(0);
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetGolem != null && targetGolem.isAlive() && targetGolem.getHealth() < targetGolem.getMaxHealth() && hasWrench() && golem.squaredDistanceTo(targetGolem) < 144.0D;
+        }
+
+        @Override
+        public void start() {
+            if (targetGolem != null) {
+                golem.getNavigation().startMovingTo(targetGolem, 1.2D);
+                
+                // Equip wrench to main hand when starting to heal
+                for (int i = 0; i < golem.getInventory().size(); i++) {
+                    ItemStack stack = golem.getInventory().getStack(i);
+                    if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
+                        golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                        break;
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void stop() {
+            golem.getNavigation().stop();
+            targetGolem = null;
+            
+            // Clear hand when stopping healing
+            golem.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        }
+
+        @Override
+        public void tick() {
+            if (targetGolem == null) return;
+
+            golem.getLookControl().lookAt(targetGolem, 30.0F, 30.0F);
+            double distSq = golem.squaredDistanceTo(targetGolem);
+
+            if (distSq < 4.0D) {
+                golem.getNavigation().stop();
+                if (healCooldown <= 0) {
+                    healTarget();
+                    healCooldown = 20; // Heal once per second
+                }
+            } else {
+                if (golem.getNavigation().isIdle()) {
+                    golem.getNavigation().startMovingTo(targetGolem, 1.2D);
+                }
+            }
+
+            if (healCooldown > 0) {
+                healCooldown--;
+            }
+        }
+
+        private void healTarget() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
+                    targetGolem.heal(2.0F);
+                    golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                    targetGolem.getEntityWorld().playSound(null, targetGolem.getBlockPos(), SoundEvents.BLOCK_ANVIL_USE, SoundCategory.NEUTRAL, 0.5F, 1.5F);
+                    
+                    if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                        serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.HAPPY_VILLAGER, targetGolem.getX(), targetGolem.getY() + 1.0, targetGolem.getZ(), 5, 0.2, 0.2, 0.2, 0.05);
+                    }
+
+                    stack.damage(1, (ServerWorld) golem.getEntityWorld(), null, item -> {});
+                    if (stack.isEmpty()) {
+                        golem.getInventory().setStack(i, ItemStack.EMPTY);
+                        golem.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                    } else {
+                        // Update hand in case it was a new stack (unlikely but good for consistency)
+                        golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                    }
+                    return;
+                }
+            }
         }
     }
     public static class ReturnToChestGoal extends Goal {
