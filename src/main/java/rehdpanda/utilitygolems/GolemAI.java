@@ -173,11 +173,11 @@ public class GolemAI {
                 Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
                 Items.BOW, Items.CROSSBOW, Items.TRIDENT, Items.SHIELD
         ), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new StayNearChestGoal(golem, 1.2D, 32.0F)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
-        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
-        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
+        golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new StayNearChestGoal(golem, 1.2D, 32.0F)));
         golem.getGoalSelector().add(7, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
         golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
         golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
@@ -375,7 +375,7 @@ public class GolemAI {
                 return false;
             }
 
-            BlockPos chestPos = golem.getChestPos();
+            BlockPos chestPos = golem.findNearbyChest();
             if (chestPos == null) {
                 searchCooldown = 40;
                 return false;
@@ -1634,7 +1634,7 @@ public class GolemAI {
                             }
                             if (chestPos != null && golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5) < 16.0D) {
                                 Inventory chestInv = golem.getChestInventory(chestPos);
-                                if (chestInv != null) {
+                                if (chestInv != null && golem.getEntityWorld().getBlockState(chestPos).getBlock() == golem.getGolemType().getChestBlock()) {
                                     remaining = transferStackToChest(remaining, chestInv);
                                 }
                             }
@@ -1713,7 +1713,8 @@ public class GolemAI {
             }
 
             // Priority 1: If there are water bottles, we NEED Nether Wart first.
-            if (hasWaterBottle) {
+            // But only if there aren't already Awkward potions in the stand.
+            if (hasWaterBottle && !hasAwkwardPotion) {
                 int nw = findItemInInventory(Items.NETHER_WART);
                 if (nw != -1) return nw;
             }
@@ -1723,13 +1724,15 @@ public class GolemAI {
                 for (int i = 0; i < golem.getInventory().size(); i++) {
                     ItemStack stack = golem.getInventory().getStack(i);
                     if (isPrimaryIngredient(stack) && !stack.isOf(Items.NETHER_WART)) {
-                        // Fermented Spider Eye is a special case. It's used on many potions.
-                        // But some recipes might prefer other ingredients first if available.
-                        // Actually, many potions are made FROM awkward potions + primary ingredient.
-                        // We'll just return the first primary ingredient that isn't nether wart.
                         return i;
                     }
                 }
+            }
+
+            // Priority 1.5: If we STILL have water bottles and no better options, then use nether wart
+            if (hasWaterBottle) {
+                int nw = findItemInInventory(Items.NETHER_WART);
+                if (nw != -1) return nw;
             }
 
             // Priority 3: If we have regular potions, use secondary ingredients (Gunpowder, etc.)
@@ -2120,6 +2123,10 @@ public class GolemAI {
                         if (golem.getEntityWorld().getFluidState(p).isIn(net.minecraft.registry.tag.FluidTags.WATER)) {
                             return p;
                         }
+                        BlockState state = golem.getEntityWorld().getBlockState(p);
+                        if (state.isOf(Blocks.WATER_CAULDRON) || state.isOf(Blocks.CAULDRON)) {
+                            return p;
+                        }
                     }
                 }
             }
@@ -2145,10 +2152,15 @@ public class GolemAI {
         public void tick() {
             if (waterPos == null) return;
 
-            // Only search for water if the current target is no longer water
-            if (golem.getRandom().nextInt(40) == 0 && !golem.getEntityWorld().getFluidState(waterPos).isIn(net.minecraft.registry.tag.FluidTags.WATER)) {
-                waterPos = findNearbyWater();
-                if (waterPos == null) return;
+            // Only search for water if the current target is no longer water or a cauldron
+            if (golem.getRandom().nextInt(40) == 0) {
+                BlockState state = golem.getEntityWorld().getBlockState(waterPos);
+                boolean isWater = golem.getEntityWorld().getFluidState(waterPos).isIn(net.minecraft.registry.tag.FluidTags.WATER) || 
+                                 state.isOf(Blocks.WATER_CAULDRON) || state.isOf(Blocks.CAULDRON);
+                if (!isWater) {
+                    waterPos = findNearbyWater();
+                    if (waterPos == null) return;
+                }
             }
 
             if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(20) == 0) {
@@ -2175,6 +2187,24 @@ public class GolemAI {
         private void fillBottle() {
             int slot = findItemInInventory(Items.GLASS_BOTTLE);
             if (slot != -1) {
+                BlockState state = golem.getEntityWorld().getBlockState(waterPos);
+                boolean canFill = false;
+                if (golem.getEntityWorld().getFluidState(waterPos).isIn(net.minecraft.registry.tag.FluidTags.WATER)) {
+                    canFill = true;
+                } else if (state.isOf(Blocks.WATER_CAULDRON)) {
+                    int level = state.get(net.minecraft.block.LeveledCauldronBlock.LEVEL);
+                    if (level > 0) {
+                        if (level == 1) {
+                            golem.getEntityWorld().setBlockState(waterPos, Blocks.CAULDRON.getDefaultState());
+                        } else {
+                            golem.getEntityWorld().setBlockState(waterPos, state.with(net.minecraft.block.LeveledCauldronBlock.LEVEL, level - 1));
+                        }
+                        canFill = true;
+                    }
+                }
+
+                if (!canFill) return;
+
                 golem.getInventory().removeStack(slot, 1);
                 ItemStack waterBottle = new ItemStack(Items.POTION);
                 waterBottle.set(DataComponentTypes.POTION_CONTENTS, new net.minecraft.component.type.PotionContentsComponent(net.minecraft.potion.Potions.WATER));
@@ -2186,7 +2216,7 @@ public class GolemAI {
                     BlockPos chestPos = golem.getChestPos();
                     if (chestPos != null && golem.squaredDistanceTo(chestPos.getX() + 0.5, chestPos.getY() + 0.5, chestPos.getZ() + 0.5) < 16.0D) {
                         Inventory chestInv = golem.getChestInventory(chestPos);
-                        if (chestInv != null) {
+                        if (chestInv != null && golem.getEntityWorld().getBlockState(chestPos).getBlock() == golem.getGolemType().getChestBlock()) {
                             remaining = transferStackToChest(remaining, chestInv);
                         }
                     }
