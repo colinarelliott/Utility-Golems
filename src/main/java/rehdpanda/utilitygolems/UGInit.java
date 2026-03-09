@@ -34,6 +34,7 @@ import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +111,38 @@ public class UGInit implements ModInitializer {
         }
     }
 
+    public record RedstoneActionPayload(int entityId, int actionId) implements CustomPayload {
+        public static final Id<RedstoneActionPayload> ID = new Id<>(Identifier.of(MOD_ID, "redstone_action"));
+        public static final PacketCodec<RegistryByteBuf, RedstoneActionPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, RedstoneActionPayload::entityId,
+                PacketCodecs.VAR_INT, RedstoneActionPayload::actionId,
+                RedstoneActionPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public record SyncRedstoneProgramPayload(int entityId, List<UtilityGolem.RedstoneInteraction> program) implements CustomPayload {
+        public static final Id<SyncRedstoneProgramPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_redstone_program"));
+        public static final PacketCodec<RegistryByteBuf, SyncRedstoneProgramPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, SyncRedstoneProgramPayload::entityId,
+                PacketCodec.tuple(
+                        BlockPos.PACKET_CODEC, UtilityGolem.RedstoneInteraction::pos,
+                        PacketCodecs.VAR_INT, UtilityGolem.RedstoneInteraction::interval,
+                        UtilityGolem.RedstoneInteraction::new
+                ).collect(PacketCodecs.toList()), SyncRedstoneProgramPayload::program,
+                SyncRedstoneProgramPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
     public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
@@ -136,6 +169,17 @@ public class UGInit implements ModInitializer {
                     }, PacketCodecs.INTEGER
             ));
 
+    public static final ScreenHandlerType<RedstoneGolemScreenHandler> REDSTONE_GOLEM_HANDLER =
+            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "redstone_golem"), new ExtendedScreenHandlerType<>(
+                    (syncId, playerInventory, entityId) -> {
+                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        if (entity instanceof UtilityGolem golem) {
+                            return new RedstoneGolemScreenHandler(syncId, playerInventory, golem);
+                        }
+                        return new RedstoneGolemScreenHandler(syncId, playerInventory);
+                    }, PacketCodecs.INTEGER
+            ));
+
 
 
     @Override
@@ -149,6 +193,8 @@ public class UGInit implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(JukeboxActionPayload.ID, JukeboxActionPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(RedstoneActionPayload.ID, RedstoneActionPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(SyncRedstoneProgramPayload.ID, SyncRedstoneProgramPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
@@ -175,6 +221,31 @@ public class UGInit implements ModInitializer {
                         case 1 -> golem.setJukeboxShuffle(!golem.isJukeboxShuffle());
                         case 2 -> golem.setJukeboxRepeat(!golem.isJukeboxRepeat());
                     }
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(RedstoneActionPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    switch (payload.actionId()) {
+                        case 0 -> golem.setRedstoneProgramStarted(!golem.isRedstoneProgramStarted());
+                        case 1 -> {
+                            golem.setRedstoneProgramStarted(false);
+                            golem.setCurrentInteractionIndex(0);
+                            golem.setRedstoneTickCounter(0);
+                        }
+                    }
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(SyncRedstoneProgramPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem) {
+                    golem.setRedstoneProgram(payload.program());
                 }
             });
         });

@@ -1,5 +1,9 @@
 package rehdpanda.utilitygolems;
 
+import net.minecraft.block.DoorBlock;
+import net.minecraft.block.TrapdoorBlock;
+import net.minecraft.block.FenceGateBlock;
+import net.minecraft.block.TntBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -5836,8 +5840,7 @@ public class GolemAI {
     }
     public static class TriggerRedstoneGoal extends Goal {
         private final UtilityGolem golem;
-        private BlockPos componentPosition;
-        private int delay;
+        private int interactionDelay;
 
         public TriggerRedstoneGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -5846,92 +5849,82 @@ public class GolemAI {
 
         @Override
         public boolean canStart() {
-            componentPosition = findRedstoneComponents();
-            return componentPosition != null;
+            return golem.isRedstoneProgramStarted() && !golem.getRedstoneProgram().isEmpty();
         }
 
         @Override
         public void start() {
-            delay = 0;
-        }
-
-        private BlockPos findRedstoneComponents() {
-            BlockPos pos = golem.getBlockPos();
-            BlockPos chestPos = golem.getChestPos();
-            int range = 16;
-            for (int x = -range; x <= range; x++) {
-                for (int y = -4; y <= 4; y++) {
-                    for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
-                        BlockState bs = golem.getEntityWorld().getBlockState(p);
-                        Block block = bs.getBlock();
-                        if (block instanceof ButtonBlock ||
-                            block instanceof LeverBlock ||
-                            block instanceof PressurePlateBlock) {
-                            if (chestPos == null || p.getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
-                                return p;
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
+            interactionDelay = 0;
         }
 
         @Override
         public void tick() {
-            if (componentPosition == null) return;
+            List<UtilityGolem.RedstoneInteraction> program = golem.getRedstoneProgram();
+            if (program.isEmpty() || !golem.isRedstoneProgramStarted()) {
+                return;
+            }
 
-            double dx = golem.getX() - (componentPosition.getX() + 0.5);
-            double dy = golem.getY() - (componentPosition.getY() + 0.5);
-            double dz = golem.getZ() - (componentPosition.getZ() + 0.5);
-            double horizontalDistSq = dx * dx + dz * dz;
-            double verticalDist = Math.abs(dy);
+            int index = golem.getCurrentInteractionIndex();
+            if (index >= program.size()) {
+                golem.setCurrentInteractionIndex(0);
+                index = 0;
+            }
 
-            if (horizontalDistSq > 4.0D || verticalDist > 4.0D) {
+            UtilityGolem.RedstoneInteraction interaction = program.get(index);
+            BlockPos target = interaction.pos();
+            
+            // Check if block is still there
+            BlockState state = golem.getEntityWorld().getBlockState(target);
+            if (!(state.getBlock() instanceof ButtonBlock || state.getBlock() instanceof LeverBlock || 
+                  state.getBlock() instanceof DoorBlock || state.getBlock() instanceof TrapdoorBlock || 
+                  state.getBlock() instanceof FenceGateBlock || state.getBlock() == Blocks.TNT || 
+                  state.getBlock() == Blocks.REDSTONE_LAMP)) {
+                // If the block is gone, skip it? Or just try anyway? Let's skip it to avoid getting stuck.
+                golem.setCurrentInteractionIndex((index + 1) % program.size());
+                golem.setRedstoneTickCounter(0);
+                return;
+            }
+
+            double distSq = golem.squaredDistanceTo(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
+
+            if (distSq > 4.0D) {
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
-                    if (verticalDist > 2.0D) {
-                        golem.getNavigation().startMovingTo(componentPosition.getX(), golem.getY(), componentPosition.getZ(), 1.2D);
-                    } else {
-                        golem.getNavigation().startMovingTo(componentPosition.getX(), componentPosition.getY(), componentPosition.getZ(), 1.2D);
-                    }
+                    golem.getNavigation().startMovingTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, 1.2D);
                 }
             } else {
                 golem.getNavigation().stop();
-                golem.getLookControl().lookAt(componentPosition.getX() + 0.5, componentPosition.getY() + 0.5, componentPosition.getZ() + 0.5);
+                golem.getLookControl().lookAt(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
 
-                if (delay > 0) {
-                    delay--;
-                    if (delay == 0) {
-                        if (golem.getGolemType() == GolemType.REDSTONE) {
-                            stop();
-                        }
-                    }
-                    return;
-                }
-
-                if (golem.getRandom().nextInt(10) == 0) {
-                    interactWithComponent();
-                    delay = 20;
+                int counter = golem.getRedstoneTickCounter();
+                if (counter >= interaction.interval()) {
+                    interactWithComponent(target, state);
+                    golem.setCurrentInteractionIndex((index + 1) % program.size());
+                    golem.setRedstoneTickCounter(0);
+                } else {
+                    golem.setRedstoneTickCounter(counter + 1);
                 }
             }
         }
 
-        public void interactWithComponent() {
-            if (componentPosition == null) return;
-            BlockState state = golem.getEntityWorld().getBlockState(componentPosition);
+        private void interactWithComponent(BlockPos pos, BlockState state) {
             Block block = state.getBlock();
+            golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
             if (block instanceof ButtonBlock button) {
-                golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
-                // Alternative: manually set the state if onUse requires a player
-                golem.getEntityWorld().setBlockState(componentPosition, state.with(ButtonBlock.POWERED, true));
-                golem.getEntityWorld().scheduleBlockTick(componentPosition, block, 20);
+                golem.getEntityWorld().setBlockState(pos, state.with(ButtonBlock.POWERED, true));
+                golem.getEntityWorld().scheduleBlockTick(pos, block, 20);
+                golem.getEntityWorld().playSound(null, pos, SoundEvents.BLOCK_WOODEN_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.3f, 0.6f);
             } else if (block instanceof LeverBlock lever) {
-                golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
-                golem.getEntityWorld().setBlockState(componentPosition, state.cycle(LeverBlock.POWERED));
-            } else if (block instanceof PressurePlateBlock) {
-                // Golem standing on it already triggers it usually, but we can move him there
-                golem.getNavigation().startMovingTo(componentPosition.getX() + 0.5, componentPosition.getY(), componentPosition.getZ() + 0.5, 1.2D);
+                golem.getEntityWorld().setBlockState(pos, state.cycle(LeverBlock.POWERED));
+                golem.getEntityWorld().playSound(null, pos, SoundEvents.BLOCK_LEVER_CLICK, SoundCategory.BLOCKS, 0.3f, 0.6f);
+            } else if (block instanceof DoorBlock || block instanceof TrapdoorBlock || block instanceof FenceGateBlock) {
+                // Find the property representing whether it is open
+                if (state.contains(net.minecraft.state.property.Properties.OPEN)) {
+                    golem.getEntityWorld().setBlockState(pos, state.cycle(net.minecraft.state.property.Properties.OPEN));
+                    golem.getEntityWorld().playSound(null, pos, SoundEvents.BLOCK_WOODEN_DOOR_OPEN, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                }
+            } else if (block == Blocks.TNT) {
+                TntBlock.primeTnt(golem.getEntityWorld(), pos);
+                golem.getEntityWorld().removeBlock(pos, false);
             }
         }
     }

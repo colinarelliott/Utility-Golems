@@ -118,6 +118,51 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> ANIMATION_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> ANIMATION_START_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> REDSTONE_PROGRAM_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+
+    public record RedstoneInteraction(BlockPos pos, int interval) {}
+    private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
+    private int currentInteractionIndex = 0;
+    private int redstoneTickCounter = 0;
+
+    public List<RedstoneInteraction> getRedstoneProgram() {
+        return redstoneProgram;
+    }
+
+    public void setRedstoneProgram(List<RedstoneInteraction> program) {
+        this.redstoneProgram.clear();
+        this.redstoneProgram.addAll(program);
+        if (currentInteractionIndex >= this.redstoneProgram.size()) {
+            currentInteractionIndex = 0;
+        }
+    }
+
+    public boolean isRedstoneProgramStarted() {
+        return this.dataTracker.get(REDSTONE_PROGRAM_STARTED);
+    }
+
+    public void setRedstoneProgramStarted(boolean started) {
+        this.dataTracker.set(REDSTONE_PROGRAM_STARTED, started);
+        if (started) {
+            this.redstoneTickCounter = 0;
+        }
+    }
+
+    public int getCurrentInteractionIndex() {
+        return currentInteractionIndex;
+    }
+
+    public void setCurrentInteractionIndex(int index) {
+        this.currentInteractionIndex = index;
+    }
+
+    public int getRedstoneTickCounter() {
+        return redstoneTickCounter;
+    }
+
+    public void setRedstoneTickCounter(int counter) {
+        this.redstoneTickCounter = counter;
+    }
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -140,6 +185,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
+        builder.add(REDSTONE_PROGRAM_STARTED, false);
     }
 
     public GolemAnimation getAnimation() {
@@ -1105,6 +1151,28 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
+        if (this.golemType == GolemType.REDSTONE) {
+            if (!player.getEntityWorld().isClient()) {
+                player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
+                    @Override
+                    public Integer getScreenOpeningData(ServerPlayerEntity player) {
+                        return UtilityGolem.this.getId();
+                    }
+
+                    @Override
+                    public Text getDisplayName() {
+                        return UtilityGolem.this.getDisplayName();
+                    }
+
+                    @Override
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                        return new RedstoneGolemScreenHandler(syncId, playerInventory, UtilityGolem.this);
+                    }
+                });
+            }
+            return ActionResult.SUCCESS;
+        }
+
         player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
             @Override
             public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
@@ -1468,7 +1536,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public boolean canPickUpLoot() {
-        return false;
+        if (this.golemType == GolemType.REDSTONE) return false;
+        return super.canPickUpLoot();
     }
 
     @Override
