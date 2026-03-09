@@ -97,11 +97,17 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
     @Override
     protected BlockState getStateForNeighborUpdate(BlockState state, WorldView world, ScheduledTickView tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, @Nullable Random random) {
         if (neighborState.isOf(this) && direction.getAxis().isHorizontal()) {
-            ChestType chestType = neighborState.get(CHEST_TYPE);
-            if (state.get(CHEST_TYPE) == ChestType.SINGLE && chestType != ChestType.SINGLE && state.get(FACING) == neighborState.get(FACING) && getFacing(neighborState) == direction.getOpposite() && state.get(STRIPPED) == neighborState.get(STRIPPED)) {
-                return state.with(CHEST_TYPE, chestType.getOpposite());
+            ChestType neighborType = neighborState.get(CHEST_TYPE);
+            if (state.get(CHEST_TYPE) == ChestType.SINGLE) {
+                if (neighborType != ChestType.SINGLE && state.get(FACING) == neighborState.get(FACING) && getFacing(neighborState) == direction.getOpposite() && state.get(STRIPPED) == neighborState.get(STRIPPED)) {
+                    return state.with(CHEST_TYPE, neighborType.getOpposite());
+                }
+            } else if (direction == getFacing(state)) {
+                if (neighborState.get(FACING) != state.get(FACING) || neighborType != state.get(CHEST_TYPE).getOpposite() || state.get(STRIPPED) != neighborState.get(STRIPPED)) {
+                    return state.with(CHEST_TYPE, ChestType.SINGLE);
+                }
             }
-        } else if (getFacing(state).getAxis() == direction.getAxis()) {
+        } else if (state.get(CHEST_TYPE) != ChestType.SINGLE && direction == getFacing(state)) {
             return state.with(CHEST_TYPE, ChestType.SINGLE);
         }
         return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
