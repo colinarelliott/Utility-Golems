@@ -37,7 +37,7 @@ public class UGBlocks {
         );
         List<Block> chestBlocks = new ArrayList<>();
         for (GolemType type : GolemType.values()) {
-            if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX) continue;
+            if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE || type == GolemType.MEDIC || type == GolemType.CACTUS) continue;
             String name = type.getName().trim() + "_chest";
             Block materialBlock = switch (type) {
                 case LAPIS -> Blocks.LAPIS_BLOCK;
@@ -54,6 +54,9 @@ public class UGBlocks {
                 case FURNACE -> Blocks.FURNACE;
                 case JUKEBOX -> Blocks.JUKEBOX;
                 case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
+                case MEDIC -> Blocks.TARGET;
+                case CACTUS -> Blocks.CACTUS;
+                case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
                 default -> Blocks.AIR;
             };
 

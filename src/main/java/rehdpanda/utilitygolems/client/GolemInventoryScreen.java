@@ -56,6 +56,7 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
         }
     }
 
+
     private void initDiamondButtons(UtilityGolem golem) {
         // Pattern cycle button
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Mode: " + golem.getBuildPattern().getDisplayName()), button -> {
@@ -226,11 +227,37 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
         super.render(context, mouseX, mouseY, delta);
         
         UtilityGolem golem = handler.getGolem();
-        if (golem != null && golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD) {
-            drawEmeraldTradeIcons(context, mouseX, mouseY, golem);
+        if (golem != null) {
+            if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD) {
+                drawEmeraldTradeIcons(context, mouseX, mouseY, golem);
+            } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.CACTUS) {
+                drawCactusUI(context, mouseX, mouseY, golem);
+            }
         }
         
         this.drawMouseoverTooltip(context, mouseX, mouseY);
+    }
+
+    private void drawCactusUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {
+        // Draw deleted items count in dark red
+        String text = String.valueOf(golem.getDeletedItemsCount());
+        int textWidth = textRenderer.getWidth(text);
+        context.drawText(textRenderer, text, x + backgroundWidth - textWidth - 8, y + 6, 0xFFAA0000, true);
+
+        // Draw red X over occupied slots
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = golem.getInventory().getStack(i);
+            if (!stack.isEmpty()) {
+                int slotX = x + 62 + (i % 3) * 18;
+                int slotY = y + 17 + (i / 3) * 18;
+
+                // Transparent red highlight
+                context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x40FF0000);
+
+                // Red X
+                context.drawCenteredTextWithShadow(textRenderer, "X", slotX + 8, slotY + 4, 0xFFFF0000);
+            }
+        }
     }
 
     private void drawEmeraldTradeIcons(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {

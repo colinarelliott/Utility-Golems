@@ -2,9 +2,14 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
@@ -116,6 +121,64 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> ANIMATION_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> ANIMATION_START_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> REDSTONE_PROGRAM_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> DELETED_ITEMS_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+
+    public record RedstoneInteraction(BlockPos pos, int interval) {}
+    private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
+    private int currentInteractionIndex = 0;
+    private int redstoneTickCounter = 0;
+
+    public List<RedstoneInteraction> getRedstoneProgram() {
+        return redstoneProgram;
+    }
+
+    public void setRedstoneProgram(List<RedstoneInteraction> program) {
+        this.redstoneProgram.clear();
+        this.redstoneProgram.addAll(program);
+        if (currentInteractionIndex >= this.redstoneProgram.size()) {
+            currentInteractionIndex = 0;
+        }
+    }
+
+    public boolean isRedstoneProgramStarted() {
+        return this.dataTracker.get(REDSTONE_PROGRAM_STARTED);
+    }
+
+    public void setRedstoneProgramStarted(boolean started) {
+        this.dataTracker.set(REDSTONE_PROGRAM_STARTED, started);
+        if (started) {
+            this.redstoneTickCounter = 0;
+        }
+    }
+
+    public int getCurrentInteractionIndex() {
+        return currentInteractionIndex;
+    }
+
+    public void setCurrentInteractionIndex(int index) {
+        this.currentInteractionIndex = index;
+    }
+
+    public int getRedstoneTickCounter() {
+        return redstoneTickCounter;
+    }
+
+    public void setRedstoneTickCounter(int counter) {
+        this.redstoneTickCounter = counter;
+    }
+
+    public int getDeletedItemsCount() {
+        return this.dataTracker.get(DELETED_ITEMS_COUNT);
+    }
+
+    public void setDeletedItemsCount(int count) {
+        this.dataTracker.set(DELETED_ITEMS_COUNT, count);
+    }
+
+    public void incrementDeletedItemsCount(int amount) {
+        this.setDeletedItemsCount(this.getDeletedItemsCount() + amount);
+    }
 
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
@@ -138,6 +201,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
+        builder.add(REDSTONE_PROGRAM_STARTED, false);
+        builder.add(DELETED_ITEMS_COUNT, 0);
     }
 
     public GolemAnimation getAnimation() {
@@ -516,7 +581,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 }
             }
 
-            if (this.golemType == GolemType.FURNACE) {
+            if (this.golemType == GolemType.FURNACE || this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) {
                 tickFurnace();
             }
             if (this.golemType == GolemType.GOLD) {
@@ -622,7 +687,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
             if (this.burnTime > 0) {
                 // Progress cook time
-                this.cookTimeTotal = 200;
+                this.cookTimeTotal = (this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) ? 100 : 200;
                 this.cookTime++;
                 if (this.cookTime >= this.cookTimeTotal) {
                     this.cookTime = 0;
@@ -670,6 +735,53 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private ItemStack getSmeltingResult(ItemStack input) {
+        if (this.golemType == GolemType.SMOKER) {
+            if (input.isOf(Items.PORKCHOP)) return new ItemStack(Items.COOKED_PORKCHOP);
+            if (input.isOf(Items.BEEF)) return new ItemStack(Items.COOKED_BEEF);
+            if (input.isOf(Items.CHICKEN)) return new ItemStack(Items.COOKED_CHICKEN);
+            if (input.isOf(Items.MUTTON)) return new ItemStack(Items.COOKED_MUTTON);
+            if (input.isOf(Items.RABBIT)) return new ItemStack(Items.COOKED_RABBIT);
+            if (input.isOf(Items.COD)) return new ItemStack(Items.COOKED_COD);
+            if (input.isOf(Items.SALMON)) return new ItemStack(Items.COOKED_SALMON);
+            if (input.isOf(Items.POTATO)) return new ItemStack(Items.BAKED_POTATO);
+            if (input.isOf(Items.KELP)) return new ItemStack(Items.DRIED_KELP);
+            return ItemStack.EMPTY;
+        }
+
+        if (this.golemType == GolemType.BLAST_FURNACE) {
+            if (input.isOf(Items.RAW_IRON) || input.isOf(Items.IRON_ORE) || input.isOf(Items.DEEPSLATE_IRON_ORE)) return new ItemStack(Items.IRON_INGOT);
+            if (input.isOf(Items.RAW_GOLD) || input.isOf(Items.GOLD_ORE) || input.isOf(Items.DEEPSLATE_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
+            if (input.isOf(Items.RAW_COPPER) || input.isOf(Items.COPPER_ORE) || input.isOf(Items.DEEPSLATE_COPPER_ORE)) return new ItemStack(Items.COPPER_INGOT);
+            if (input.isOf(Items.NETHER_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
+            if (input.isOf(Items.ANCIENT_DEBRIS)) return new ItemStack(Items.NETHERITE_SCRAP);
+            // Chainmail
+            if (input.isOf(Items.CHAINMAIL_HELMET)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_CHESTPLATE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_LEGGINGS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_BOOTS)) return new ItemStack(Items.IRON_NUGGET);
+            // Iron gear
+            if (input.isOf(Items.IRON_HELMET)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_CHESTPLATE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_LEGGINGS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_BOOTS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_PICKAXE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_SHOVEL)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_AXE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_HOE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_SWORD)) return new ItemStack(Items.IRON_NUGGET);
+            // Golden gear
+            if (input.isOf(Items.GOLDEN_HELMET)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_CHESTPLATE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_LEGGINGS)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_BOOTS)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_PICKAXE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_SHOVEL)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_AXE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_HOE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_SWORD)) return new ItemStack(Items.GOLD_NUGGET);
+            return ItemStack.EMPTY;
+        }
+
         if (input.isOf(Items.RAW_IRON) || input.isOf(Items.IRON_ORE) || input.isOf(Items.DEEPSLATE_IRON_ORE)) return new ItemStack(Items.IRON_INGOT);
         if (input.isOf(Items.RAW_GOLD) || input.isOf(Items.GOLD_ORE) || input.isOf(Items.DEEPSLATE_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
         if (input.isOf(Items.RAW_COPPER) || input.isOf(Items.COPPER_ORE) || input.isOf(Items.DEEPSLATE_COPPER_ORE)) return new ItemStack(Items.COPPER_INGOT);
@@ -927,18 +1039,37 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack playerStack = player.getStackInHand(hand);
-        // Prevent using incompatible special items on the wrong golem types
-        // e.g., prevent records on non-jukebox golems to avoid unintended handlers/UI and crashes
-        if (this.golemType != GolemType.JUKEBOX) {
-            JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
-            if (playableCheck != null) {
+
+        // SHIFT+RIGHT CLICK to take item back or toggle lamp
+        if (player.isSneaking() && hand == Hand.MAIN_HAND) {
+            if (this.golemType == GolemType.LAMP) {
                 if (!player.getEntityWorld().isClient()) {
-                    player.sendMessage(Text.literal("This golem can't play records."), true);
+                    this.setLampOn(!this.isLampOn());
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
                 }
                 return ActionResult.SUCCESS;
             }
-        }
-        if (playerStack.isEmpty() && hand == Hand.MAIN_HAND && this.golemType != GolemType.JUKEBOX) {
+
+            if (this.golemType == GolemType.MEDIC) {
+                ItemStack wrench = ItemStack.EMPTY;
+                for (int i = 0; i < this.inventory.size(); i++) {
+                    if (this.inventory.getStack(i).isOf(UGItems.WRENCH_ITEM)) {
+                        wrench = this.inventory.removeStack(i);
+                        break;
+                    }
+                }
+                if (!wrench.isEmpty()) {
+                    if (!player.getEntityWorld().isClient()) {
+                        if (!player.getInventory().insertStack(wrench)) {
+                            player.dropItem(wrench, false);
+                        }
+                        this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                        this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
+                    }
+                    return ActionResult.SUCCESS;
+                }
+            }
+
             ItemStack golemStack = this.getHeldItem();
             if (!golemStack.isEmpty()) {
                 if (!player.getEntityWorld().isClient()) {
@@ -947,6 +1078,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     }
                     this.setHeldItem(ItemStack.EMPTY);
                     this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
+                }
+                return ActionResult.SUCCESS;
+            }
+        }
+
+        // Prevent using incompatible special items on the wrong golem types
+        // e.g., prevent records on non-jukebox golems to avoid unintended handlers/UI and crashes
+        if (this.golemType != GolemType.JUKEBOX) {
+            JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playableCheck != null) {
+                if (!player.getEntityWorld().isClient()) {
+                    player.sendMessage(Text.literal("This golem can't play records."), true);
                 }
                 return ActionResult.SUCCESS;
             }
@@ -1012,6 +1155,24 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
+        if (this.golemType == GolemType.MEDIC && playerStack.isOf(UGItems.WRENCH_ITEM)) {
+            if (!player.getEntityWorld().isClient()) {
+                ItemStack disc = playerStack.copy();
+                disc.setCount(1);
+                ItemStack remaining = this.inventory.addStack(disc);
+                if (remaining.isEmpty()) {
+                    if (!player.getAbilities().creativeMode) {
+                        playerStack.decrement(1);
+                    }
+                    this.equipStack(EquipmentSlot.MAINHAND, disc);
+                    player.sendMessage(Text.literal("Gave wrench to Medic Golem"), true);
+                } else {
+                    player.sendMessage(Text.literal("Medic Golem's inventory is full"), true);
+                }
+            }
+            return ActionResult.SUCCESS;
+        }
+
         if (playerStack.isOf(UGItems.WRENCH_ITEM)) {
             float currentHealth = this.getHealth();
             float maxHealth = this.getMaxHealth();
@@ -1039,7 +1200,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
         }
 
-        if (this.golemType == GolemType.FURNACE) {
+        if (this.golemType == GolemType.FURNACE || this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) {
             if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
                         (syncId, playerInventory, p) -> new GolemFurnaceScreenHandler(syncId, playerInventory, this.furnaceInventory, this.furnacePropertyDelegate, this),
@@ -1048,13 +1209,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
             return ActionResult.SUCCESS;
         } else if (this.golemType == GolemType.LAMP) {
-            if (player.isSneaking()) {
-                if (!player.getEntityWorld().isClient()) {
-                    this.setLampOn(!this.isLampOn());
-                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
-                }
-                return ActionResult.SUCCESS;
-            }
+            // Already handled in Shift+Right Click logic
         }
 
         if (this.golemType == GolemType.JUKEBOX) {
@@ -1092,6 +1247,28 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     @Override
                     public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
                         return new GolemJukeboxScreenHandler(syncId, playerInventory, UtilityGolem.this.jukeboxInventory, UtilityGolem.this);
+                    }
+                });
+            }
+            return ActionResult.SUCCESS;
+        }
+
+        if (this.golemType == GolemType.REDSTONE) {
+            if (!player.getEntityWorld().isClient()) {
+                player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
+                    @Override
+                    public Integer getScreenOpeningData(ServerPlayerEntity player) {
+                        return UtilityGolem.this.getId();
+                    }
+
+                    @Override
+                    public Text getDisplayName() {
+                        return UtilityGolem.this.getDisplayName();
+                    }
+
+                    @Override
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                        return new RedstoneGolemScreenHandler(syncId, playerInventory, UtilityGolem.this);
                     }
                 });
             }
@@ -1182,7 +1359,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public static boolean isTorch(ItemStack stack) {
-        return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH);
+        return stack.isOf(Items.TORCH) || stack.isOf(Items.SOUL_TORCH) || stack.isOf(Items.REDSTONE_TORCH) || stack.isOf(Items.COPPER_TORCH);
     }
 
     public static boolean isShovel(ItemStack stack) {
@@ -1210,14 +1387,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     public static boolean isTool(ItemStack stack) {
         return isPickaxe(stack) || isSword(stack) || isAxe(stack) || isHoe(stack) || isShovel(stack) || isFishingRod(stack) || isShears(stack)
-                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack);
+                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack) || stack.isOf(Items.BUCKET) || stack.isOf(Items.WATER_BUCKET);
     }
 
     public static boolean isLightSource(BlockState state) {
-        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
+        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.isOf(Blocks.TORCH) || state.isOf(Blocks.SOUL_TORCH) || state.isOf(Blocks.REDSTONE_TORCH) || state.isOf(Blocks.COPPER_TORCH) || state.isOf(Blocks.WALL_TORCH) || state.isOf(Blocks.SOUL_WALL_TORCH) || state.isOf(Blocks.REDSTONE_WALL_TORCH) || state.isOf(Blocks.COPPER_WALL_TORCH) || state.isOf(Blocks.LANTERN) || state.isOf(Blocks.SOUL_LANTERN) || state.isOf(Blocks.GLOWSTONE) || state.isOf(Blocks.SEA_LANTERN) || state.isOf(Blocks.OCHRE_FROGLIGHT) || state.isOf(Blocks.PEARLESCENT_FROGLIGHT) || state.isOf(Blocks.VERDANT_FROGLIGHT) || state.isOf(Blocks.JACK_O_LANTERN) || state.isOf(Blocks.SHROOMLIGHT);
     }
 
     private BlockPos chestPos;
+    private BlockPos farmTarget;
 
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
@@ -1259,6 +1437,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("AnimationId", this.dataTracker.get(ANIMATION_ID));
         writeView.putInt("AnimationTicks", this.dataTracker.get(ANIMATION_TICKS));
         writeView.putInt("AnimationStartTicks", this.dataTracker.get(ANIMATION_START_TICKS));
+        writeView.putInt("DeletedItemsCount", this.getDeletedItemsCount());
     }
 
     @Override
@@ -1296,6 +1475,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.dataTracker.set(ANIMATION_ID, animId);
         this.dataTracker.set(ANIMATION_TICKS, animTicks);
         this.dataTracker.set(ANIMATION_START_TICKS, animStartTicks);
+        this.setDeletedItemsCount(readView.getInt("DeletedItemsCount", 0));
 
         updateAttackDamage();
     }
@@ -1304,9 +1484,82 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return chestPos;
     }
 
+    public BlockPos getFarmTarget() {
+        return farmTarget;
+    }
+
+    public void setFarmTarget(BlockPos farmTarget) {
+        this.farmTarget = farmTarget;
+    }
+
     public void setChestPos(BlockPos chestPos) {
         this.chestPos = chestPos;
         this.setMiningDirection(null); // Reset mining direction when chest changes
+    }
+
+    public Inventory getChestInventory(BlockPos pos) {
+        BlockState state = this.getEntityWorld().getBlockState(pos);
+        if (state.getBlock() instanceof GolemChestBlock block) {
+            return GolemChestBlockEntity.getInventory(block, state, this.getEntityWorld(), pos, false);
+        }
+        BlockEntity be = this.getEntityWorld().getBlockEntity(pos);
+        if (be instanceof Inventory inv) {
+            return inv;
+        }
+        return null;
+    }
+
+    public BlockPos findNearbyChest() {
+        if (this.getGolemType() == GolemType.MEDIC) return null;
+        if (this.chestPos != null) {
+            if (this.isBlacklisted(this.chestPos)) {
+                this.chestPos = null;
+            } else {
+                BlockEntity be = this.getEntityWorld().getBlockEntity(this.chestPos);
+                BlockState bs = this.getEntityWorld().getBlockState(this.chestPos);
+                if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                    return this.chestPos;
+                }
+            }
+        }
+
+        BlockPos pos = this.getBlockPos();
+        int range = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 32 : 16;
+        int verticalRange = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 15 : 4;
+        
+        for (int x = -range; x <= range; x++) {
+            for (int y = -verticalRange; y <= verticalRange; y++) {
+                for (int z = -range; z <= range; z++) {
+                    BlockPos p = pos.add(x, y, z);
+                    if (this.isBlacklisted(p)) continue;
+                    BlockEntity be = this.getEntityWorld().getBlockEntity(p);
+                    BlockState bs = this.getEntityWorld().getBlockState(p);
+                    if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                        this.setChestPos(p);
+                        return p;
+                    }
+                }
+            }
+        }
+
+        // Nether wart golems can fallback to normal chests if no golem chest found
+        if (this.getGolemType() == GolemType.NETHER_WART) {
+            for (int x = -range; x <= range; x++) {
+                for (int y = -verticalRange; y <= verticalRange; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos p = pos.add(x, y, z);
+                        if (this.isBlacklisted(p)) continue;
+                        BlockEntity be = this.getEntityWorld().getBlockEntity(p);
+                        BlockState bs = this.getEntityWorld().getBlockState(p);
+                        if (be instanceof Inventory && (bs.getBlock() == net.minecraft.block.Blocks.CHEST || bs.getBlock() == net.minecraft.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.block.Blocks.BARREL)) {
+                            this.setChestPos(p);
+                            return p;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public void initGolemsGoals() {
@@ -1386,9 +1639,30 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public boolean tryAttack(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
         boolean success = super.tryAttack(world, target);
-        if (success && (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
-            this.spawnSweepingAttackParticles(world);
-            this.applySweepingDamage(world, target);
+        if (success) {
+            if (target instanceof net.minecraft.entity.LivingEntity livingTarget) {
+                // Apply knockback enchantment
+                int knockbackLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), this.getHeldItem());
+                if (knockbackLevel > 0) {
+                    livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
+                    this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
+                }
+
+                // Apply fire aspect enchantment
+                int fireAspectLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), this.getHeldItem());
+                if (fireAspectLevel > 0) {
+                    livingTarget.setOnFireFor(fireAspectLevel * 4);
+                }
+
+                // Apply post-attack effects
+                EnchantmentHelper.onTargetDamaged(world, livingTarget, this.getDamageSources().mobAttack(this));
+            }
+
+            // Netherite/Ancient sweeping attack
+            if ((this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
+                this.spawnSweepingAttackParticles(world);
+                this.applySweepingDamage(world, target);
+            }
         }
         return success;
     }
@@ -1401,7 +1675,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
         float damage = (float)this.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
-        float sweepingDamage = 1.0f + (0.0f * damage); // Default ratio if EnchantmentHelper method not available
+        int sweepingLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), this.getHeldItem());
+        float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
         for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
             return entity != this && entity != target && !this.isTeammate(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
@@ -1415,7 +1690,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public boolean canPickUpLoot() {
-        return false;
+        if (this.golemType == GolemType.REDSTONE) return false;
+        return super.canPickUpLoot();
     }
 
     @Override
@@ -1463,11 +1739,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         
         ItemStack stack = this.getHeldItem();
         
-        if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 6.0f;
-        else if (stack.isOf(Items.DIAMOND_SWORD)) baseDamage += 5.0f;
-        else if (stack.isOf(Items.IRON_SWORD)) baseDamage += 3.0f;
-        else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 2.0f;
-        else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 1.5f;
+        if (stack.isOf(Items.NETHERITE_SWORD)) baseDamage += 8.0f;
+        else if (stack.isOf(Items.DIAMOND_SWORD)) baseDamage += 7.0f;
+        else if (stack.isOf(Items.IRON_SWORD)) baseDamage += 6.0f;
+        else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 5.0f;
+        else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 4.0f;
         else if (stack.isOf(Items.GOLDEN_SWORD)) baseDamage += 4.0f;
         
         var instance = this.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);

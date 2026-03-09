@@ -1,6 +1,7 @@
 package rehdpanda.utilitygolems;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
@@ -64,10 +65,14 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     public boolean onSyncedBlockEvent(int type, int data) {
         if (type == 1) {
             if (this.world != null) {
-                if (data > 0) {
-                    this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
-                } else {
-                    this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
+                // For double chests, only play sound from the LEFT half to avoid duplication
+                ChestType chestType = this.getCachedState().get(GolemChestBlock.CHEST_TYPE);
+                if (chestType == ChestType.SINGLE || chestType == ChestType.LEFT) {
+                    if (data > 0) {
+                        this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
+                    } else {
+                        this.world.playSound(null, this.pos, SoundEvents.BLOCK_CHEST_CLOSE, SoundCategory.BLOCKS, 0.5f, this.world.random.nextFloat() * 0.1f + 0.9f);
+                    }
                 }
             }
         }

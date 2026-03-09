@@ -73,6 +73,11 @@ public class ConfigManager {
             golems.put("jukebox_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("lamp_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("nether_wart_golem", new GolemStats(40.0, 0.3, 0.5));
+            golems.put("smoker_golem", new GolemStats(40.0, 0.3, 0.5));
+            golems.put("blast_furnace_golem", new GolemStats(40.0, 0.3, 0.5));
+            golems.put("medic_golem", new GolemStats(40.0, 0.3, 0.5));
+            golems.put("cactus_golem", new GolemStats(20.0, 0.25, 1.0));
+            golems.put("honeycomb_golem", new GolemStats(20.0, 0.25));
         }
     }
 

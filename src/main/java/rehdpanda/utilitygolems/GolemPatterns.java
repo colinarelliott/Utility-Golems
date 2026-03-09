@@ -41,7 +41,12 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.LAMP, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.SMOKER, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.BLAST_FURNACE, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.MEDIC, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.HONEYCOMB, facing, false);
         }
     }
 
@@ -61,7 +66,12 @@ public class GolemPatterns {
             case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
             case JUKEBOX -> Blocks.JUKEBOX;
             case LAMP -> Blocks.REDSTONE_LAMP;
+            case SMOKER -> Blocks.SMOKER;
+            case BLAST_FURNACE -> Blocks.BLAST_FURNACE;
             case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
+            case MEDIC -> Blocks.TARGET;
+            case CACTUS -> Blocks.CACTUS;
+            case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
             default -> Blocks.LAPIS_BLOCK;
         };
 
