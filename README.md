@@ -5,8 +5,8 @@
 
 
 #### Image Legend
-- Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (20 varieties)
+- Left to Right, Row 1: Nether Wart, Redstone, Honeycomb, Gold, Stripped Bamboo, Sponge, Emerald, Cactus, Bamboo, Diamond, Lapis, Amethyst
+- Left to Right, Row 2: Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic
 
 
 #### Image Legend
