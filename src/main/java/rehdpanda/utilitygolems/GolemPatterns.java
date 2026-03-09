@@ -45,6 +45,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.BLAST_FURNACE, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.MEDIC, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
         }
     }
 
@@ -68,6 +69,7 @@ public class GolemPatterns {
             case BLAST_FURNACE -> Blocks.BLAST_FURNACE;
             case NETHER_WART -> Blocks.NETHER_WART_BLOCK;
             case MEDIC -> Blocks.TARGET;
+            case CACTUS -> Blocks.CACTUS;
             default -> Blocks.LAPIS_BLOCK;
         };
 

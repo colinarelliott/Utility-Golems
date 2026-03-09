@@ -82,6 +82,10 @@ public enum GolemType {
     MEDIC("medic_golem", "Medic Golem", "textures/entity/medic_golem.png",
             GolemAI::initMedicGoals,
             null
+    ),
+    CACTUS("cactus_golem", "Cactus Golem", "textures/entity/cactus_golem.png",
+            GolemAI::initCactusGoals,
+            null
     );
 
 
@@ -133,7 +137,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
-        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC) return null;
+        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC || this == CACTUS) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

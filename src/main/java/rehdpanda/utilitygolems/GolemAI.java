@@ -289,6 +289,14 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
     }
+
+    public static void initCactusGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                UGItems.WRENCH_ITEM
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new DeleteBlacklistedItemsGoal(golem, 1.1D, 16)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+    }
     
     /// DEBUG WRAPPER
     public static class DebugGoalWrapper extends Goal {
@@ -380,6 +388,153 @@ public class GolemAI {
     }
 
     /// STAY NEAR CHEST GOAL
+    public static class DeleteBlacklistedItemsGoal extends Goal {
+        private final UtilityGolem golem;
+        private final double speed;
+        private final int range;
+        private BlockPos targetChest;
+        private int searchCooldown;
+        private int deleteCooldown;
+
+        public DeleteBlacklistedItemsGoal(UtilityGolem golem, double speed, int range) {
+            this.golem = golem;
+            this.speed = speed;
+            this.range = range;
+            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (searchCooldown-- > 0) return false;
+            searchCooldown = 40 + golem.getRandom().nextInt(40);
+
+            if (golem.getInventory().isEmpty()) return false;
+
+            targetChest = findChestWithBlacklistedItems();
+            return targetChest != null;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return (targetChest != null || deleteCooldown > 0) && !golem.getInventory().isEmpty() && (targetChest == null || golem.getBlockPos().getSquaredDistance(targetChest) < range * range);
+        }
+
+        @Override
+        public void start() {
+            if (targetChest != null) {
+                golem.getNavigation().startMovingTo(targetChest.getX(), targetChest.getY(), targetChest.getZ(), speed);
+            }
+            deleteCooldown = 0;
+        }
+
+        @Override
+        public void stop() {
+            targetChest = null;
+            deleteCooldown = 0;
+            golem.getNavigation().stop();
+        }
+
+        @Override
+        public void tick() {
+            if (targetChest == null && deleteCooldown <= 0) return;
+
+            if (deleteCooldown > 0) {
+                deleteCooldown--;
+                if (targetChest != null) {
+                    golem.getLookControl().lookAt(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5);
+                }
+                
+                if (deleteCooldown == 10) {
+                    // This is when we actually delete the items, after the WITHDRAWING animation finishes
+                    if (targetChest != null) {
+                        deleteItemsFromChest(targetChest);
+                    }
+                }
+                
+                if (deleteCooldown <= 0) {
+                    targetChest = null;
+                }
+                return;
+            }
+
+            if (golem.getBlockPos().getSquaredDistance(targetChest) < 4.0) {
+                golem.getNavigation().stop();
+                golem.getLookControl().lookAt(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5);
+                
+                // Start the animation sequence
+                golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
+                deleteCooldown = 30; // 20 ticks for withdrawing, then 10 for attacking/deleting
+            } else {
+                golem.getNavigation().startMovingTo(targetChest.getX(), targetChest.getY(), targetChest.getZ(), speed);
+            }
+        }
+
+        private BlockPos findChestWithBlacklistedItems() {
+            BlockPos pos = golem.getBlockPos();
+            for (int x = -range; x <= range; x++) {
+                for (int y = -range / 2; y <= range / 2; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos checkPos = pos.add(x, y, z);
+                        BlockEntity be = golem.getEntityWorld().getBlockEntity(checkPos);
+                        if (be instanceof Inventory inv) {
+                            if (hasBlacklistedItems(inv)) {
+                                return checkPos;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private boolean hasBlacklistedItems(Inventory inv) {
+            SimpleInventory blacklist = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (stack.isEmpty()) continue;
+                for (int j = 0; j < blacklist.size(); j++) {
+                    ItemStack blacklisted = blacklist.getStack(j);
+                    if (!blacklisted.isEmpty() && stack.isOf(blacklisted.getItem())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void deleteItemsFromChest(BlockPos pos) {
+            BlockEntity be = golem.getEntityWorld().getBlockEntity(pos);
+            if (be instanceof Inventory inv) {
+                SimpleInventory blacklist = golem.getInventory();
+                boolean changed = false;
+                for (int i = 0; i < inv.size(); i++) {
+                    ItemStack stack = inv.getStack(i);
+                    if (stack.isEmpty()) continue;
+                    for (int j = 0; j < blacklist.size(); j++) {
+                        ItemStack blacklisted = blacklist.getStack(j);
+                        if (!blacklisted.isEmpty() && stack.isOf(blacklisted.getItem())) {
+                            int count = stack.getCount();
+                            inv.setStack(i, ItemStack.EMPTY);
+                            golem.incrementDeletedItemsCount(count);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+                if (changed) {
+                    inv.markDirty();
+                    golem.getEntityWorld().playSound(null, pos, SoundEvents.BLOCK_CHORUS_FLOWER_DEATH, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                    golem.setAnimation(GolemAnimation.ATTACKING, 10);
+
+                    // Add some cactus/smoke particles
+                    if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                        serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 5, 0.2, 0.2, 0.2, 0.05);
+                    }
+                }
+            }
+        }
+    }
+
     public static class StayNearChestGoal extends Goal {
         private final UtilityGolem golem;
         private final double speed;

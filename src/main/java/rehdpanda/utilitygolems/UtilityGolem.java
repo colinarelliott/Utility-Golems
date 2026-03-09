@@ -122,6 +122,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Integer> ANIMATION_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> ANIMATION_START_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> REDSTONE_PROGRAM_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> DELETED_ITEMS_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
 
     public record RedstoneInteraction(BlockPos pos, int interval) {}
     private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
@@ -167,6 +168,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.redstoneTickCounter = counter;
     }
 
+    public int getDeletedItemsCount() {
+        return this.dataTracker.get(DELETED_ITEMS_COUNT);
+    }
+
+    public void setDeletedItemsCount(int count) {
+        this.dataTracker.set(DELETED_ITEMS_COUNT, count);
+    }
+
+    public void incrementDeletedItemsCount(int amount) {
+        this.setDeletedItemsCount(this.getDeletedItemsCount() + amount);
+    }
+
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
@@ -189,6 +202,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(ANIMATION_TICKS, 0);
         builder.add(ANIMATION_START_TICKS, 0);
         builder.add(REDSTONE_PROGRAM_STARTED, false);
+        builder.add(DELETED_ITEMS_COUNT, 0);
     }
 
     public GolemAnimation getAnimation() {
@@ -1423,6 +1437,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("AnimationId", this.dataTracker.get(ANIMATION_ID));
         writeView.putInt("AnimationTicks", this.dataTracker.get(ANIMATION_TICKS));
         writeView.putInt("AnimationStartTicks", this.dataTracker.get(ANIMATION_START_TICKS));
+        writeView.putInt("DeletedItemsCount", this.getDeletedItemsCount());
     }
 
     @Override
@@ -1460,6 +1475,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.dataTracker.set(ANIMATION_ID, animId);
         this.dataTracker.set(ANIMATION_TICKS, animTicks);
         this.dataTracker.set(ANIMATION_START_TICKS, animStartTicks);
+        this.setDeletedItemsCount(readView.getInt("DeletedItemsCount", 0));
 
         updateAttackDamage();
     }

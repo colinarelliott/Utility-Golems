@@ -143,6 +143,20 @@ public class UGInit implements ModInitializer {
         }
     }
 
+    public record ClearCactusSlotPayload(int entityId, int slotIndex) implements CustomPayload {
+        public static final Id<ClearCactusSlotPayload> ID = new Id<>(Identifier.of(MOD_ID, "clear_cactus_slot"));
+        public static final PacketCodec<RegistryByteBuf, ClearCactusSlotPayload> CODEC = PacketCodec.tuple(
+                PacketCodecs.VAR_INT, ClearCactusSlotPayload::entityId,
+                PacketCodecs.VAR_INT, ClearCactusSlotPayload::slotIndex,
+                ClearCactusSlotPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
     public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
@@ -195,6 +209,7 @@ public class UGInit implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(JukeboxActionPayload.ID, JukeboxActionPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(RedstoneActionPayload.ID, RedstoneActionPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SyncRedstoneProgramPayload.ID, SyncRedstoneProgramPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(ClearCactusSlotPayload.ID, ClearCactusSlotPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
@@ -246,6 +261,17 @@ public class UGInit implements ModInitializer {
                 Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     golem.setRedstoneProgram(payload.program());
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(ClearCactusSlotPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                if (entity instanceof UtilityGolem golem && golem.getGolemType() == GolemType.CACTUS) {
+                    if (payload.slotIndex() >= 0 && payload.slotIndex() < golem.getInventory().size()) {
+                        golem.getInventory().setStack(payload.slotIndex(), ItemStack.EMPTY);
+                    }
                 }
             });
         });
@@ -327,7 +353,7 @@ public class UGInit implements ModInitializer {
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
             for (GolemType type : GolemType.values()) {
-                if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE) continue;
+                if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE || type == GolemType.MEDIC || type == GolemType.CACTUS) continue;
                 net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
                 if (chest != null) {
                     entries.add(chest);
