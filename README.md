@@ -60,7 +60,7 @@
 - <code style="color : white">Medic Golem</code> (Healing)
   - Follows the player and automatically heals damaged golems when given a wrench.
   - Essential for maintaining your golem workforce and defenses.
-- <code style="color : green">Cactus Golem</code> (Filtering)
+- <code style="color : green">Cactus Golem</code> (Item Trashing)
   - Deletes items from nearby chests that match the items in its own inventory.
   - Useful for removing unwanted "trash" items from automated systems.
   - Tracks the total number of items deleted in its interface.
