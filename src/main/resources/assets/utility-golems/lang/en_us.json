@@ -59,6 +59,8 @@
   "item.utility-golems.deepslate_golem_spawn_egg": "Deepslate Golem Spawn Egg",
   "item.utility-golems.jukebox_golem_spawn_egg": "Jukebox Golem Spawn Egg",
   "item.utility-golems.lamp_golem_spawn_egg": "Lamp Golem Spawn Egg",
+  "item.utility-golems.smoker_golem_spawn_egg": "Smoker Golem Spawn Egg",
+  "item.utility-golems.blast_furnace_golem_spawn_egg": "Blast Furnace Golem Spawn Egg",
   "item.utility-golems.nether_wart_golem_spawn_egg": "Nether Wart Golem Spawn Egg",
   
   "item.utility-golems.lapis_chest": "Lapis Chest",
@@ -80,6 +82,8 @@
   "entity.utility-golems.sponge_golem": "Sponge Golem",
   "entity.utility-golems.deepslate_golem": "Deepslate Golem",
   "entity.utility-golems.furnace_golem": "Furnace Golem",
+  "entity.utility-golems.smoker_golem": "Smoker Golem",
+  "entity.utility-golems.blast_furnace_golem": "Blast Furnace Golem",
   "entity.utility-golems.jukebox_golem": "Jukebox Golem",
   "entity.utility-golems.nether_wart_golem": "Nether Wart Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection"

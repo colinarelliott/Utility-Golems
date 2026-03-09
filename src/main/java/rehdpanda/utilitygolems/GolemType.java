@@ -70,6 +70,14 @@ public enum GolemType {
     NETHER_WART("nether_wart_golem", "Nether Wart Golem", "textures/entity/nether_wart_golem.png",
             GolemAI::initNetherWartGoals,
             null
+    ),
+    SMOKER("smoker_golem", "Smoker Golem", "textures/entity/smoker_golem.png",
+            GolemAI::initSmokerGoals,
+            null
+    ),
+    BLAST_FURNACE("blast_furnace_golem", "Blast Furnace Golem", "textures/entity/blast_furnace_golem.png",
+            GolemAI::initBlastFurnaceGoals,
+            null
     );
 
 
@@ -121,7 +129,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
-        if (this == LAMP || this == FURNACE || this == JUKEBOX) return null;
+        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

@@ -564,7 +564,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 }
             }
 
-            if (this.golemType == GolemType.FURNACE) {
+            if (this.golemType == GolemType.FURNACE || this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) {
                 tickFurnace();
             }
             if (this.golemType == GolemType.GOLD) {
@@ -670,7 +670,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
             if (this.burnTime > 0) {
                 // Progress cook time
-                this.cookTimeTotal = 200;
+                this.cookTimeTotal = (this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) ? 100 : 200;
                 this.cookTime++;
                 if (this.cookTime >= this.cookTimeTotal) {
                     this.cookTime = 0;
@@ -718,6 +718,53 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     private ItemStack getSmeltingResult(ItemStack input) {
+        if (this.golemType == GolemType.SMOKER) {
+            if (input.isOf(Items.PORKCHOP)) return new ItemStack(Items.COOKED_PORKCHOP);
+            if (input.isOf(Items.BEEF)) return new ItemStack(Items.COOKED_BEEF);
+            if (input.isOf(Items.CHICKEN)) return new ItemStack(Items.COOKED_CHICKEN);
+            if (input.isOf(Items.MUTTON)) return new ItemStack(Items.COOKED_MUTTON);
+            if (input.isOf(Items.RABBIT)) return new ItemStack(Items.COOKED_RABBIT);
+            if (input.isOf(Items.COD)) return new ItemStack(Items.COOKED_COD);
+            if (input.isOf(Items.SALMON)) return new ItemStack(Items.COOKED_SALMON);
+            if (input.isOf(Items.POTATO)) return new ItemStack(Items.BAKED_POTATO);
+            if (input.isOf(Items.KELP)) return new ItemStack(Items.DRIED_KELP);
+            return ItemStack.EMPTY;
+        }
+
+        if (this.golemType == GolemType.BLAST_FURNACE) {
+            if (input.isOf(Items.RAW_IRON) || input.isOf(Items.IRON_ORE) || input.isOf(Items.DEEPSLATE_IRON_ORE)) return new ItemStack(Items.IRON_INGOT);
+            if (input.isOf(Items.RAW_GOLD) || input.isOf(Items.GOLD_ORE) || input.isOf(Items.DEEPSLATE_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
+            if (input.isOf(Items.RAW_COPPER) || input.isOf(Items.COPPER_ORE) || input.isOf(Items.DEEPSLATE_COPPER_ORE)) return new ItemStack(Items.COPPER_INGOT);
+            if (input.isOf(Items.NETHER_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
+            if (input.isOf(Items.ANCIENT_DEBRIS)) return new ItemStack(Items.NETHERITE_SCRAP);
+            // Chainmail
+            if (input.isOf(Items.CHAINMAIL_HELMET)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_CHESTPLATE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_LEGGINGS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.CHAINMAIL_BOOTS)) return new ItemStack(Items.IRON_NUGGET);
+            // Iron gear
+            if (input.isOf(Items.IRON_HELMET)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_CHESTPLATE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_LEGGINGS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_BOOTS)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_PICKAXE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_SHOVEL)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_AXE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_HOE)) return new ItemStack(Items.IRON_NUGGET);
+            if (input.isOf(Items.IRON_SWORD)) return new ItemStack(Items.IRON_NUGGET);
+            // Golden gear
+            if (input.isOf(Items.GOLDEN_HELMET)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_CHESTPLATE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_LEGGINGS)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_BOOTS)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_PICKAXE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_SHOVEL)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_AXE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_HOE)) return new ItemStack(Items.GOLD_NUGGET);
+            if (input.isOf(Items.GOLDEN_SWORD)) return new ItemStack(Items.GOLD_NUGGET);
+            return ItemStack.EMPTY;
+        }
+
         if (input.isOf(Items.RAW_IRON) || input.isOf(Items.IRON_ORE) || input.isOf(Items.DEEPSLATE_IRON_ORE)) return new ItemStack(Items.IRON_INGOT);
         if (input.isOf(Items.RAW_GOLD) || input.isOf(Items.GOLD_ORE) || input.isOf(Items.DEEPSLATE_GOLD_ORE)) return new ItemStack(Items.GOLD_INGOT);
         if (input.isOf(Items.RAW_COPPER) || input.isOf(Items.COPPER_ORE) || input.isOf(Items.DEEPSLATE_COPPER_ORE)) return new ItemStack(Items.COPPER_INGOT);
@@ -1098,7 +1145,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
         }
 
-        if (this.golemType == GolemType.FURNACE) {
+        if (this.golemType == GolemType.FURNACE || this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) {
             if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new net.minecraft.screen.SimpleNamedScreenHandlerFactory(
                         (syncId, playerInventory, p) -> new GolemFurnaceScreenHandler(syncId, playerInventory, this.furnaceInventory, this.furnacePropertyDelegate, this),

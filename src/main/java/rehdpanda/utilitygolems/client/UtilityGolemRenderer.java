@@ -29,8 +29,8 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             if (renderState.isLampOn && type == GolemType.LAMP) {
                 return Identifier.of("utility-golems", "textures/entity/lamp_golem_illuminated.png");
             }
-            if (renderState.isSmelting && type == GolemType.FURNACE) {
-                return Identifier.of("utility-golems", "textures/entity/furnace_golem_illuminated.png");
+            if (renderState.isSmelting && (type == GolemType.FURNACE || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE)) {
+                return Identifier.of("utility-golems", "textures/entity/" + type.getName() + "_illuminated.png");
             }
             if (renderState.isStripped && type == GolemType.BAMBOO) {
                 return Identifier.of("utility-golems", "textures/entity/stripped_bamboo_golem.png");
