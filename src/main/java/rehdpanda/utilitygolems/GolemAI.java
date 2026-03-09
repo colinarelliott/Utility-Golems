@@ -158,7 +158,7 @@ public class GolemAI {
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initAmethystGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS), false)));
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS, Items.GOLDEN_APPLE, Items.GOLDEN_CARROT), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -1082,12 +1082,14 @@ public class GolemAI {
                 return false;
             }
             chestPos = findNearbyChest();
-            if (chestPos == null) {
-                return false;
-            }
-            waterPos = findNearbyWater(chestPos);
+            
+            waterPos = findNearbyWater(chestPos != null ? chestPos : golem.getBlockPos());
             if (waterPos != null) {
-                golem.debugLog("FishGoal: Found water at " + waterPos.toShortString() + " near chest " + chestPos.toShortString());
+                if (chestPos != null) {
+                    golem.debugLog("FishGoal: Found water at " + waterPos.toShortString() + " near chest " + chestPos.toShortString());
+                } else {
+                    golem.debugLog("FishGoal: Found water at " + waterPos.toShortString() + " near golem");
+                }
                 return true;
             }
             return false;
@@ -1178,15 +1180,22 @@ public class GolemAI {
             
             // Basic validity checks
             if (waterPos == null || !golem.getEntityWorld().getBlockState(waterPos).isOf(Blocks.WATER) ||
-                chestPos == null || chestState == null || chestState.getBlock() != golem.getGolemType().getChestBlock() ||
                 rod.isEmpty() || !UtilityGolem.isFishingRod(rod) ||
                 isInventoryFull()) {
                 return false;
             }
 
+            if (chestPos != null) {
+                if (chestState == null || chestState.getBlock() != golem.getGolemType().getChestBlock()) {
+                    return false;
+                }
+                if (golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) >= 1024) {
+                    return false;
+                }
+            }
+
             // Distance checks
-            if (golem.getBlockPos().getSquaredDistance(waterPos.getX(), waterPos.getY(), waterPos.getZ()) >= 400 ||
-                golem.getBlockPos().getSquaredDistance(chestPos.getX(), chestPos.getY(), chestPos.getZ()) >= 1024) {
+            if (golem.getBlockPos().getSquaredDistance(waterPos.getX(), waterPos.getY(), waterPos.getZ()) >= 400) {
                 return false;
             }
 
@@ -6449,6 +6458,9 @@ public class GolemAI {
                     }
                     if (animal instanceof net.minecraft.entity.passive.ChickenEntity) {
                         if (stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS)) return stack;
+                    }
+                    if (animal instanceof net.minecraft.entity.passive.AbstractHorseEntity) {
+                        if (stack.isOf(Items.GOLDEN_APPLE) || stack.isOf(Items.GOLDEN_CARROT) || stack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) return stack;
                     }
                 }
             }
