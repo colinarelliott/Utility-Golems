@@ -1101,6 +1101,17 @@ public class GolemAI {
 
         private BlockPos findNearbyWater(BlockPos center) {
             World world = golem.getEntityWorld();
+            
+            // Collect all water positions currently being fished by other golems
+            List<BlockPos> occupiedWater = new ArrayList<>();
+            List<UtilityGolem> golems = world.getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(32.0), g -> g != golem && g.getGolemType() == GolemType.SPONGE);
+            for (UtilityGolem other : golems) {
+                BlockPos target = other.getFishingTarget();
+                if (target != null) {
+                    occupiedWater.add(target);
+                }
+            }
+
             BlockPos best = null;
             double bestScore = Double.MAX_VALUE;
             int range = 12;
@@ -1108,6 +1119,10 @@ public class GolemAI {
                 for (int y = -5; y <= 5; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = center.add(x, y, z);
+                        
+                        // Skip if this water block is already being used
+                        if (occupiedWater.contains(p)) continue;
+
                         BlockState state = world.getBlockState(p);
                         if (!state.isOf(Blocks.WATER)) continue;
                         if (!world.getBlockState(p.up()).isAir()) continue;
