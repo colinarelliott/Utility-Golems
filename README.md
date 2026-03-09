@@ -1,7 +1,8 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
-![UG-PhotoDay](https://github.com/user-attachments/assets/bdc857c4-b6b8-47ec-83c1-367deec2454d)
+![GolemPhotoDay131](https://github.com/user-attachments/assets/171d5301-f636-4839-9d4e-d8e4cd92fa55)
+
 
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
