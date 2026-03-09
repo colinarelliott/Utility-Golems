@@ -5,7 +5,7 @@
 
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (15 varieties)
+- Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (20 varieties)
 
 #### Adds additional golems on top of the copper golem with various uses. So far:
 - <code style="color : blue">Lapis Golem</code> (Digging)
@@ -25,6 +25,8 @@
 - <code>Furnace Golem</code> (Smelting)
   - Contains furnace interface, portable.
   - Lights up when smelting.
+  - <i>Variant</i>: <code>Blast Furnace Golem</code> (same but with Blast Furnace recipes)
+  - <i>Variant</i>: <code>Smoker Golem</code> (same but with Smoker recipes)
 - <code style="color : brown">Jukebox Golem</code> (Music Player)
   - Plays music discs and follows the player around
   - Contains a 9-disc playlist with shuffle and repeat options
@@ -37,7 +39,7 @@
 - <code style="color : green">Bamboo Golem</code> (Farming)
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
   - Also give them a water bucket if no water is nearby. Crops need hydration!
-  - Alternate stripped bamboo golem is available if you use an Axe.
+  - <i>Variant</i>: <code>Stripped Bamboo Golem</code> is available if you use an Axe.
 - <code style="color : yellow">Gold Golem</code> (Piglin Trading)
   - Drop gold for piglins, retrieve items in return and put them in chest
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation)
@@ -55,6 +57,17 @@
   - Automates potion brewing when given a brewing stand and ingredients.
   - Deposits finished potions into nearby chests.
   - Fills water bottles with water when given glass bottles.
+- <code style="color : white">Medic Golem</code> (Healing)
+  - Follows the player and automatically heals damaged golems when given a wrench.
+  - Essential for maintaining your golem workforce and defenses.
+- <code style="color : green">Cactus Golem</code> (Filtering)
+  - Deletes items from nearby chests that match the items in its own inventory.
+  - Useful for removing unwanted "trash" items from automated systems.
+  - Tracks the total number of items deleted in its interface.
+- <code style="color : orange">Honeycomb Golem</code> (Beekeeping)
+  - Automatically harvests honey and honeycomb from nearby bee hives.
+  - Needs glass bottles and shears.
+  - Deposits harvested items into honeycomb chest.
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
