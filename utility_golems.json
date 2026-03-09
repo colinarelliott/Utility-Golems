@@ -56,12 +56,12 @@
       "attackKnockback": 0.0
     },
     "netherite_golem": {
-      "maxHealth": 80.0,
+      "maxHealth": 100.0,
       "movementSpeed": 0.3,
       "attackDamage": 0.5,
       "followRange": 16.0,
-      "knockbackResistance": 0.0,
-      "armor": 0.0,
+      "knockbackResistance": 2.0,
+      "armor": 2.0,
       "armorToughness": 0.0,
       "attackSpeed": 1.0,
       "attackKnockback": 0.0
