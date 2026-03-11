@@ -289,6 +289,7 @@ public class GolemAI {
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new HealGolemsGoal(golem)));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new HoldWrenchGoal(golem)));
     }
 
     public static void initCactusGoals(UtilityGolem golem) {
@@ -8795,11 +8796,51 @@ public class GolemAI {
             // Progress is only reset in canStart() if the pattern is changed.
         }
     }
+    /// HOLD WRENCH GOAL
+    public static class HoldWrenchGoal extends Goal {
+        private final UtilityGolem golem;
+
+        public HoldWrenchGoal(UtilityGolem golem) {
+            this.golem = golem;
+        }
+
+        @Override
+        public boolean canStart() {
+            ItemStack mainHand = golem.getEquippedStack(EquipmentSlot.MAINHAND);
+            if (!mainHand.isEmpty() && mainHand.isOf(UGItems.WRENCH_ITEM)) {
+                return false;
+            }
+            return hasWrench();
+        }
+
+        private boolean hasWrench() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void start() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
+                    golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                    break;
+                }
+            }
+        }
+    }
+
     /// HEAL GOLEMS GOAL
     public static class HealGolemsGoal extends Goal {
         private final UtilityGolem golem;
         private UtilityGolem targetGolem;
         private int healCooldown = 0;
+        private int scanCooldown = 0;
 
         public HealGolemsGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -8830,7 +8871,7 @@ public class GolemAI {
 
         private UtilityGolem findDamagedGolem() {
             List<UtilityGolem> golems = golem.getEntityWorld().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(10.0D), 
-                e -> e != golem && e.getHealth() < e.getMaxHealth());
+                e -> e.getHealth() < e.getMaxHealth());
             if (golems.isEmpty()) return null;
             golems.sort(Comparator.comparingDouble(golem::squaredDistanceTo));
             return golems.get(0);
@@ -8844,7 +8885,9 @@ public class GolemAI {
         @Override
         public void start() {
             if (targetGolem != null) {
-                golem.getNavigation().startMovingTo(targetGolem, 1.2D);
+                if (targetGolem != golem) {
+                    golem.getNavigation().startMovingTo(targetGolem, 1.2D);
+                }
                 
                 // Equip wrench to main hand when starting to heal
                 for (int i = 0; i < golem.getInventory().size(); i++) {
@@ -8861,19 +8904,33 @@ public class GolemAI {
         public void stop() {
             golem.getNavigation().stop();
             targetGolem = null;
-            
-            // Clear hand when stopping healing
-            golem.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            // Medic golems should always hold the wrench now, managed by HoldWrenchGoal and start()
         }
 
         @Override
         public void tick() {
             if (targetGolem == null) return;
 
-            golem.getLookControl().lookAt(targetGolem, 30.0F, 30.0F);
+            // Periodically check for new golems or if target is still best
+            if (scanCooldown-- <= 0) {
+                scanCooldown = 20;
+                UtilityGolem bestTarget = findDamagedGolem();
+                if (bestTarget != null && bestTarget != targetGolem) {
+                    targetGolem = bestTarget;
+                    if (targetGolem != golem) {
+                        golem.getNavigation().startMovingTo(targetGolem, 1.2D);
+                    } else {
+                        golem.getNavigation().stop();
+                    }
+                }
+            }
+
+            if (targetGolem != golem) {
+                golem.getLookControl().lookAt(targetGolem, 30.0F, 30.0F);
+            }
             double distSq = golem.squaredDistanceTo(targetGolem);
 
-            if (distSq < 4.0D) {
+            if (distSq < 4.0D || targetGolem == golem) {
                 golem.getNavigation().stop();
                 if (healCooldown <= 0) {
                     healTarget();
