@@ -3143,6 +3143,11 @@ public class GolemAI {
                                 continue;
                             }
                         }
+                        if (golem.getGolemType() == GolemType.GOLD) {
+                            if (stack.isOf(Items.GOLD_INGOT) || stack.isOf(Items.GOLD_NUGGET)) {
+                                continue;
+                            }
+                        }
                         ItemStack remaining = transferStack(stack, container);
                         golemInv.setStack(i, remaining);
                     }
@@ -7765,6 +7770,7 @@ public class GolemAI {
         private int tradeDelay;
         private boolean waitingForPiglin;
         private net.minecraft.entity.ItemEntity suspectedTradedItem;
+        private static final java.util.Map<net.minecraft.entity.mob.PiglinEntity, UtilityGolem> CLAIMED_PIGLINS = new java.util.HashMap<>();
 
         public TradeWithPiglinGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -7782,7 +7788,11 @@ public class GolemAI {
             if (!golem.getHeldItem().isEmpty() && !golem.getHeldItem().isOf(Items.GOLD_INGOT)) return false;
 
             targetPiglin = findNearbyPiglin();
-            return targetPiglin != null;
+            if (targetPiglin != null) {
+                CLAIMED_PIGLINS.put(targetPiglin, golem);
+                return true;
+            }
+            return false;
         }
 
         private boolean hasGoldIngot() {
@@ -7798,7 +7808,7 @@ public class GolemAI {
             List<net.minecraft.entity.mob.PiglinEntity> piglins = golem.getEntityWorld().getEntitiesByClass(
                     net.minecraft.entity.mob.PiglinEntity.class,
                     golem.getBoundingBox().expand(16.0),
-                    piglin -> piglin.isAlive() && !piglin.isBaby()
+                    piglin -> piglin.isAlive() && !piglin.isBaby() && (!CLAIMED_PIGLINS.containsKey(piglin) || CLAIMED_PIGLINS.get(piglin) == golem)
             );
             return piglins.stream()
                     .min(Comparator.comparingDouble(golem::squaredDistanceTo))
@@ -7809,6 +7819,8 @@ public class GolemAI {
         public boolean shouldContinue() {
             if (targetPiglin == null || !targetPiglin.isAlive() || golem.squaredDistanceTo(targetPiglin) > 256) return false;
             
+            if (CLAIMED_PIGLINS.get(targetPiglin) != golem) return false;
+
             if (waitingForPiglin) {
                 // If we are waiting, we don't necessarily need gold ingot in inventory right now (we just dropped it)
                 return true;
@@ -7827,6 +7839,9 @@ public class GolemAI {
 
         @Override
         public void stop() {
+            if (targetPiglin != null && CLAIMED_PIGLINS.get(targetPiglin) == golem) {
+                CLAIMED_PIGLINS.remove(targetPiglin);
+            }
             targetPiglin = null;
             waitingForPiglin = false;
             suspectedTradedItem = null;
@@ -7870,7 +7885,7 @@ public class GolemAI {
                         }
                     } else {
                         // Still waiting for piglin to finish admiring and drop
-                        if (++tradeDelay > 200) { // Timeout after 10 seconds
+                        if (++tradeDelay > 100) { // Shortened timeout from 10s to 5s
                             waitingForPiglin = false;
                             tradeDelay = 0;
                         }
@@ -7925,7 +7940,12 @@ public class GolemAI {
 
         private void pickupTradedItem(net.minecraft.entity.ItemEntity itemEntity) {
             ItemStack stack = itemEntity.getStack();
-            golem.setHeldItem(stack.copy());
+            ItemStack remaining = golem.getInventory().addStack(stack.copy());
+            if (!remaining.isEmpty()) {
+                golem.setHeldItem(remaining);
+            } else {
+                golem.setHeldItem(ItemStack.EMPTY);
+            }
             itemEntity.discard();
             golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
         }
