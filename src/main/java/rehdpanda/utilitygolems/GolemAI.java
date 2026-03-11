@@ -1406,6 +1406,7 @@ public class GolemAI {
             castingTicks = 20;
             maxFishingTime = 100 + golem.getRandom().nextInt(200); // 5-15 seconds
             golem.setAnimation(GolemAnimation.WITHDRAWING, castingTicks);
+            golem.setFishingTarget(waterPos);
         }
 
         @Override
@@ -1460,7 +1461,7 @@ public class GolemAI {
             if (castingTicks > 0) {
                 castingTicks--;
                 golem.getLookControl().lookAt(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5);
-                golem.setFishingTarget(null);
+                golem.setFishingTarget(waterPos);
                 if (castingTicks == 0) {
                     golem.setAnimation(GolemAnimation.FISHING, maxFishingTime);
                 }
@@ -1483,7 +1484,8 @@ public class GolemAI {
                     }
                 }
                 fishingTime = 0;
-                golem.setFishingTarget(null);
+                // Keep the target even if moving to it
+                golem.setFishingTarget(waterPos);
             } else {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(waterPos.getX() + 0.5, waterPos.getY() + 0.5, waterPos.getZ() + 0.5);
