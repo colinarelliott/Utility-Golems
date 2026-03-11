@@ -109,6 +109,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private int attackCooldown = 0;
     private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Integer> MINING_DIRECTION = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
@@ -498,12 +499,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     protected void mobTick(net.minecraft.server.world.ServerWorld world) {
         // Skip CopperGolemEntity.mobTick which triggers brain.tick and CopperGolemBrain.updateActivity
-        // This ensures the vanilla copper golem brain never runs
-        net.minecraft.util.profiler.Profiler profiler = net.minecraft.util.profiler.Profilers.get();
-        profiler.push("utilityGolemTick");
-        // Custom golem logic can be added here if needed, but currently it's in tick() and goals
-        profiler.pop();
-        // Skip CopperGolemEntity's mobTick entirely
+        // but call super.mobTick in MobEntity to ensure target management and other base behaviors work correctly.
+        super.mobTick(world);
+        
+        // Proactively clear target if dead or removed, as super.mobTick might be slow or skip it in some conditions.
+        net.minecraft.entity.LivingEntity target = this.getTarget();
+        if (target != null && (target.isDead() || target.isRemoved())) {
+            this.setTarget(null);
+        }
+
+        // Proactively prevent any vanilla CopperGolem container targeting each tick
+        this.resetTargetContainerPos();
     }
 
     @Override
@@ -535,6 +541,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         super.tick();
+
+        if (this.attackCooldown > 0) {
+            this.attackCooldown--;
+        }
 
         if (!this.getEntityWorld().isClient()) {
             Text customName = this.getCustomName();
@@ -1120,7 +1130,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
-        if ((this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) && isSword(playerStack)) {
+        if ((this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) && (isSword(playerStack) || isAxe(playerStack) || isSpear(playerStack) || isTrident(playerStack) || isMace(playerStack))) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
@@ -1344,6 +1354,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 stack.isOf(Items.COPPER_PICKAXE);
     }
 
+    public static boolean isSpear(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        String name = stack.getItem().toString().toLowerCase();
+        return name.contains("spear");
+    }
+
     public static boolean isSword(ItemStack stack) {
         return stack.isOf(Items.WOODEN_SWORD) || stack.isOf(Items.STONE_SWORD) ||
                 stack.isOf(Items.IRON_SWORD) || stack.isOf(Items.DIAMOND_SWORD) ||
@@ -1396,13 +1412,17 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return stack.isOf(Items.TRIDENT);
     }
 
+    public static boolean isMace(ItemStack stack) {
+        return stack.isOf(Items.MACE);
+    }
+
     public static boolean isFlintAndSteel(ItemStack stack) {
         return stack.isOf(Items.FLINT_AND_STEEL);
     }
 
     public static boolean isTool(ItemStack stack) {
         return isPickaxe(stack) || isSword(stack) || isAxe(stack) || isHoe(stack) || isShovel(stack) || isFishingRod(stack) || isShears(stack)
-                || isBow(stack) || isShield(stack) || isTrident(stack) || isFlintAndSteel(stack) || stack.isOf(Items.BUCKET) || stack.isOf(Items.WATER_BUCKET);
+                || isBow(stack) || isShield(stack) || isTrident(stack) || isMace(stack) || isFlintAndSteel(stack) || isSpear(stack) || stack.isOf(Items.BUCKET) || stack.isOf(Items.WATER_BUCKET);
     }
 
     public static boolean isLightSource(BlockState state) {
@@ -1653,18 +1673,78 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public boolean tryAttack(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
-        boolean success = super.tryAttack(world, target);
+        if (this.attackCooldown > 0) {
+            return false;
+        }
+
+        boolean isNetheriteOrAncient = this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT;
+        ItemStack heldItem = this.getHeldItem();
+
+        if (isNetheriteOrAncient) {
+            List<ItemStack> weapons = new ArrayList<>();
+            if (isSword(heldItem) || isAxe(heldItem) || isSpear(heldItem) || isTrident(heldItem) || isMace(heldItem)) {
+                weapons.add(heldItem);
+            }
+            for (int i = 0; i < this.inventory.size(); i++) {
+                ItemStack stack = this.inventory.getStack(i);
+                if (isSword(stack) || isAxe(stack) || isSpear(stack) || isTrident(stack) || isMace(stack)) {
+                    weapons.add(stack);
+                }
+            }
+
+            if (!weapons.isEmpty()) {
+                heldItem = weapons.get(this.random.nextInt(weapons.size()));
+                // We don't necessarily swap the main hand item permanently, 
+                // but we use this chosen item for the attack logic.
+                // However, updateAttackDamage() uses getHeldItem(), so it might be better 
+                // to temporarily set it or pass it to updateAttackDamage.
+            }
+
+            if (isSpear(heldItem) || isTrident(heldItem)) {
+                // Lunge attack
+                net.minecraft.util.math.Vec3d targetPos = new net.minecraft.util.math.Vec3d(target.getX(), target.getY(), target.getZ());
+                net.minecraft.util.math.Vec3d myPos = new net.minecraft.util.math.Vec3d(this.getX(), this.getY(), this.getZ());
+                net.minecraft.util.math.Vec3d vec3d = targetPos.subtract(myPos).normalize().multiply(1.5, 0.1, 1.5);
+                this.addVelocity(vec3d.x, vec3d.y + 0.2, vec3d.z);
+                this.attackCooldown = 40; // 2 seconds cooldown
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundCategory(), 1.0f, 1.0f);
+            } else if (isAxe(heldItem)) {
+                this.attackCooldown = 30; // 1.5 seconds cooldown
+            } else if (isMace(heldItem)) {
+                // Mace jump attack
+                this.addVelocity(0, 0.6, 0);
+                this.attackCooldown = 60; // 3 seconds cooldown
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundCategory(), 1.0f, 1.0f);
+            }
+        }
+
+        // To ensure the correct damage is applied, we might need to temporarily swap the item
+        ItemStack originalHeldItem = this.getHeldItem();
+        boolean success;
+        try {
+            if (isNetheriteOrAncient && (heldItem != originalHeldItem || isSpear(heldItem) || isTrident(heldItem) || isAxe(heldItem) || isMace(heldItem))) {
+                this.setHeldItem(heldItem);
+                this.updateAttackDamage();
+            }
+            success = super.tryAttack(world, target);
+        } finally {
+            if (isNetheriteOrAncient && (heldItem != originalHeldItem || isSpear(heldItem) || isTrident(heldItem) || isAxe(heldItem) || isMace(heldItem))) {
+                this.setHeldItem(originalHeldItem);
+                this.updateAttackDamage();
+            }
+        }
+
         if (success) {
             if (target instanceof net.minecraft.entity.LivingEntity livingTarget) {
                 // Apply knockback enchantment
-                int knockbackLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), this.getHeldItem());
+                int knockbackLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
                 if (knockbackLevel > 0) {
                     livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
                     this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
                 }
 
                 // Apply fire aspect enchantment
-                int fireAspectLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), this.getHeldItem());
+                int fireAspectLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), heldItem);
                 if (fireAspectLevel > 0) {
                     livingTarget.setOnFireFor(fireAspectLevel * 4);
                 }
@@ -1673,10 +1753,10 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 EnchantmentHelper.onTargetDamaged(world, livingTarget, this.getDamageSources().mobAttack(this));
             }
 
-            // Netherite/Ancient sweeping attack
-            if ((this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) && this.isSword(this.getHeldItem())) {
+            // Netherite/Ancient sweeping attack (Sword only)
+            if (isNetheriteOrAncient && isSword(heldItem)) {
                 this.spawnSweepingAttackParticles(world);
-                this.applySweepingDamage(world, target);
+                this.applySweepingDamage(world, target, heldItem);
             }
         }
         return success;
@@ -1688,9 +1768,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         world.spawnParticles(net.minecraft.particle.ParticleTypes.SWEEP_ATTACK, this.getX() + d, this.getBodyY(0.5), this.getZ() + e, 0, d, 0.0, e, 0.0);
     }
 
-    private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
+    private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target, ItemStack heldItem) {
         float damage = (float)this.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
-        int sweepingLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), this.getHeldItem());
+        int sweepingLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), heldItem);
         float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
         for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
@@ -1704,6 +1784,19 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
+    public void setTarget(@Nullable net.minecraft.entity.LivingEntity target) {
+        if (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) {
+            if (target != null) {
+                this.debugLog("Targeting " + target.getType().getName().getString() + " at " + target.getBlockPos().toShortString() + " (HP: " + (int)target.getHealth() + "/" + (int)target.getMaxHealth() + ")");
+            } else if (this.getTarget() != null) {
+                net.minecraft.entity.LivingEntity oldTarget = this.getTarget();
+                this.debugLog("Target cleared (null). Was " + oldTarget.getType().getName().getString() + " (Dead: " + oldTarget.isDead() + ", Removed: " + oldTarget.isRemoved() + ")");
+            }
+        }
+        super.setTarget(target);
+    }
+
+    @Override
     public boolean canPickUpLoot() {
         if (this.golemType == GolemType.REDSTONE) return false;
         return super.canPickUpLoot();
@@ -1712,6 +1805,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public boolean canTarget(net.minecraft.entity.LivingEntity target) {
         if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
+        if (target.isDead() || target.isRemoved()) return false;
         
         // Netherite and Ancient golems only target hostile mobs
         if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
@@ -1766,6 +1860,21 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         else if (stack.isOf(Items.STONE_SWORD)) baseDamage += 5.0f;
         else if (stack.isOf(Items.WOODEN_SWORD)) baseDamage += 4.0f;
         else if (stack.isOf(Items.GOLDEN_SWORD)) baseDamage += 4.0f;
+        else if (stack.isOf(Items.NETHERITE_AXE)) baseDamage += 10.0f;
+        else if (stack.isOf(Items.DIAMOND_AXE)) baseDamage += 9.0f;
+        else if (stack.isOf(Items.IRON_AXE)) baseDamage += 9.0f;
+        else if (stack.isOf(Items.STONE_AXE)) baseDamage += 9.0f;
+        else if (stack.isOf(Items.WOODEN_AXE)) baseDamage += 7.0f;
+        else if (stack.isOf(Items.GOLDEN_AXE)) baseDamage += 7.0f;
+        else if (stack.isOf(Items.TRIDENT)) baseDamage += 9.0f;
+        else if (stack.isOf(Items.MACE)) baseDamage += 11.0f;
+        else if (isSpear(stack)) {
+            if (stack.getItem().toString().contains("netherite")) baseDamage += 10.0f;
+            else if (stack.getItem().toString().contains("diamond")) baseDamage += 9.0f;
+            else if (stack.getItem().toString().contains("iron")) baseDamage += 8.0f;
+            else if (stack.getItem().toString().contains("stone")) baseDamage += 7.0f;
+            else baseDamage += 6.0f;
+        }
         
         var instance = this.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
         if (instance != null) {

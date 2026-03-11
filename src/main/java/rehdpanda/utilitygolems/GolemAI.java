@@ -166,27 +166,24 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initNetheriteGoals(UtilityGolem golem) {
-        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD, Items.COPPER_SWORD,
                 Items.NETHERITE_AXE, Items.DIAMOND_AXE, Items.IRON_AXE, Items.GOLDEN_AXE, Items.STONE_AXE, Items.WOODEN_AXE, Items.COPPER_AXE,
                 Items.NETHERITE_PICKAXE, Items.DIAMOND_PICKAXE, Items.IRON_PICKAXE, Items.GOLDEN_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE,
                 Items.NETHERITE_SHOVEL, Items.DIAMOND_SHOVEL, Items.IRON_SHOVEL, Items.GOLDEN_SHOVEL, Items.STONE_SHOVEL, Items.WOODEN_SHOVEL, Items.COPPER_SHOVEL,
                 Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
-                Items.BOW, Items.CROSSBOW, Items.TRIDENT, Items.SHIELD
+                Items.BOW, Items.CROSSBOW, Items.TRIDENT, Items.SHIELD, Items.MACE,
+                Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD, Items.DIAMOND_SWORD, Items.NETHERITE_SWORD, Items.GOLDEN_SWORD,
+                Items.WOODEN_AXE, Items.STONE_AXE, Items.IRON_AXE, Items.DIAMOND_AXE, Items.NETHERITE_AXE, Items.GOLDEN_AXE
         ), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false) {
-            @Override
-            public boolean canStart() {
-                return super.canStart();
-            }
-        }));
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new StayNearChestGoal(golem, 1.2D, 32.0F)));
         golem.getGoalSelector().add(7, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
-        golem.getTargetSelector().add(1, new DebugGoalWrapper(golem, new RevengeGoal(golem).setGroupRevenge()));
-        golem.getTargetSelector().add(2, new DebugGoalWrapper(golem, new ActiveTargetGoal<>(golem, HostileEntity.class, true)));
+        golem.getTargetSelector().add(1, new RevengeGoal(golem).setGroupRevenge());
+        golem.getTargetSelector().add(2, new ActiveTargetGoal<>(golem, HostileEntity.class, true));
     }
     public static void initAncientGoals(UtilityGolem golem) {
         initNetheriteGoals(golem);
@@ -342,7 +339,20 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
-            return innerGoal.shouldContinue();
+            boolean result = innerGoal.shouldContinue();
+            if (!result) {
+                golem.debugLog(goalName + " shouldContinue returned false");
+            } else {
+                // Extra check for Netherite/Ancient combat goals
+                if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal) {
+                    net.minecraft.entity.LivingEntity target = golem.getTarget();
+                    if (target == null || target.isDead() || target.isRemoved()) {
+                        golem.debugLog(goalName + " forced stop: target invalid");
+                        return false;
+                    }
+                }
+            }
+            return result;
         }
 
         @Override
@@ -353,7 +363,7 @@ public class GolemAI {
         @Override
         public void start() {
             golem.debugLog(goalName + " starting");
-            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal) {
+            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal || innerGoal instanceof net.minecraft.entity.ai.goal.TemptGoal) {
                 golem.setAnimation(GolemAnimation.ATTACKING, 20);
             }
             innerGoal.start();
@@ -369,7 +379,7 @@ public class GolemAI {
         @Override
         public void tick() {
             innerGoal.tick();
-            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal) {
+            if (innerGoal instanceof net.minecraft.entity.ai.goal.MeleeAttackGoal || innerGoal instanceof net.minecraft.entity.ai.goal.TemptGoal) {
                 if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
                     golem.setAnimation(GolemAnimation.ATTACKING, 20);
                 }
