@@ -2729,7 +2729,6 @@ public class GolemAI {
                     continue;
                 }
                 if (stack.isOf(Items.STICK)) return true; // Always deposit sticks
-                if (stack.getCount() >= stack.getMaxCount()) return true; // Deposit full stacks
                 return true; // Anything else should be deposited
             }
             return false;
@@ -3256,6 +3255,16 @@ public class GolemAI {
                 if (isInventoryFull()) {
                     return false;
                 }
+                
+                // If we don't have enough saplings, ONLY return to chest if there are NO trees to chop.
+                // This prevents looping when we are in the middle of a forest.
+                if (!hasEnoughSaplings()) {
+                    ChopTreeGoal chopGoal = new ChopTreeGoal(golem);
+                    if (chopGoal.canStart()) {
+                        return false;
+                    }
+                }
+                
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
@@ -3640,8 +3649,9 @@ public class GolemAI {
             int count = 0;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.getStack(i).isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) {
-                    count += inv.getStack(i).getCount();
+                ItemStack stack = inv.getStack(i);
+                if (stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER)) {
+                    count += stack.getCount();
                 }
             }
             return count >= 8;
@@ -3651,8 +3661,9 @@ public class GolemAI {
             int count = 0;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.getStack(i).isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) {
-                    count += inv.getStack(i).getCount();
+                ItemStack stack = inv.getStack(i);
+                if (stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER)) {
+                    count += stack.getCount();
                 }
             }
             return count;
@@ -7062,8 +7073,9 @@ public class GolemAI {
             int count = 0;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.getStack(i).isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) {
-                    count += inv.getStack(i).getCount();
+                ItemStack stack = inv.getStack(i);
+                if (stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER)) {
+                    count += stack.getCount();
                 }
             }
             return count >= 8;
@@ -7282,7 +7294,13 @@ public class GolemAI {
         private boolean canChop(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             if (state.isIn(BlockTags.LOGS)) return true;
-            if (state.isOf(Blocks.CHORUS_PLANT) || state.isOf(Blocks.CHORUS_FLOWER)) return true;
+            if (state.isOf(Blocks.CHORUS_FLOWER)) {
+                // If it's a flower on end stone, it's a newly planted one.
+                // We should only break it once it has grown into a stem (becoming a CHORUS_PLANT)
+                // and new flowers have grown above/around it.
+                return !golem.getEntityWorld().getBlockState(pos.down()).isOf(Blocks.END_STONE);
+            }
+            if (state.isOf(Blocks.CHORUS_PLANT)) return true;
             if (state.isIn(BlockTags.LEAVES)) {
                 // Deepslate golems with shears should always be allowed to collect leaves.
                 if (golem.getGolemType() == GolemType.DEEPSLATE && hasShearsInInventory()) {
@@ -7327,6 +7345,11 @@ public class GolemAI {
 
         private boolean isBottomChorus(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
+            if (state.isOf(Blocks.CHORUS_FLOWER)) {
+                // A flower directly on end stone is newly planted.
+                return golem.getEntityWorld().getBlockState(pos.down()).isOf(Blocks.END_STONE);
+            }
+            // A stem on end stone means the flower has changed into a stem (grown).
             return state.isOf(Blocks.CHORUS_PLANT) && golem.getEntityWorld().getBlockState(pos.down()).isOf(Blocks.END_STONE);
         }
 
@@ -7601,7 +7624,7 @@ public class GolemAI {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
-                if (!stack.isEmpty() && stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) {
+                if (!stack.isEmpty() && (stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER))) {
                     return stack;
                 }
             }
@@ -7635,12 +7658,33 @@ public class GolemAI {
             net.minecraft.world.World world = golem.getEntityWorld();
             BlockState state = world.getBlockState(pos);
             BlockState floor = world.getBlockState(pos.down());
+            ItemStack sapling = getSaplingFromInventory();
+            if (sapling.isOf(Items.CHORUS_FLOWER)) {
+                return state.isAir() && floor.isOf(Blocks.END_STONE);
+            }
             // Can plant on dirt, grass, moss, or podzol
             return state.isAir() && (floor.isIn(BlockTags.DIRT) || floor.isOf(Blocks.GRASS_BLOCK) || floor.isOf(Blocks.MOSS_BLOCK) || floor.isOf(Blocks.PODZOL));
         }
 
         private boolean isSparse(BlockPos pos) {
             net.minecraft.world.World world = golem.getEntityWorld();
+            ItemStack sapling = getSaplingFromInventory();
+            if (sapling.isOf(Items.CHORUS_FLOWER)) {
+                // Chorus can be planted closer together than trees if desired, 
+                // but let's stick to a similar sparse check for consistency.
+                int sparseRange = 2;
+                for (int x = -sparseRange; x <= sparseRange; x++) {
+                    for (int z = -sparseRange; z <= sparseRange; z++) {
+                        if (x == 0 && z == 0) continue;
+                        BlockPos p = pos.add(x, 0, z);
+                        BlockState s = world.getBlockState(p);
+                        if (s.isOf(Blocks.CHORUS_PLANT) || s.isOf(Blocks.CHORUS_FLOWER)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
             int sparseRange = 3;
             for (int x = -sparseRange; x <= sparseRange; x++) {
                 for (int z = -sparseRange; z <= sparseRange; z++) {
