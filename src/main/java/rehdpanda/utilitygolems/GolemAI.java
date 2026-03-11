@@ -969,11 +969,38 @@ public class GolemAI {
         public void tick() {
             if (targetGolem == null) return;
             golem.getLookControl().lookAt(targetGolem, 30.0F, 30.0F);
-            if (golem.squaredDistanceTo(targetGolem) > (double)(minDistance * minDistance)) {
+            
+            double distSq = golem.squaredDistanceTo(targetGolem);
+            if (distSq > 144.0D) { // Teleport if more than 12 blocks away
+                teleportToTarget();
+            } else if (distSq > (double)(minDistance * minDistance)) {
                 if (golem.getNavigation().isIdle() || golem.getRandom().nextInt(10) == 0) {
                     golem.getNavigation().startMovingTo(targetGolem, speed);
                 }
             }
+        }
+
+        private void teleportToTarget() {
+            World world = golem.getEntityWorld();
+            for (int i = 0; i < 10; ++i) {
+                int x = (int)targetGolem.getX() + golem.getRandom().nextInt(3) - 1;
+                int y = (int)targetGolem.getY();
+                int z = (int)targetGolem.getZ() + golem.getRandom().nextInt(3) - 1;
+                
+                if (isSafe(new BlockPos(x, y, z))) {
+                    golem.requestTeleport(x + 0.5, y, z + 0.5);
+                    golem.getNavigation().stop();
+                    return;
+                }
+            }
+            // Fallback: exact target position
+            golem.requestTeleport(targetGolem.getX(), targetGolem.getY(), targetGolem.getZ());
+            golem.getNavigation().stop();
+        }
+
+        private boolean isSafe(BlockPos pos) {
+            World world = golem.getEntityWorld();
+            return world.getBlockState(pos).isAir() && world.getBlockState(pos.up()).isAir() && !world.getBlockState(pos.down()).isAir();
         }
     }
 
@@ -5200,6 +5227,20 @@ public class GolemAI {
         private Vec3d lastPos = Vec3d.ZERO;
         private BlockPos lastTargetPos = null;
 
+        private BlockPos findSafePosAround(BlockPos chestPos) {
+            World world = golem.getEntityWorld();
+            for (int i = 0; i < 10; ++i) {
+                int x = chestPos.getX() + golem.getRandom().nextInt(5) - 2;
+                int y = chestPos.getY();
+                int z = chestPos.getZ() + golem.getRandom().nextInt(5) - 2;
+                BlockPos p = new BlockPos(x, y, z);
+                if (world.getBlockState(p).isAir() && world.getBlockState(p.up()).isAir()) {
+                    return p;
+                }
+            }
+            return chestPos.up();
+        }
+
         @Override
         public void tick() {
             if (targetPos == null) return;
@@ -5227,8 +5268,10 @@ public class GolemAI {
                 if (stuckTicks > 300) {
                     BlockPos chestPos = golem.getChestPos();
                     if (chestPos != null) {
+                        // Try to find a safe spot for teleport
                         golem.debugLog("DigBlockGoal: Extremely stuck, teleporting to chest.");
-                        golem.requestTeleport(chestPos.getX() + 0.5, chestPos.getY() + 1.0, chestPos.getZ() + 0.5);
+                        BlockPos safePos = findSafePosAround(chestPos);
+                        golem.requestTeleport(safePos.getX() + 0.5, safePos.getY(), safePos.getZ() + 0.5);
                         
                         if (golem.getGolemType() == GolemType.LAPIS) {
                             if (targetPos.equals(lastTargetPos)) {
