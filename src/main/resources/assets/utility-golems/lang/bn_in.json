@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "মেডিক গোলেম",
   "entity.utility-golems.cactus_golem": "ক্যাকটাস গোলেম",
   "entity.utility-golems.honeycomb_golem": "মৌচাক গোলেম",
-  "gui.utility-golems.clear_selection": "ক্রয় নির্বাচন মুছুন"
+  "gui.utility-golems.clear_selection": "ক্রয় নির্বাচন মুছুন",
+  "gui.utility-golems.golem_dead": "গোলম মৃত! পুনরায় জীবিত করতে একটি কুমড়া রাখুন।"
 }

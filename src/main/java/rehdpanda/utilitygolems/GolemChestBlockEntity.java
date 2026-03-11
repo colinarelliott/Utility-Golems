@@ -15,9 +15,59 @@ import java.util.Map;
 
 public class GolemChestBlockEntity extends ChestBlockEntity {
     private GolemType golemType;
+    private boolean golemDead = false;
 
     public GolemChestBlockEntity(BlockPos pos, BlockState state) {
         super(UGBlocks.GOLEM_CHEST_BLOCK_ENTITY, pos, state);
+    }
+
+    public void setGolemDead(boolean dead) {
+        this.golemDead = dead;
+        this.markDirty();
+        if (this.world != null) {
+            this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), 3);
+
+            // If double chest, notify the other half
+            BlockState state = this.getCachedState();
+            if (state.contains(GolemChestBlock.CHEST_TYPE)) {
+                ChestType type = state.get(GolemChestBlock.CHEST_TYPE);
+                if (type != ChestType.SINGLE) {
+                    BlockPos otherPos = this.pos.offset(GolemChestBlock.getFacing(state));
+                    net.minecraft.block.entity.BlockEntity otherBE = this.world.getBlockEntity(otherPos);
+                    if (otherBE instanceof GolemChestBlockEntity otherGChest && otherGChest.golemDead != dead) {
+                        otherGChest.golemDead = dead;
+                        otherGChest.markDirty();
+                        this.world.updateListeners(otherPos, otherGChest.getCachedState(), otherGChest.getCachedState(), 3);
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean isGolemDead() {
+        return golemDead;
+    }
+
+    @Override
+    public void readData(net.minecraft.storage.ReadView readView) {
+        super.readData(readView);
+        this.golemDead = readView.getBoolean("golemDead", false);
+    }
+
+    @Override
+    protected void writeData(net.minecraft.storage.WriteView writeView) {
+        super.writeData(writeView);
+        writeView.putBoolean("golemDead", this.golemDead);
+    }
+
+    @Override
+    public net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket toUpdatePacket() {
+        return net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket.create(this);
+    }
+
+    @Override
+    public net.minecraft.nbt.NbtCompound toInitialChunkDataNbt(net.minecraft.registry.RegistryWrapper.WrapperLookup registries) {
+        return (net.minecraft.nbt.NbtCompound) this.createNbt(registries);
     }
 
     public static Inventory getInventory(GolemChestBlock block, BlockState state, net.minecraft.world.World world, BlockPos pos, boolean ignoreBlocked) {

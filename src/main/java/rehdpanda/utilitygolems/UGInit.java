@@ -34,6 +34,8 @@ import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -183,6 +185,28 @@ public class UGInit implements ModInitializer {
                     }, PacketCodecs.INTEGER
             ));
 
+    public static record GolemChestPayload(BlockPos pos, boolean golemDead, int inventorySize) implements CustomPayload {
+        public static final Id<GolemChestPayload> ID = new Id<>(Identifier.of(MOD_ID, "golem_chest_payload"));
+        public static final PacketCodec<RegistryByteBuf, GolemChestPayload> CODEC = PacketCodec.tuple(
+                BlockPos.PACKET_CODEC, GolemChestPayload::pos,
+                PacketCodecs.BOOLEAN, GolemChestPayload::golemDead,
+                PacketCodecs.VAR_INT, GolemChestPayload::inventorySize,
+                GolemChestPayload::new
+        );
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    public static final ScreenHandlerType<GolemChestScreenHandler> GOLEM_CHEST_SCREEN_HANDLER =
+            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_chest"), new ExtendedScreenHandlerType<>(
+                    (syncId, playerInventory, payload) -> {
+                        return new GolemChestScreenHandler(syncId, playerInventory, new SimpleInventory(payload.inventorySize()), payload.pos(), payload.golemDead());
+                    }, GolemChestPayload.CODEC
+            ));
+
     public static final ScreenHandlerType<RedstoneGolemScreenHandler> REDSTONE_GOLEM_HANDLER =
             Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "redstone_golem"), new ExtendedScreenHandlerType<>(
                     (syncId, playerInventory, entityId) -> {
@@ -211,6 +235,7 @@ public class UGInit implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(SyncRedstoneProgramPayload.ID, SyncRedstoneProgramPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(ClearCactusSlotPayload.ID, ClearCactusSlotPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(GolemChestPayload.ID, GolemChestPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
             context.server().execute(() -> {

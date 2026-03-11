@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "میڈک گولم",
   "entity.utility-golems.cactus_golem": "ناگفنی گولم",
   "entity.utility-golems.honeycomb_golem": "چھتے گولم",
-  "gui.utility-golems.clear_selection": "انتخاب صاف کریں"
+  "gui.utility-golems.clear_selection": "انتخاب صاف کریں",
+  "gui.utility-golems.golem_dead": "گولم مر گیا ہے! اسے دوبارہ زندہ کرنے کے لئے کدو رکھیں۔"
 }

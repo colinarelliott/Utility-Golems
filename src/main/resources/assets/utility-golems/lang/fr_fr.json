@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "Golem médecin",
   "entity.utility-golems.cactus_golem": "Golem de cactus",
   "entity.utility-golems.honeycomb_golem": "Golem de rayon de miel",
-  "gui.utility-golems.clear_selection": "Effacer la sélection d'achat"
+  "gui.utility-golems.clear_selection": "Effacer la sélection d'achat",
+  "gui.utility-golems.golem_dead": "Le golem est mort ! Placez une citrouille pour le réapparaître."
 }

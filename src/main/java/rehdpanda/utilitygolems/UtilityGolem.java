@@ -445,6 +445,13 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (!this.getEntityWorld().isClient()) {
             removeLight();
 
+            if (this.chestPos != null) {
+                BlockEntity be = this.getEntityWorld().getBlockEntity(this.chestPos);
+                if (be instanceof GolemChestBlockEntity golemChest) {
+                    golemChest.setGolemDead(true);
+                }
+            }
+
             if (this.golemType == GolemType.JUKEBOX) {
                 BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.getBlockPos();
                 this.getEntityWorld().syncWorldEvent(null, WorldEvents.JUKEBOX_STOPS_PLAYING, stopPos, 0);

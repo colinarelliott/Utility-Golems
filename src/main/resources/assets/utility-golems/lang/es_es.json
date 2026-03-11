@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "Gólem médico",
   "entity.utility-golems.cactus_golem": "Gólem de cactus",
   "entity.utility-golems.honeycomb_golem": "Gólem de panal",
-  "gui.utility-golems.clear_selection": "Limpiar selección de compra"
+  "gui.utility-golems.clear_selection": "Limpiar selección de compra",
+  "gui.utility-golems.golem_dead": "¡El gólem ha muerto! Coloca una calabaza para revivirlo."
 }

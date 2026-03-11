@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "Голем-медик",
   "entity.utility-golems.cactus_golem": "Кактусовый голем",
   "entity.utility-golems.honeycomb_golem": "Медовый голем",
-  "gui.utility-golems.clear_selection": "Очистить выбор покупки"
+  "gui.utility-golems.clear_selection": "Очистить выбор покупки",
+  "gui.utility-golems.golem_dead": "Голем мертв! Поставьте тыкву, чтобы оживить его."
 }

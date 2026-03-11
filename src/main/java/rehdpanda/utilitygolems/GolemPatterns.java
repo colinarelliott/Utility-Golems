@@ -2,11 +2,15 @@ package rehdpanda.utilitygolems;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.util.math.Direction;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.pattern.BlockPattern;
 import net.minecraft.block.pattern.BlockPatternBuilder;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 public class GolemPatterns {
@@ -23,6 +27,38 @@ public class GolemPatterns {
     // Called from Mixin after block is placed
     public static void onPumpkinPlaced(World world, BlockPos pos) {
         if (world instanceof ServerWorld serverWorld) {
+            // Check if placed on a GolemChestBlock that has a dead golem
+            BlockPos belowPos = pos.down();
+            BlockState belowState = world.getBlockState(belowPos);
+            if (belowState.getBlock() instanceof GolemChestBlock) {
+                BlockEntity be = world.getBlockEntity(belowPos);
+                if (be instanceof GolemChestBlockEntity chestEntity && chestEntity.isGolemDead()) {
+                    GolemType type = chestEntity.getGolemType();
+                    if (type != null) {
+                        Direction facing = belowState.get(GolemChestBlock.FACING);
+                        boolean isStripped = false;
+                        if (belowState.contains(GolemChestBlock.STRIPPED)) {
+                            isStripped = belowState.get(GolemChestBlock.STRIPPED);
+                        }
+
+                        UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), serverWorld, type);
+                        golem.setStripped(isStripped);
+                        golem.setChestPos(belowPos);
+                        golem.refreshPositionAndAngles(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
+                        golem.initialize(serverWorld, serverWorld.getLocalDifficulty(pos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
+                        serverWorld.spawnEntity(golem);
+
+                        chestEntity.setGolemDead(false);
+                        world.setBlockState(pos, Blocks.AIR.getDefaultState());
+
+                        // Play some effects
+                        serverWorld.spawnParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.5, 0.5, 0.5, 0.1);
+                        world.playSound(null, pos, SoundEvents.BLOCK_PUMPKIN_CARVE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                        return;
+                    }
+                }
+            }
+
             net.minecraft.entity.player.PlayerEntity player = world.getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
             Direction facing = player != null ? player.getHorizontalFacing().getOpposite() : Direction.NORTH;
 
@@ -84,7 +120,7 @@ public class GolemPatterns {
         BlockPos spawnPos = result.translate(0, 0, 0).getBlockPos();
         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), world, type);
         golem.setStripped(isStripped);
-        golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
+        golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
         golem.initialize(world, world.getLocalDifficulty(spawnPos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
         world.spawnEntity(golem);
 
@@ -103,6 +139,7 @@ public class GolemPatterns {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
             BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();
+            golem.setChestPos(bottomPos);
             BlockState chestState = chestBlock.getDefaultState().with(GolemChestBlock.FACING, facing);
             if (chestState.contains(GolemChestBlock.STRIPPED)) {
                 chestState = chestState.with(GolemChestBlock.STRIPPED, isStripped);

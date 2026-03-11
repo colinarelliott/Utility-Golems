@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "मेडिक गोलेम",
   "entity.utility-golems.cactus_golem": "नागफनी गोलेम",
   "entity.utility-golems.honeycomb_golem": "मधुकोश गोलेम",
-  "gui.utility-golems.clear_selection": "चयन साफ़ करें"
+  "gui.utility-golems.clear_selection": "चयन साफ़ करें",
+  "gui.utility-golems.golem_dead": "गोलेम मर चुका है! पुनर्जीवित करने के लिए एक कद्दू रखें।"
 }

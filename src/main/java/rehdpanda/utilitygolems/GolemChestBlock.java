@@ -2,6 +2,7 @@
 package rehdpanda.utilitygolems;
 
 import net.minecraft.block.*;
+import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
@@ -43,6 +44,7 @@ import net.minecraft.world.WorldView;
 import net.minecraft.world.tick.ScheduledTickView;
 
 import net.minecraft.util.ItemScatterer;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.DoubleInventory;
 import net.minecraft.inventory.Inventory;
 
@@ -206,17 +208,41 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
         } else {
             Inventory inventory = GolemChestBlockEntity.getInventory(this, state, world, pos, false);
             if (inventory != null) {
-                player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
-                    (syncId, playerInventory, p) -> {
-                        if (inventory instanceof DoubleInventory) {
-                            return GenericContainerScreenHandler.createGeneric9x6(syncId, playerInventory, inventory);
+                boolean isDead = false;
+                if (inventory instanceof DoubleInventory doubleInventory) {
+                    // Check both halves
+                    if (world.getBlockEntity(pos) instanceof GolemChestBlockEntity be && be.isGolemDead()) {
+                        isDead = true;
+                    } else {
+                        BlockPos otherPos = pos.offset(getFacing(state));
+                        if (world.getBlockEntity(otherPos) instanceof GolemChestBlockEntity otherBe && otherBe.isGolemDead()) {
+                            isDead = true;
                         }
-                        return GenericContainerScreenHandler.createGeneric9x3(syncId, playerInventory, inventory);
-                    },
-                    inventory instanceof DoubleInventory 
-                        ? Text.translatable(state.getBlock().getTranslationKey().replace("block.", "container.") + "_double")
-                        : Text.translatable(state.getBlock().getTranslationKey())
-                ));
+                    }
+                } else {
+                    GolemChestBlockEntity be = (GolemChestBlockEntity) world.getBlockEntity(pos);
+                    isDead = be != null && be.isGolemDead();
+                }
+                
+                final boolean finalIsDead = isDead;
+                player.openHandledScreen(new net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory<UGInit.GolemChestPayload>() {
+                    @Override
+                    public UGInit.GolemChestPayload getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
+                        return new UGInit.GolemChestPayload(pos, finalIsDead, inventory.size());
+                    }
+
+                    @Override
+                    public Text getDisplayName() {
+                        return inventory instanceof DoubleInventory 
+                            ? Text.translatable(state.getBlock().getTranslationKey().replace("block.", "container.") + "_double")
+                            : Text.translatable(state.getBlock().getTranslationKey());
+                    }
+
+                    @Override
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                        return new GolemChestScreenHandler(syncId, playerInventory, inventory, pos, finalIsDead);
+                    }
+                });
             }
             return ActionResult.CONSUME;
         }

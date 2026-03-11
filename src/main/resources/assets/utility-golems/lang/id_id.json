@@ -92,5 +92,6 @@
   "entity.utility-golems.medic_golem": "Golem Medik",
   "entity.utility-golems.cactus_golem": "Golem Kaktus",
   "entity.utility-golems.honeycomb_golem": "Golem Sarang Madu",
-  "gui.utility-golems.clear_selection": "Bersihkan Pilihan Beli"
+  "gui.utility-golems.clear_selection": "Bersihkan Pilihan Beli",
+  "gui.utility-golems.golem_dead": "Golem sudah mati! Letakkan labu untuk membangkitkannya kembali."
 }
