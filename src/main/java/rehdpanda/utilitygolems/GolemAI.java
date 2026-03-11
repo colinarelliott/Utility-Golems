@@ -2620,8 +2620,35 @@ public class GolemAI {
                 ItemStack stack = inv.getStack(i);
                 if (stack.isEmpty()) continue;
                 if (stack.isOf(Items.EMERALD)) return true;
+                
+                // If it's a sellable item, we should deposit it if we don't have a villager nearby who wants it.
+                // This handles the case where we switched villagers.
+                List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
+                boolean isWantedNearby = false;
+                for (VillagerEntity villager : villagers) {
+                    for (TradeOffer offer : villager.getOffers()) {
+                        if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
+                            if (offer.getFirstBuyItem().matches(stack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(stack))) {
+                                isWantedNearby = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isWantedNearby) break;
+                }
+                
+                // If it's something that SOME villager once bought (discovered), but no one nearby wants it now,
+                // or if it's just something we happened to pick up that is in our discovered list,
+                // and it's NOT wanted by a nearby villager, we should deposit it.
+                // WAIT, if it IS wanted nearby, we SHOULD NOT deposit it (we want to trade it).
+                // If it is NOT wanted nearby, but IS a discovered trade item, then we definitely have no use for it right now.
+                
                 for (ItemStack buyItem : golem.getDiscoveredTrades()) {
-                    if (ItemStack.areItemsEqual(stack, buyItem)) return true;
+                    if (ItemStack.areItemsEqual(stack, buyItem)) {
+                        if (!isWantedNearby) {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;
@@ -3000,14 +3027,41 @@ public class GolemAI {
                             }
                         }
                         if (golem.getGolemType() == GolemType.EMERALD) {
-                            boolean isBuyListItem = false;
+                            boolean isWantedNearby = false;
+                            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
+                            for (VillagerEntity villager : villagers) {
+                                for (TradeOffer offer : villager.getOffers()) {
+                                    if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
+                                        if (offer.getFirstBuyItem().matches(stack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(stack))) {
+                                            isWantedNearby = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (isWantedNearby) break;
+                            }
+
+                            if (stack.isOf(Items.EMERALD)) {
+                                ItemStack remaining_stack = transferStack(stack, container);
+                                golemInv.setStack(i, remaining_stack);
+                                continue;
+                            }
+
+                            // If it's a discovered trade item but NOT wanted nearby, deposit it.
+                            boolean isDiscovered = false;
                             for (ItemStack buyItem : golem.getDiscoveredTrades()) {
                                 if (ItemStack.areItemsEqual(stack, buyItem)) {
-                                    isBuyListItem = true;
+                                    isDiscovered = true;
                                     break;
                                 }
                             }
-                            if (!stack.isOf(Items.EMERALD) && !isBuyListItem) {
+
+                            if (isDiscovered && !isWantedNearby) {
+                                // Deposit this stack
+                                ItemStack remaining_stack = transferStack(stack, container);
+                                golemInv.setStack(i, remaining_stack);
+                                continue;
+                            } else if (isDiscovered && isWantedNearby) {
                                 continue;
                             }
                         }
@@ -3149,11 +3203,11 @@ public class GolemAI {
                 // If we are NOT set to buy something, we are selling, so we need sellable items.
                 ItemStack selectedBuy = golem.getSelectedBuyItem();
                 if (selectedBuy != null && !selectedBuy.isEmpty()) {
-                    if (hasEmeralds()) {
+                    if (hasEmeralds() || isInventoryFull()) {
                         return false;
                     }
                 } else {
-                    if (isInventoryFull()) {
+                    if (isInventoryFull() || hasTradeItems()) {
                         return false;
                     }
                 }
@@ -3784,15 +3838,21 @@ public class GolemAI {
                         if (stack.isOf(Items.GOLD_INGOT) || stack.isOf(Items.GOLD_NUGGET)) return true;
                     }
                     if (golem.getGolemType() == GolemType.EMERALD) {
-                        if (stack.isOf(Items.EMERALD)) return true;
+                        // Only withdraw emeralds if we have a buy item selected and we don't already have emeralds
+                        if (stack.isOf(Items.EMERALD)) {
+                            return !golem.getSelectedBuyItem().isEmpty() && !hasEmeralds();
+                        }
                         
                         // Check if it's a sellable item
-                        List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
-                        for (VillagerEntity villager : villagers) {
-                            for (TradeOffer offer : villager.getOffers()) {
-                                if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
-                                    if (offer.getFirstBuyItem().matches(stack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(stack))) {
-                                        return true;
+                        // Only withdraw sellable items if we don't have a buy item selected and we don't already have sellable items
+                        if (golem.getSelectedBuyItem().isEmpty() && !hasTradeItems()) {
+                            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
+                            for (VillagerEntity villager : villagers) {
+                                for (TradeOffer offer : villager.getOffers()) {
+                                    if (!offer.isDisabled() && offer.getSellItem().isOf(Items.EMERALD)) {
+                                        if (offer.getFirstBuyItem().matches(stack) || (offer.getSecondBuyItem().isPresent() && offer.getSecondBuyItem().get().matches(stack))) {
+                                            return true;
+                                        }
                                     }
                                 }
                             }
@@ -4103,10 +4163,13 @@ public class GolemAI {
 
                     if (golem.getGolemType() == GolemType.EMERALD) {
                         if (containerStack.isOf(Items.EMERALD)) {
-                            ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
-                            golem.getInventory().addStack(toWithdraw);
-                            withdrawnSomething = true;
-                        } else {
+                            // Only withdraw emeralds if we have a buy item selected and we don't already have emeralds
+                            if (!golem.getSelectedBuyItem().isEmpty() && !hasEmeralds()) {
+                                ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxCount()));
+                                golem.getInventory().addStack(toWithdraw);
+                                withdrawnSomething = true;
+                            }
+                        } else if (golem.getSelectedBuyItem().isEmpty() && !hasTradeItems()) {
                             // Check if it's a sellable item
                             List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), v -> true);
                             boolean isSellable = false;
