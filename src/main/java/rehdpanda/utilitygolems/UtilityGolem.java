@@ -1679,7 +1679,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
         for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
-            return entity != this && entity != target && !this.isTeammate(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
+            return entity != this && entity != target && !this.isTeammate(entity) && this.canTarget(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
         })) {
             livingEntity.takeKnockback(0.4000000059604645, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
             livingEntity.damage(world, this.getDamageSources().mobAttack(this), sweepingDamage);
@@ -1697,6 +1697,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     public boolean canTarget(net.minecraft.entity.LivingEntity target) {
         if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
+        
+        // Netherite and Ancient golems only target hostile mobs
+        if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
+            return target instanceof net.minecraft.entity.mob.HostileEntity;
+        }
+        
         return super.canTarget(target);
     }
 
