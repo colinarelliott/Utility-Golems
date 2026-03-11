@@ -3835,7 +3835,8 @@ public class GolemAI {
                         if (!hasEnoughSaplings() && stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) return true;
                     }
                     if (golem.getGolemType() == GolemType.BAMBOO) {
-                        if (!hasHoe() && UtilityGolem.isTool(stack)) return true;
+                        if (!hasHoe() && UtilityGolem.isHoe(stack)) return true;
+                        if (!hasAxe() && UtilityGolem.isAxe(stack)) return true;
                         if (!hasWaterBucket() && !hasEmptyBucket() && (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET))) return true;
                         if (!hasSeeds() && isSeed(stack)) return true;
                     }
@@ -3921,9 +3922,10 @@ public class GolemAI {
                 // However, this method is used by WithdrawItemsGoal.canStart().
                 // If we return true here, it will try to withdraw.
                 boolean needsHoe = !hasHoe();
+                boolean needsAxe = !hasAxe();
                 boolean needsWater = !hasWaterBucket() && !hasEmptyBucket();
                 boolean needsSeeds = !hasSeeds();
-                return needsHoe || needsWater || needsSeeds;
+                return needsHoe || needsAxe || needsWater || needsSeeds;
             }
             if (golem.getGolemType() == GolemType.GOLD) {
                 return !hasGoldIngot() || !hasGoldNugget();
@@ -5744,10 +5746,11 @@ public class GolemAI {
 
         private boolean isFamiliarItem(ItemStack stack) {
             boolean isHoe = UtilityGolem.isHoe(stack);
+            boolean isAxe = UtilityGolem.isAxe(stack);
             boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
                             stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON);
             boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.TORCHFLOWER_SEEDS) || stack.isOf(Items.PITCHER_POD);
-            return isHoe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
+            return isHoe || isAxe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
         }
 
         private List<BlockPos> getOtherGolemsTargets() {
@@ -5864,6 +5867,9 @@ public class GolemAI {
             if (block instanceof CocoaBlock cocoa) {
                 return state.get(CocoaBlock.AGE) >= 2;
             }
+            if (state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) {
+                return true;
+            }
             return false;
         }
 
@@ -5884,6 +5890,15 @@ public class GolemAI {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 if (UtilityGolem.isHoe(inv.getStack(i))) return true;
+            }
+            return false;
+        }
+
+        private boolean hasAxe() {
+            if (UtilityGolem.isAxe(golem.getHeldItem())) return true;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isAxe(inv.getStack(i))) return true;
             }
             return false;
         }
@@ -6056,6 +6071,14 @@ public class GolemAI {
                 if (!golem.getHeldItem().isOf(Items.WATER_BUCKET)) {
                     swapToItem(Items.WATER_BUCKET);
                 }
+            } else if (shouldHarvest(targetPos, waterPos)) {
+                // If we are heading to harvest pumpkin or melon, we should hold an axe
+                BlockState state = golem.getEntityWorld().getBlockState(targetPos);
+                if ((state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) && hasAxe()) {
+                    if (!UtilityGolem.isAxe(golem.getHeldItem())) {
+                        swapToAxe();
+                    }
+                }
             } else if (shouldPlant(targetPos, waterPos)) {
                 // If we are heading to plant, we should hold the seeds
                 ItemStack seeds = getSeedsForTarget(targetPos);
@@ -6086,10 +6109,21 @@ public class GolemAI {
         private void swapToHoe() {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
-                ItemStack stack = inv.getStack(i);
-                if (UtilityGolem.isHoe(stack)) {
+                if (UtilityGolem.isHoe(inv.getStack(i))) {
                     ItemStack currentHeld = golem.getHeldItem();
-                    golem.setHeldItem(stack.copy());
+                    golem.setHeldItem(inv.getStack(i).copy());
+                    inv.setStack(i, currentHeld);
+                    break;
+                }
+            }
+        }
+
+        private void swapToAxe() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isAxe(inv.getStack(i))) {
+                    ItemStack currentHeld = golem.getHeldItem();
+                    golem.setHeldItem(inv.getStack(i).copy());
                     inv.setStack(i, currentHeld);
                     break;
                 }
@@ -6152,6 +6186,13 @@ public class GolemAI {
             // 3. Harvest
             if (shouldHarvest(targetPos, waterPos)) {
                 if (world instanceof ServerWorld serverWorld) {
+                    // Ensure axe if pumpkin/melon
+                    if ((state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) && hasAxe()) {
+                        if (!UtilityGolem.isAxe(golem.getHeldItem())) {
+                            swapToAxe();
+                        }
+                    }
+
                     LootWorldContext.Builder builder = new LootWorldContext.Builder(serverWorld)
                             .add(LootContextParameters.ORIGIN, Vec3d.ofCenter(targetPos))
                             .add(LootContextParameters.TOOL, golem.getHeldItem())
@@ -6164,6 +6205,12 @@ public class GolemAI {
                         if (!remaining.isEmpty()) {
                             Block.dropStack(serverWorld, targetPos, remaining);
                         }
+                    }
+
+                    // Damage axe if used for pumpkin/melon
+                    ItemStack tool = golem.getHeldItem();
+                    if ((state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) && UtilityGolem.isAxe(tool)) {
+                        tool.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                     }
                     
                     // Swing hand to show action
