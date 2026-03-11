@@ -4571,37 +4571,47 @@ public class GolemAI {
                         || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES);
                 boolean needsShovel = state.isIn(BlockTags.SHOVEL_MINEABLE) || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL);
 
-                if (needsPickaxe && !UtilityGolem.isPickaxe(tool)) {
-                    // Try to swap immediately if possible, or at least confirm we have one
-                    if (hasPickaxe()) {
-                        this.maxBreakingTime = 200; // Placeholder, will be recalculated in tick after swap
-                        return true;
-                    }
-                    
-                    // Lapis golems can dig common blocks even without tools
-                    if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
-                        this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
-                        return true;
-                    }
-                } else if (needsShovel && !UtilityGolem.isShovel(tool)) {
-                    if (hasShovel()) {
-                        this.maxBreakingTime = 200; // Placeholder
-                        return true;
-                    }
-
-                    // Lapis golems can dig common blocks even without tools
-                    if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
-                        this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
-                        return true;
-                    }
-                } else if (!tool.isEmpty() && (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool))) {
-                    this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+            if (needsPickaxe && !UtilityGolem.isPickaxe(tool)) {
+                // Try to swap immediately if possible
+                if (hasPickaxe()) {
+                    // We'll recalculate the actual breaking time in tick() after the swap.
+                    this.maxBreakingTime = calculateBreakingTime(getBestAvailableTool(UtilityGolem::isPickaxe), targetPos);
                     return true;
-                } else if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
-                    // Fallback for lapis golem for any other block it's allowed to dig
+                }
+                
+                // Lapis golems can dig common blocks even without tools
+                if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
                     this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
                     return true;
                 }
+            } else if (needsShovel && !UtilityGolem.isShovel(tool)) {
+                if (hasShovel()) {
+                    this.maxBreakingTime = calculateBreakingTime(getBestAvailableTool(UtilityGolem::isShovel), targetPos);
+                    return true;
+                }
+
+                // Lapis golems can dig common blocks even without tools
+                if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
+                    this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                    return true;
+                }
+            } else if (!tool.isEmpty() && (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool))) {
+                // If we already have a tool, make sure it's the BEST one we have
+                if (UtilityGolem.isPickaxe(tool)) {
+                    ItemStack best = getBestAvailableTool(UtilityGolem::isPickaxe);
+                    this.maxBreakingTime = calculateBreakingTime(best, targetPos);
+                } else if (UtilityGolem.isShovel(tool)) {
+                    ItemStack best = getBestAvailableTool(UtilityGolem::isShovel);
+                    this.maxBreakingTime = calculateBreakingTime(best, targetPos);
+                } else {
+                    this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                }
+                return true;
+            } else if (golem.getGolemType() == GolemType.LAPIS && canDig(targetPos)) {
+                // Fallback for lapis golem for any other block it's allowed to dig
+                this.maxBreakingTime = calculateBreakingTime(tool, targetPos);
+                return true;
+            }
             } else {
                 searchCooldown = 20;
             }
@@ -4850,6 +4860,11 @@ public class GolemAI {
                         if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                             continue;
                         }
+                        // Prioritize ores even if they are part of the staircase/tunnel alignment
+                        if (isOre(p)) {
+                            golem.debugLog("Lapis: Found ore during alignment at " + p.toShortString());
+                            return p;
+                        }
                         golem.debugLog("Lapis: Aligning horizontally to staircase line, digging at " + p.toShortString());
                         return p;
                     }
@@ -4871,6 +4886,11 @@ public class GolemAI {
                     if (canDig(p) && !state.isAir()) {
                         if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                             continue;
+                        }
+                        // Prioritize ores in the tunnel
+                        if (isOre(p)) {
+                            golem.debugLog("Lapis: Found ore in tunnel at " + p.toShortString());
+                            return p;
                         }
                         golem.debugLog("Lapis: Tunnel digging at " + p.toShortString());
                         return p;
@@ -4941,6 +4961,11 @@ public class GolemAI {
                     // Skip light sources
                     if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                         continue;
+                    }
+                    // Prioritize ores in the staircase
+                    if (isOre(p)) {
+                        golem.debugLog("Lapis: Found ore in staircase at " + p.toShortString());
+                        return p;
                     }
                     golem.debugLog("Lapis: Staircase digging next step at " + p.toShortString());
                     return p;
@@ -5072,6 +5097,9 @@ public class GolemAI {
         private boolean canDig(BlockPos pos) {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             if (!state.getFluidState().isEmpty()) return false;
+            
+            boolean isOre = isOre(pos);
+
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (UtilityGolem.isLightSource(state)) return false;
                 if (state.isAir() || state.isIn(BlockTags.REPLACEABLE)) return true;
@@ -5082,14 +5110,17 @@ public class GolemAI {
                         || state.isOf(Blocks.NETHERRACK) || state.isOf(Blocks.SOUL_SAND) || state.isOf(Blocks.SOUL_SOIL)) {
                     return true;
                 }
+                
+                // Lapis golems can dig ores if they have a pickaxe that is SUFFICIENT for the ore
+                if (isOre) {
+                    return hasSufficientPickaxe(state);
+                }
             }
             if (state.isIn(BlockTags.BASE_STONE_OVERWORLD) || state.isIn(BlockTags.BASE_STONE_NETHER)
-                    || state.isIn(BlockTags.COAL_ORES) || state.isIn(BlockTags.IRON_ORES) || state.isIn(BlockTags.COPPER_ORES)
-                    || state.isIn(BlockTags.GOLD_ORES) || state.isIn(BlockTags.DIAMOND_ORES) || state.isIn(BlockTags.EMERALD_ORES)
-                    || state.isIn(BlockTags.LAPIS_ORES) || state.isIn(BlockTags.REDSTONE_ORES)
+                    || isOre
                     || state.isOf(Blocks.NETHER_QUARTZ_ORE)
                     || state.isOf(Blocks.ANCIENT_DEBRIS)) {
-                return hasPickaxe();
+                return hasSufficientPickaxe(state);
             }
             if (state.isIn(BlockTags.SHOVEL_MINEABLE) || state.isIn(BlockTags.DIRT) || state.isIn(BlockTags.SAND) || state.isOf(Blocks.GRAVEL)) {
                 return hasShovel();
@@ -5097,6 +5128,18 @@ public class GolemAI {
             // Add general check for very soft blocks like grass
             if (state.getHardness(golem.getEntityWorld(), pos) <= 0.2f) return true;
             
+            return false;
+        }
+
+        private boolean hasSufficientPickaxe(BlockState state) {
+            ItemStack held = golem.getHeldItem();
+            if (UtilityGolem.isPickaxe(held) && held.isSuitableFor(state)) return true;
+            
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (UtilityGolem.isPickaxe(stack) && stack.isSuitableFor(state)) return true;
+            }
             return false;
         }
 
@@ -5385,16 +5428,35 @@ public class GolemAI {
             return score;
         }
 
-        private void swapTool(java.util.function.Predicate<ItemStack> toolPredicate) {
+        private ItemStack getBestAvailableTool(java.util.function.Predicate<ItemStack> toolPredicate) {
+            ItemStack best = golem.getHeldItem();
+            int bestScore = toolPredicate.test(best) ? getToolScore(best, targetPos) : -1;
+            
             SimpleInventory inv = golem.getInventory();
-            ItemStack currentHeld = golem.getHeldItem();
-            
-            int bestSlot = -1;
-            int bestScore = getToolScore(currentHeld, targetPos);
-            
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
                 if (toolPredicate.test(stack)) {
+                    int score = getToolScore(stack, targetPos);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        best = stack;
+                    }
+                }
+            }
+            return best;
+        }
+
+        private void swapTool(java.util.function.Predicate<ItemStack> toolPredicate) {
+            SimpleInventory inv = golem.getInventory();
+            ItemStack currentHeld = golem.getHeldItem();
+            BlockState targetState = golem.getEntityWorld().getBlockState(targetPos);
+            
+            int bestSlot = -1;
+            int bestScore = (toolPredicate.test(currentHeld) && currentHeld.isSuitableFor(targetState)) ? getToolScore(currentHeld, targetPos) : -1;
+            
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (toolPredicate.test(stack) && stack.isSuitableFor(targetState)) {
                     int score = getToolScore(stack, targetPos);
                     if (score > bestScore) {
                         bestScore = score;
