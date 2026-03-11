@@ -5595,49 +5595,56 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return null;
 
-            // Search the whole 16x16 area around the chest for tasks
-            // This is more robust than only searching around water centers
+            // Search radius: two chunks is 32 blocks. 
+            // The golem should focus on "one established field" within this radius.
+            // We search for tasks within the 32x32 area around the chest.
             List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
+            
+            // Priority 1: Pick up dropped items in the field
+            List<net.minecraft.entity.ItemEntity> items = golem.getEntityWorld().getEntitiesByClass(
+                    net.minecraft.entity.ItemEntity.class,
+                    new net.minecraft.util.math.Box(chestPos).expand(16.0),
+                    item -> !item.cannotPickup() && isFamiliarItem(item.getStack())
+            );
+            if (!items.isEmpty()) {
+                net.minecraft.entity.ItemEntity closest = items.stream()
+                        .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                        .orElse(null);
+                if (closest != null) return closest.getBlockPos();
+            }
+
+            // Priority 2: Harvest mature crops
             for (int x = -16; x <= 16; x++) {
                 for (int z = -16; z <= 16; z++) {
                     for (int y = -3; y <= 3; y++) {
                         BlockPos p = chestPos.add(x, y, z);
-                        if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) {
-                            continue;
-                        }
-
-                        // Use null waterPos to relax distance checks during the initial scan
-                        if (shouldHarvest(p, null)) {
-                            return p;
-                        }
+                        if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
+                        if (shouldHarvest(p, null)) return p;
                     }
                 }
             }
 
-            // If no harvesting found, try to find a water source if we have a bucket
+            // Priority 3: Water
             BlockPos waterPos = findWaterCenter(chestPos);
             if (waterPos == null && hasWaterBucket()) {
                 BlockPos waterSpot = findPlaceForWater(chestPos);
                 if (waterSpot != null && !otherGolemsTargets.contains(waterSpot)) return waterSpot;
             }
 
-            // If we have water, search for tilling and planting
+            // Priority 4: Tilling and Planting (requires water)
             if (waterPos != null) {
+                // Focus on the 9x9 area around this water source (one field)
                 for (int x = -4; x <= 4; x++) {
                     for (int z = -4; z <= 4; z++) {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos p = waterPos.add(x, y, z);
-                            if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) {
-                                continue;
-                            }
-                            if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) {
-                                return p;
-                            }
+                            if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
+                            if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
                         }
                     }
                 }
             } else if (!hasWaterBucket()) {
-                // Fallback: search around chest if no water exists and we can't make it
+                // Fallback: search around chest if no water bucket is available (e.g. user-made field)
                 for (int x = -16; x <= 16; x++) {
                     for (int z = -16; z <= 16; z++) {
                         for (int y = -3; y <= 3; y++) {
@@ -5650,6 +5657,14 @@ public class GolemAI {
             }
 
             return null;
+        }
+
+        private boolean isFamiliarItem(ItemStack stack) {
+            boolean isHoe = UtilityGolem.isHoe(stack);
+            boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
+                            stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON);
+            boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.TORCHFLOWER_SEEDS) || stack.isOf(Items.PITCHER_POD);
+            return isHoe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
         }
 
         private List<BlockPos> getOtherGolemsTargets() {
@@ -5773,10 +5788,10 @@ public class GolemAI {
             if (waterPos != null && pos.equals(waterPos)) return false;
             if (!hasHoe()) return false;
             BlockState state = golem.getEntityWorld().getBlockState(pos);
-            // Must be tillable AND have air or replaceable block above it (like short grass)
-            // But NOT water! We don't want to override water.
+            // Must be tillable
             boolean isTillable = state.isOf(Blocks.GRASS_BLOCK) || state.isOf(Blocks.DIRT) || state.isOf(Blocks.DIRT_PATH);
             BlockState aboveState = golem.getEntityWorld().getBlockState(pos.up());
+            // Above must be air or replaceable (we will break replaceable things)
             boolean isAboveSafe = aboveState.isAir() || (aboveState.isReplaceable() && !aboveState.isOf(Blocks.WATER));
             return isTillable && isAboveSafe;
         }
@@ -6078,6 +6093,13 @@ public class GolemAI {
 
             // 4. Till
             if (shouldTill(targetPos, waterPos)) {
+                // Break things like grass or flowers above first
+                BlockPos abovePos = targetPos.up();
+                BlockState aboveState = world.getBlockState(abovePos);
+                if (aboveState.isReplaceable() && !aboveState.isAir() && !aboveState.isOf(Blocks.WATER)) {
+                    world.breakBlock(abovePos, true, golem);
+                }
+
                 world.setBlockState(targetPos, Blocks.FARMLAND.getDefaultState());
                 world.playSound(null, targetPos, net.minecraft.sound.SoundEvents.ITEM_HOE_TILL, net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
                 
@@ -7983,23 +8005,26 @@ public class GolemAI {
                         
                         boolean isFamiliar = false;
                         if (golem.getGolemType() == GolemType.DEEPSLATE) {
+                            boolean isAxe = UtilityGolem.isAxe(stack);
                             boolean isSapling = stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS);
                             boolean isApple = stack.isOf(Items.APPLE);
                             boolean isStick = stack.isOf(Items.STICK);
-                            isFamiliar = isSapling || isApple || isStick;
+                            isFamiliar = isAxe || isSapling || isApple || isStick;
                         } else if (golem.getGolemType() == GolemType.BAMBOO) {
+                            boolean isHoe = UtilityGolem.isHoe(stack);
                             boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
                                             stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON);
-                            boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS);
-                            isFamiliar = isCrop || isSeed;
+                            boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.TORCHFLOWER_SEEDS) || stack.isOf(Items.PITCHER_POD);
+                            isFamiliar = isHoe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
                         } else if (golem.getGolemType() == GolemType.DIAMOND) {
                             // User requested only blocks. Some "seeds" (like Wheat Seeds) are BlockItems but 
                             // user might not want them. For now, let's keep it to BlockItem but exclude common "seed/non-blocky" items if they cause confusion.
                             // But usually, Diamond Golem is for building.
                             isFamiliar = stack.getItem() instanceof net.minecraft.item.BlockItem && !stack.isOf(Items.WHEAT_SEEDS) && !stack.isOf(Items.BEETROOT_SEEDS) && !stack.isOf(Items.PUMPKIN_SEEDS) && !stack.isOf(Items.MELON_SEEDS);
                         } else if (golem.getGolemType() == GolemType.SPONGE) {
-                            isFamiliar = stack.isOf(Items.COD) || stack.isOf(Items.SALMON) || stack.isOf(Items.PUFFERFISH) || stack.isOf(Items.TROPICAL_FISH) ||
-                                            stack.isOf(Items.ENCHANTED_BOOK) || stack.isOf(Items.NAME_TAG) || stack.isOf(Items.SADDLE) || stack.isOf(Items.BOW) || stack.isOf(Items.FISHING_ROD);
+                            boolean isFishingRod = UtilityGolem.isFishingRod(stack);
+                            isFamiliar = isFishingRod || stack.isOf(Items.COD) || stack.isOf(Items.SALMON) || stack.isOf(Items.PUFFERFISH) || stack.isOf(Items.TROPICAL_FISH) ||
+                                            stack.isOf(Items.ENCHANTED_BOOK) || stack.isOf(Items.NAME_TAG) || stack.isOf(Items.SADDLE) || stack.isOf(Items.BOW);
                         } else if (golem.getGolemType() == GolemType.JUKEBOX) {
                             isFamiliar = stack.get(DataComponentTypes.JUKEBOX_PLAYABLE) != null;
                         } else if (golem.getGolemType() == GolemType.GOLD) {
