@@ -9154,15 +9154,29 @@ public class GolemAI {
             for (int i = 0; i < golem.getInventory().size(); i++) {
                 ItemStack stack = golem.getInventory().getStack(i);
                 if (!stack.isEmpty() && stack.isOf(UGItems.WRENCH_ITEM)) {
-                    targetGolem.heal(2.0F);
+                    float healAmount = 2.0F; // Base 2.0 heal
+
+                    // Efficiency enchantment increases amount of health that's healed
+                    if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
+                        int efficiencyLevel = EnchantmentHelper.getLevel(serverWorld.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), stack);
+                        if (efficiencyLevel > 0) {
+                            healAmount += (efficiencyLevel * 1.0F); // Add 1.0 (half heart) per efficiency level
+                        }
+                    }
+
+                    targetGolem.heal(healAmount);
                     golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                     targetGolem.getEntityWorld().playSound(null, targetGolem.getBlockPos(), SoundEvents.BLOCK_ANVIL_USE, SoundCategory.NEUTRAL, 0.5F, 1.5F);
                     
                     if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
                         serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.HAPPY_VILLAGER, targetGolem.getX(), targetGolem.getY() + 1.0, targetGolem.getZ(), 5, 0.2, 0.2, 0.2, 0.05);
+                        
+                        // Using the version of damage that handles Unbreaking/Mending
+                        stack.damage(1, serverWorld, null, item -> {});
+                    } else {
+                        stack.damage(1, (ServerWorld) golem.getEntityWorld(), null, item -> {});
                     }
 
-                    stack.damage(1, (ServerWorld) golem.getEntityWorld(), null, item -> {});
                     if (stack.isEmpty()) {
                         golem.getInventory().setStack(i, ItemStack.EMPTY);
                         golem.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);

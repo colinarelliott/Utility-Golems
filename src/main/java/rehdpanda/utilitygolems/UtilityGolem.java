@@ -1185,7 +1185,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             float maxHealth = this.getMaxHealth();
             if (currentHealth < maxHealth) {
                 if (!player.getEntityWorld().isClient()) {
-                    this.heal(maxHealth * 0.25f); // Heal 25% of max health
+                    float healAmount = maxHealth * 0.25f; // Base 25% heal
+
+                    // Efficiency enchantment increases amount of health that's healed
+                    int efficiencyLevel = EnchantmentHelper.getLevel(this.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), playerStack);
+                    if (efficiencyLevel > 0) {
+                        healAmount += (maxHealth * 0.05f * efficiencyLevel); // Add 5% per efficiency level
+                    }
+
+                    this.heal(healAmount);
                     if (!player.getAbilities().creativeMode) {
                         playerStack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                     }
