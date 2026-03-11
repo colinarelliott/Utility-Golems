@@ -298,6 +298,7 @@ public class GolemAI {
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new DeleteBlacklistedItemsGoal(golem, 1.1D, 16)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
 
     public static void initHoneycombGoals(UtilityGolem golem) {
@@ -475,8 +476,8 @@ public class GolemAI {
                 golem.getLookControl().lookAt(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5);
                 
                 // Start the animation sequence
-                golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
-                deleteCooldown = 30; // 20 ticks for withdrawing, then 10 for attacking/deleting
+                golem.setAnimation(GolemAnimation.WITHDRAWING, 40);
+                deleteCooldown = 50; // 40 ticks for withdrawing, then 10 for attacking/deleting
             } else {
                 golem.getNavigation().startMovingTo(targetChest.getX(), targetChest.getY(), targetChest.getZ(), speed);
             }
@@ -542,6 +543,7 @@ public class GolemAI {
                     // Add some cactus/smoke particles
                     if (golem.getEntityWorld() instanceof ServerWorld serverWorld) {
                         serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 5, 0.2, 0.2, 0.2, 0.05);
+                        serverWorld.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(net.minecraft.particle.ParticleTypes.BLOCK, Blocks.CACTUS.getDefaultState()), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.3, 0.3, 0.3, 0.1);
                     }
                 }
             }
