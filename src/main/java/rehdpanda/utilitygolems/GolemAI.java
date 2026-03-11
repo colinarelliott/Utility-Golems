@@ -5437,11 +5437,8 @@ public class GolemAI {
 
             // Auto-switch tool
             ItemStack currentHeld = golem.getHeldItem();
-            boolean needsPickaxe = targetState.isIn(BlockTags.BASE_STONE_OVERWORLD) || targetState.isIn(BlockTags.BASE_STONE_NETHER)
-                    || targetState.isIn(BlockTags.COAL_ORES) || targetState.isIn(BlockTags.IRON_ORES) || targetState.isIn(BlockTags.COPPER_ORES)
-                    || targetState.isIn(BlockTags.GOLD_ORES) || targetState.isIn(BlockTags.DIAMOND_ORES) || targetState.isIn(BlockTags.EMERALD_ORES)
-                    || targetState.isIn(BlockTags.LAPIS_ORES) || targetState.isIn(BlockTags.REDSTONE_ORES);
-            boolean needsShovel = targetState.isIn(BlockTags.SHOVEL_MINEABLE) || targetState.isIn(BlockTags.DIRT) || targetState.isIn(BlockTags.SAND) || targetState.isOf(Blocks.GRAVEL);
+            boolean needsPickaxe = targetState.isIn(BlockTags.PICKAXE_MINEABLE);
+            boolean needsShovel = targetState.isIn(BlockTags.SHOVEL_MINEABLE);
 
             if (needsPickaxe && !UtilityGolem.isPickaxe(currentHeld)) {
                 swapTool(UtilityGolem::isPickaxe);
@@ -6088,6 +6085,11 @@ public class GolemAI {
                     if (!UtilityGolem.isAxe(golem.getHeldItem())) {
                         swapToAxe();
                     }
+                } else if (!golem.getHeldItem().isEmpty()) {
+                    // For regular crops, empty hand is fine, but we don't necessarily need to swap to empty
+                    // However, we should definitely NOT be holding a tool that isn't needed.
+                    // If we're holding a Hoe or Axe but don't need it, we could swap to seeds if we'll plant next,
+                    // or just leave it. The current logic is okay for harvesting.
                 }
             } else if (shouldPlant(targetPos, waterPos)) {
                 // If we are heading to plant, we should hold the seeds
