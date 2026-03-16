@@ -58,6 +58,7 @@ import java.util.Optional;
 public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private final GolemType golemType;
+    private static final TrackedData<Integer> XP_SCORE = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleInventory inventory = new SimpleInventory(9);
     private final SimpleInventory furnaceInventory = new SimpleInventory(3);
@@ -194,6 +195,18 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setGoldTradeCount(this.getGoldTradeCount() + 1);
     }
 
+    public int getXpScore() {
+        return this.dataTracker.get(XP_SCORE);
+    }
+
+    public void setXpScore(int score) {
+        this.dataTracker.set(XP_SCORE, score);
+    }
+
+    public void incrementXpScore(int amount) {
+        this.setXpScore(this.getXpScore() + amount);
+    }
+
     public void resetGoldTradeCount() {
         this.setGoldTradeCount(0);
     }
@@ -201,6 +214,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     @Override
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
+        builder.add(XP_SCORE, 0);
         builder.add(FISHING_TARGET, Optional.empty());
         builder.add(DEBUG_TARGET, Optional.empty());
         builder.add(SELECTED_PATTERN, 0);
@@ -1480,6 +1494,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("WallWidth", this.getWallWidth());
         writeView.putInt("WallLength", this.getWallLength());
         writeView.putBoolean("BuildingStarted", this.isBuildingStarted());
+        writeView.putInt("XpScore", this.getXpScore());
         writeView.putBoolean("LampOn", this.isLampOn());
         writeView.putBoolean("Stripped", this.isStripped());
         net.minecraft.inventory.Inventories.writeData(writeView.get("Inventory"), this.inventory.getHeldStacks());
@@ -1524,6 +1539,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setWallWidth(readView.getInt("WallWidth", 3));
         this.setWallLength(readView.getInt("WallLength", 3));
         this.setBuildingStarted(readView.getBoolean("BuildingStarted", false));
+        this.setXpScore(readView.getInt("XpScore", 0));
         this.setLampOn(readView.getBoolean("LampOn", false));
         this.setStripped(readView.getBoolean("Stripped", false));
         net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());

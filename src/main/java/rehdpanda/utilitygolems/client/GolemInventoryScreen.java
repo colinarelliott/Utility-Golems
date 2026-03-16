@@ -232,10 +232,20 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
                 drawEmeraldTradeIcons(context, mouseX, mouseY, golem);
             } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.CACTUS || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.HOPPER) {
                 drawCactusUI(context, mouseX, mouseY, golem);
+            } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.TINTED_GLASS) {
+                drawTintedGlassUI(context, mouseX, mouseY, golem);
             }
         }
         
         this.drawMouseoverTooltip(context, mouseX, mouseY);
+    }
+
+    private void drawTintedGlassUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {
+        String text = String.valueOf(golem.getXpScore());
+        int textWidth = textRenderer.getWidth(text);
+        // Top right of the inventory: x + 176 is the right edge, minus padding and text width.
+        // The title area is roughly 16 pixels high.
+        context.drawText(textRenderer, text, x + backgroundWidth - textWidth - 8, y + 6, 0xFF00FF00, true);
     }
 
     private void drawCactusUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {

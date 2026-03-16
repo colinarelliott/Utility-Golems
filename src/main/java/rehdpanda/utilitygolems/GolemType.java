@@ -94,6 +94,10 @@ public enum GolemType {
     HOPPER("hopper_golem", "Hopper Golem", "textures/entity/hopper_golem.png",
             GolemAI::initHopperGoals,
             null
+    ),
+    TINTED_GLASS("tinted_glass_golem", "Tinted Glass Golem", "textures/entity/tinted_glass_golem.png",
+            GolemAI::initTintedGlassGoals,
+            null
     );
 
 
@@ -145,7 +149,7 @@ public enum GolemType {
         if (targetChestType != null) {
             return targetChestType;
         }
-        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC || this == CACTUS) return null;
+        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC || this == CACTUS || this == TINTED_GLASS) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

@@ -20,7 +20,7 @@ public class GolemPatterns {
         return BlockPatternBuilder.start()
                 .aisle("^", "B") // top to bottom: Pumpkin (^), Bottom block (B)
                 .where('B', cbp -> cbp.getBlockState().getBlock() == bottomBlock)
-                .where('^', cbp -> cbp.getBlockState().getBlock() == Blocks.CARVED_PUMPKIN || cbp.getBlockState().getBlock() == Blocks.PUMPKIN)
+                .where('^', cbp -> cbp.getBlockState().getBlock() == Blocks.CARVED_PUMPKIN)
                 .build();
     }
 
@@ -84,6 +84,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.HONEYCOMB, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.HOPPER, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.TINTED_GLASS, facing, false);
         }
     }
 
@@ -110,6 +111,7 @@ public class GolemPatterns {
             case CACTUS -> Blocks.CACTUS;
             case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
             case HOPPER -> Blocks.HOPPER;
+            case TINTED_GLASS -> Blocks.TINTED_GLASS;
             default -> Blocks.LAPIS_BLOCK;
         };
 

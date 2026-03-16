@@ -79,6 +79,7 @@ public class ConfigManager {
             golems.put("cactus_golem", new GolemStats(20.0, 0.25, 1.0));
             golems.put("hopper_golem", new GolemStats(20.0, 0.25, 1.0));
             golems.put("honeycomb_golem", new GolemStats(20.0, 0.25));
+            golems.put("tinted_glass_golem", new GolemStats(20.0, 0.25));
         }
     }
 

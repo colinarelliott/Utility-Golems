@@ -23,6 +23,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.*;
@@ -316,6 +317,154 @@ public class GolemAI {
         golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DepositInHopperChestGoal(golem, 1.1D)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
+    }
+
+    public static void initTintedGlassGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                Items.GLASS_BOTTLE
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new CollectXPGoal(golem, 1.2D, 12)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new BottleXPGoal(golem)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+    }
+
+    public static class CollectXPGoal extends Goal {
+        private final UtilityGolem golem;
+        private final double speed;
+        private final int range;
+        private ExperienceOrbEntity targetOrb;
+
+        public CollectXPGoal(UtilityGolem golem, double speed, int range) {
+            this.golem = golem;
+            this.speed = speed;
+            this.range = range;
+            this.setControls(EnumSet.of(Goal.Control.MOVE));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (golem.getGolemType() != GolemType.TINTED_GLASS) return false;
+            targetOrb = findNearbyXPOrb();
+            return targetOrb != null;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetOrb != null && targetOrb.isAlive() && golem.squaredDistanceTo(targetOrb) < range * range;
+        }
+
+        @Override
+        public void start() {
+            if (targetOrb != null) {
+                golem.getNavigation().startMovingTo(targetOrb, speed);
+            }
+            updateHeldItem();
+        }
+
+        private void updateHeldItem() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                ItemStack stack = golem.getInventory().getStack(i);
+                if (stack.isOf(Items.GLASS_BOTTLE)) {
+                    golem.setHeldItem(stack.copyWithCount(1));
+                    return;
+                }
+            }
+            golem.setHeldItem(ItemStack.EMPTY);
+        }
+
+        @Override
+        public void stop() {
+            golem.setHeldItem(ItemStack.EMPTY);
+        }
+
+        @Override
+        public void tick() {
+            if (targetOrb == null || !targetOrb.isAlive()) {
+                targetOrb = findNearbyXPOrb();
+                if (targetOrb != null) {
+                    golem.getNavigation().startMovingTo(targetOrb, speed);
+                }
+                updateHeldItem();
+                return;
+            }
+
+            if (golem.squaredDistanceTo(targetOrb) < 2.0) {
+                // We'll use a fixed value of 1 XP per orb as a fallback if the method name is obfuscated or unknown
+                // ExperienceOrbEntity usually gives 1-3 XP or so for small ones.
+                golem.incrementXpScore(1);
+                targetOrb.discard();
+                targetOrb = findNearbyXPOrb();
+                if (targetOrb != null) {
+                    golem.getNavigation().startMovingTo(targetOrb, speed);
+                }
+                updateHeldItem();
+            } else if (golem.getNavigation().isIdle()) {
+                golem.getNavigation().startMovingTo(targetOrb, speed);
+            }
+        }
+
+        private ExperienceOrbEntity findNearbyXPOrb() {
+            List<ExperienceOrbEntity> orbs = golem.getEntityWorld().getEntitiesByClass(ExperienceOrbEntity.class, golem.getBoundingBox().expand(range), orb -> orb.isAlive());
+            return orbs.stream().min(Comparator.comparingDouble(golem::squaredDistanceTo)).orElse(null);
+        }
+    }
+
+    public static class BottleXPGoal extends Goal {
+        private final UtilityGolem golem;
+        private int bottleCooldown = 0;
+
+        public BottleXPGoal(UtilityGolem golem) {
+            this.golem = golem;
+        }
+
+        @Override
+        public boolean canStart() {
+            if (golem.getGolemType() != GolemType.TINTED_GLASS) return false;
+            return golem.getXpScore() >= 7 && hasGlassBottle();
+        }
+
+        private boolean hasGlassBottle() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isOf(Items.GLASS_BOTTLE)) return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void tick() {
+            if (bottleCooldown > 0) {
+                bottleCooldown--;
+                if (bottleCooldown == 0) {
+                    golem.setHeldItem(ItemStack.EMPTY);
+                }
+                return;
+            }
+
+            if (golem.getXpScore() >= 7) {
+                for (int i = 0; i < golem.getInventory().size(); i++) {
+                    ItemStack stack = golem.getInventory().getStack(i);
+                    if (stack.isOf(Items.GLASS_BOTTLE)) {
+                        stack.decrement(1);
+                        ItemStack bottleOEnchanting = new ItemStack(Items.EXPERIENCE_BOTTLE);
+                        if (!golem.getInventory().addStack(bottleOEnchanting).isEmpty()) {
+                            net.minecraft.block.Block.dropStack(golem.getEntityWorld(), golem.getBlockPos(), bottleOEnchanting);
+                        }
+                        golem.incrementXpScore(-7);
+                        golem.setAnimation(GolemAnimation.BREWING, 40);
+                        golem.setHeldItem(bottleOEnchanting.copyWithCount(1));
+                        bottleCooldown = 40;
+                        golem.getEntityWorld().playSound(null, golem.getBlockPos(), SoundEvents.BLOCK_BREWING_STAND_BREW, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+                        break;
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void stop() {
+            golem.setHeldItem(ItemStack.EMPTY);
+            bottleCooldown = 0;
+        }
     }
 
     public static class CollectItemsFromInventoriesGoal extends Goal {

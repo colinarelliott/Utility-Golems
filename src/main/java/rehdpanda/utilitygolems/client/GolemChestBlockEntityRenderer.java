@@ -90,7 +90,9 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         if (identifier == null) {
             identifier = SINGLE_TEXTURES.values().iterator().next();
         }
-        RenderLayer renderLayer = RenderLayers.entityCutout(identifier);
+        RenderLayer renderLayer = state.golemType == GolemType.TINTED_GLASS 
+                ? RenderLayers.entityTranslucent(identifier) 
+                : RenderLayers.entityCutout(identifier);
 
         ChestBlockModel model = switch (state.chestType) {
             case SINGLE -> this.singleModel;

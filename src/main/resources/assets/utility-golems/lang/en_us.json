@@ -31,7 +31,7 @@
   "container.utility-golems.nether_wart_golem_chest_double": "Nether Wart Double Chest",
   "container.utility-golems.honeycomb_golem_chest_double": "Honeycomb Double Chest",
   "container.utility-golems.hopper_golem_chest_double": "Hopper Double Chest",
-
+ 
   "item.utility-golems.lapis_golem_chest": "Lapis Chest",
   "item.utility-golems.redstone_golem_chest": "Redstone Chest",
   "item.utility-golems.emerald_golem_chest": "Emerald Chest",
@@ -71,7 +71,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "Medic Golem Spawn Egg",
   "item.utility-golems.cactus_golem_spawn_egg": "Cactus Golem Spawn Egg",
   "item.utility-golems.honeycomb_golem_spawn_egg": "Honeycomb Golem Spawn Egg",
-  "item.utility-golems.hopper_golem_spawn_egg": "Hopper Golem Spawn Egg",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "Tinted Glass Golem Spawn Egg",
   
   "item.utility-golems.lapis_chest": "Lapis Chest",
   "item.utility-golems.redstone_chest": "Redstone Chest",
@@ -101,6 +101,7 @@
   "entity.utility-golems.cactus_golem": "Cactus Golem",
   "entity.utility-golems.honeycomb_golem": "Honeycomb Golem",
   "entity.utility-golems.hopper_golem": "Hopper Golem",
+  "entity.utility-golems.tinted_glass_golem": "Tinted Glass Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection",
   "gui.utility-golems.golem_dead": "Golem is dead! Place a pumpkin to respawn."
 }
