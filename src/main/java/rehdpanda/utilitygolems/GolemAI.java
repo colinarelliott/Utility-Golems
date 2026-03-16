@@ -2738,6 +2738,7 @@ public class GolemAI {
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue; // Common check in depositItems
                 
+                if (stack.isOf(Items.CHORUS_FRUIT)) return true; // Always deposit fruit
                 if (isSapling(stack)) {
                     if (getSaplingCount(stack.getItem()) > 8) return true;
                     continue;
@@ -2904,7 +2905,7 @@ public class GolemAI {
 
         private boolean isSapling(ItemStack stack) {
             if (golem.getGolemType() == GolemType.DEEPSLATE) {
-                return stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER) || stack.isOf(Items.CHORUS_FRUIT);
+                return stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER);
             }
             return stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS);
         }
@@ -3100,6 +3101,11 @@ public class GolemAI {
                             }
                         }
                         if (golem.getGolemType() == GolemType.DEEPSLATE) {
+                            if (stack.isOf(Items.CHORUS_FRUIT)) {
+                                ItemStack remaining_stack = transferStack(stack, container);
+                                golemInv.setStack(i, remaining_stack);
+                                continue;
+                            }
                             if (isSapling(stack) && getSaplingCount(stack.getItem()) <= 8) {
                                 continue;
                             }
@@ -8268,10 +8274,11 @@ public class GolemAI {
                         boolean isFamiliar = false;
                         if (golem.getGolemType() == GolemType.DEEPSLATE) {
                             boolean isAxe = UtilityGolem.isAxe(stack);
-                            boolean isSapling = stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS);
+                            boolean isSapling = stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isOf(Items.CHORUS_FLOWER);
+                            boolean isChorusFruit = stack.isOf(Items.CHORUS_FRUIT);
                             boolean isApple = stack.isOf(Items.APPLE);
                             boolean isStick = stack.isOf(Items.STICK);
-                            isFamiliar = isAxe || isSapling || isApple || isStick;
+                            isFamiliar = isAxe || isSapling || isChorusFruit || isApple || isStick;
                         } else if (golem.getGolemType() == GolemType.BAMBOO) {
                             boolean isHoe = UtilityGolem.isHoe(stack);
                             boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
