@@ -42,10 +42,13 @@ public class UtilityGolemSpawnEggItem extends Item {
         if (entityType == null) return ActionResult.PASS;
 
         UtilityGolem golem = new UtilityGolem(entityType, world, golemType);
+        PlayerEntity player = context.getPlayer();
+        if (player != null) {
+            golem.setOwnerUuid(player.getUuid());
+        }
         golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.random.nextFloat() * 360.0F, 0.0F);
         boolean spawned = world.spawnEntity(golem);
         if (spawned) {
-            PlayerEntity player = context.getPlayer();
             ItemStack stack = context.getStack();
             if (player == null || !player.isCreative()) {
                 stack.decrement(1);

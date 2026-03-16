@@ -362,7 +362,7 @@ public class GolemAI {
                 return;
             }
 
-            if (golem.squaredDistanceTo(targetOrb) < 2.0) {
+            if (golem.squaredDistanceTo(targetOrb) < 4.0) { // Increased distance slightly to help collection near players
                 // We'll use a fixed value of 1 XP per orb as a fallback if the method name is obfuscated or unknown
                 // ExperienceOrbEntity usually gives 1-3 XP or so for small ones.
                 golem.incrementXpScore(1);
@@ -379,6 +379,7 @@ public class GolemAI {
 
         private ExperienceOrbEntity findNearbyXPOrb() {
             List<ExperienceOrbEntity> orbs = golem.getEntityWorld().getEntitiesByClass(ExperienceOrbEntity.class, golem.getBoundingBox().expand(range), orb -> orb.isAlive());
+            // In 1.21.1, XP orbs can have a target player. We should still target them.
             return orbs.stream().min(Comparator.comparingDouble(golem::squaredDistanceTo)).orElse(null);
         }
     }

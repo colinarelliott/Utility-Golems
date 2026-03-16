@@ -42,6 +42,10 @@ public class GolemPatterns {
                         }
 
                         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), serverWorld, type);
+                        net.minecraft.entity.player.PlayerEntity creator = world.getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 10.0, false);
+                        if (creator != null) {
+                            golem.setOwnerUuid(creator.getUuid());
+                        }
                         golem.setStripped(isStripped);
                         golem.setChestPos(belowPos);
                         golem.refreshPositionAndAngles(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
@@ -123,6 +127,10 @@ public class GolemPatterns {
         // Spawn the golem at the pumpkin position
         BlockPos spawnPos = result.translate(0, 0, 0).getBlockPos();
         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), world, type);
+        net.minecraft.entity.player.PlayerEntity creator = world.getClosestPlayer(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 10.0, false);
+        if (creator != null) {
+            golem.setOwnerUuid(creator.getUuid());
+        }
         golem.setStripped(isStripped);
         golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
         golem.initialize(world, world.getLocalDifficulty(spawnPos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);

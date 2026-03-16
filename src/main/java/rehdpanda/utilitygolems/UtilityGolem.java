@@ -125,6 +125,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private static final TrackedData<Boolean> REDSTONE_PROGRAM_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Integer> DELETED_ITEMS_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> GOLD_TRADE_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<String> OWNER_UUID_STRING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
 
     public record RedstoneInteraction(BlockPos pos, int interval) {}
     private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
@@ -190,6 +191,22 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.dataTracker.set(GOLD_TRADE_COUNT, count);
     }
 
+    public Optional<UUID> getOwnerUuid() {
+        String uuidStr = this.dataTracker.get(OWNER_UUID_STRING);
+        if (uuidStr == null || uuidStr.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(UUID.fromString(uuidStr));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.dataTracker.set(OWNER_UUID_STRING, uuid == null ? "" : uuid.toString());
+    }
+
     public void incrementGoldTradeCount() {
         this.setGoldTradeCount(this.getGoldTradeCount() + 1);
     }
@@ -235,6 +252,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         builder.add(REDSTONE_PROGRAM_STARTED, false);
         builder.add(DELETED_ITEMS_COUNT, 0);
         builder.add(GOLD_TRADE_COUNT, 0);
+        builder.add(OWNER_UUID_STRING, "");
     }
 
     public GolemAnimation getAnimation() {
@@ -1550,6 +1568,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         writeView.putInt("AnimationStartTicks", this.dataTracker.get(ANIMATION_START_TICKS));
         writeView.putInt("DeletedItemsCount", this.getDeletedItemsCount());
         writeView.putInt("GoldTradeCount", this.getGoldTradeCount());
+        writeView.putString("OwnerUUID", this.dataTracker.get(OWNER_UUID_STRING));
     }
 
     @Override
@@ -1590,6 +1609,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.dataTracker.set(ANIMATION_START_TICKS, animStartTicks);
         this.setDeletedItemsCount(readView.getInt("DeletedItemsCount", 0));
         this.setGoldTradeCount(readView.getInt("GoldTradeCount", 0));
+        this.dataTracker.set(OWNER_UUID_STRING, readView.getString("OwnerUUID", ""));
 
         updateAttackDamage();
     }
@@ -1806,6 +1826,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 this.updateAttackDamage();
             }
             success = super.tryAttack(world, target);
+            if (success && isNetheriteOrAncient && target instanceof LivingEntity livingTarget && this.getOwnerUuid().isPresent()) {
+                livingTarget.setAttacker(null); // Clear mob attacker to ensure player takes precedence for XP
+                // In 1.21.1, we can't easily set lastAttackedByPlayerTime directly as it's private.
+                // However, we can use a damage source that is attributed to a player if we have the player entity.
+                PlayerEntity owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                if (owner != null) {
+                    livingTarget.damage(world, this.getDamageSources().playerAttack(owner), 0.0f);
+                }
+            }
         } finally {
             if (isNetheriteOrAncient && (heldItem != originalHeldItem || isSpear(heldItem) || isTrident(heldItem) || isAxe(heldItem) || isMace(heldItem))) {
                 this.setHeldItem(originalHeldItem);
@@ -1856,7 +1885,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return entity != this && entity != target && !this.isTeammate(entity) && this.canTarget(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
         })) {
             livingEntity.takeKnockback(0.4000000059604645, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
-            livingEntity.damage(world, this.getDamageSources().mobAttack(this), sweepingDamage);
+            DamageSource source = this.getDamageSources().mobAttack(this);
+            if (this.getOwnerUuid().isPresent()) {
+                PlayerEntity owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                if (owner != null) {
+                    source = this.getDamageSources().playerAttack(owner);
+                }
+            }
+            livingEntity.damage(world, source, sweepingDamage);
         }
         
         world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, this.getSoundCategory(), 1.0f, 1.0f);
