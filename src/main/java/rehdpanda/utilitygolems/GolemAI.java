@@ -2785,8 +2785,9 @@ public class GolemAI {
                 if (stack.isEmpty()) continue;
                 if (isCrop(stack)) {
                     if (golem.getGolemType() == GolemType.BAMBOO) {
-                        if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS)) {
-                            // Only deposit seeds if we have more than 16 (keep some for planting)
+                        if (stack.isOf(Items.MELON_SLICE)) return true; // Always deposit melon slices
+                        if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
+                            // Only deposit seeds/carrots/potatoes if we have more than 16 (keep some for planting)
                             if (getSeedCount(stack.getItem()) > 16) return true;
                             continue;
                         }
@@ -2827,7 +2828,7 @@ public class GolemAI {
                     || stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS)
                     || stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS)
                     || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS)
-                    || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON);
+                    || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON) || stack.isOf(Items.MELON_SLICE);
         }
 
         private boolean hasFullStack() {
@@ -3082,7 +3083,12 @@ public class GolemAI {
                             if (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isTool(stack)) {
                                 continue;
                             }
-                            if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS)) {
+                            if (stack.isOf(Items.MELON_SLICE)) {
+                                ItemStack remaining_stack = transferStack(stack, container);
+                                golemInv.setStack(i, remaining_stack);
+                                continue;
+                            }
+                            if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
                                 if (getSeedCount(stack.getItem()) <= 16) continue;
                                 // Transfer only the excess
                                 int toTransfer = getSeedCount(stack.getItem()) - 16;
@@ -5702,7 +5708,11 @@ public class GolemAI {
                 net.minecraft.entity.ItemEntity closest = items.stream()
                         .min(Comparator.comparingDouble(golem::squaredDistanceTo))
                         .orElse(null);
-                if (closest != null) return closest.getBlockPos();
+                if (closest != null) {
+                    // Check if it's within a growth spot for a stripped golem.
+                    // If it is, and we should ONLY be tilling/harvesting there, pickup is fine.
+                    return closest.getBlockPos();
+                }
             }
 
             // Priority 2: Harvest mature crops
@@ -5731,7 +5741,25 @@ public class GolemAI {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos p = waterPos.add(x, y, z);
                             if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
-                            if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
+
+                            // Checkered pattern logic for Stripped Bamboo Golems (Pumpkin/Melon mode)
+                            if (golem.isStripped()) {
+                                if ((Math.abs(p.getX() - waterPos.getX()) + Math.abs(p.getZ() - waterPos.getZ())) % 2 == 0) {
+                                    // This is a seed spot
+                                    if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
+                                } else {
+                                    // This is a growth spot. Golem should only till it if it's not farmland/dirt/grass (e.g. if it was harvested)
+                                    // Actually, pumpkins/melons grow on dirt, grass, or farmland. 
+                                    // If it's a growth spot, we don't want to plant there. 
+                                    // If it's currently tillable and we are stripped, we should TILL it to ensure pumpkins can grow.
+                                    // BUT, wait, pumpkins don't NEED farmland. They can grow on dirt. 
+                                    // The issue description says: "Doesnt use hoe for blocks that were under pumpkin/melons."
+                                    // This suggests the golem SHOULD till those spots.
+                                    if (shouldTill(p, waterPos)) return p;
+                                }
+                            } else {
+                                if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
+                            }
                         }
                     }
                 }
@@ -5742,7 +5770,16 @@ public class GolemAI {
                         for (int y = -3; y <= 3; y++) {
                             BlockPos p = chestPos.add(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
-                            if (shouldTill(p, null) || shouldPlant(p, null)) return p;
+
+                            if (golem.isStripped()) {
+                                if ((Math.abs(p.getX() - chestPos.getX()) + Math.abs(p.getZ() - chestPos.getZ())) % 2 == 0) {
+                                    if (shouldTill(p, null) || shouldPlant(p, null)) return p;
+                                } else {
+                                    if (shouldTill(p, null)) return p;
+                                }
+                            } else {
+                                if (shouldTill(p, null) || shouldPlant(p, null)) return p;
+                            }
                         }
                     }
                 }
@@ -5755,7 +5792,7 @@ public class GolemAI {
             boolean isHoe = UtilityGolem.isHoe(stack);
             boolean isAxe = UtilityGolem.isAxe(stack);
             boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
-                            stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON);
+                            stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON) || stack.isOf(Items.MELON_SLICE);
             boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.TORCHFLOWER_SEEDS) || stack.isOf(Items.PITCHER_POD);
             return isHoe || isAxe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
         }
@@ -5916,6 +5953,16 @@ public class GolemAI {
             BlockState aboveState = golem.getEntityWorld().getBlockState(pos.up());
             boolean isAboveSafe = aboveState.isAir() || (aboveState.isReplaceable() && !aboveState.isOf(Blocks.WATER));
             
+            // Checkered pattern logic for Stripped Bamboo Golems
+            if (golem.isStripped()) {
+                BlockPos referencePos = waterPos != null ? waterPos : golem.getChestPos();
+                if (referencePos != null) {
+                    if ((Math.abs(pos.getX() - referencePos.getX()) + Math.abs(pos.getZ() - referencePos.getZ())) % 2 != 0) {
+                        return false; // Not a planting spot
+                    }
+                }
+            }
+
             // Standard crops
             if (state.isOf(Blocks.FARMLAND) && isAboveSafe && hasSeeds()) return true;
 
@@ -6147,6 +6194,19 @@ public class GolemAI {
             BlockState state = world.getBlockState(targetPos);
             BlockPos waterPos = findWaterCenter(golem.getChestPos());
             
+            // 0. Ensure we have the right tool if we are about to act
+            if (shouldHarvest(targetPos, waterPos)) {
+                if ((state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) && hasAxe()) {
+                    if (!UtilityGolem.isAxe(golem.getHeldItem())) {
+                        swapToAxe();
+                    }
+                }
+            } else if (shouldTill(targetPos, waterPos)) {
+                if (!UtilityGolem.isHoe(golem.getHeldItem())) {
+                    swapToHoe();
+                }
+            }
+
             // 1. Pickup items
             List<ItemEntity> items = world.getEntitiesByClass(ItemEntity.class, new net.minecraft.util.math.Box(targetPos).expand(1.5), item -> true);
             if (!items.isEmpty()) {
@@ -6203,6 +6263,9 @@ public class GolemAI {
                         if (!UtilityGolem.isAxe(golem.getHeldItem())) {
                             swapToAxe();
                         }
+                    } else if (UtilityGolem.isAxe(golem.getHeldItem()) && !(state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON))) {
+                        // If we are holding an axe but it's not pumpkin/melon, swap to hoe or seeds if we have them
+                        if (hasHoe()) swapToHoe();
                     }
 
                     LootWorldContext.Builder builder = new LootWorldContext.Builder(serverWorld)
@@ -6235,6 +6298,11 @@ public class GolemAI {
 
             // 4. Till
             if (shouldTill(targetPos, waterPos)) {
+                // Ensure we have a hoe
+                if (!UtilityGolem.isHoe(golem.getHeldItem())) {
+                    swapToHoe();
+                }
+
                 // Break things like grass or flowers above first
                 BlockPos abovePos = targetPos.up();
                 BlockState aboveState = world.getBlockState(abovePos);
