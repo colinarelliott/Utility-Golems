@@ -1114,15 +1114,15 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             targetVillager = findVillagerWithTrade();
-            // Record trades even if we can't trade right now
-            if (targetVillager == null) {
+            // Record trades periodically to keep the "buy list" updated
+            if (targetVillager == null || golem.getRandom().nextInt(20) == 0) {
                 recordNearbyTrades();
             }
             return targetVillager != null;
         }
 
         private void recordNearbyTrades() {
-            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(8.0), villager -> true);
+            List<VillagerEntity> villagers = golem.getEntityWorld().getEntitiesByClass(VillagerEntity.class, golem.getBoundingBox().expand(16.0), villager -> true);
             for (VillagerEntity villager : villagers) {
                 TradeOfferList offers = villager.getOffers();
                 for (TradeOffer offer : offers) {
@@ -1188,7 +1188,12 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
-            return targetVillager != null && targetVillager.isAlive() && canTradeWith(targetVillager);
+            if (targetVillager == null || !targetVillager.isAlive()) return false;
+            
+            // Re-check if the villager still has trades periodically or when they level up
+            // This ensures we "lose track" correctly if they are no longer tradeable,
+            // or keep tracking if they still have other valid trades.
+            return canTradeWith(targetVillager);
         }
 
         @Override
@@ -1206,6 +1211,20 @@ public class GolemAI {
         @Override
         public void tick() {
             if (targetVillager == null) return;
+
+            // Periodically check for new trades from ALL nearby villagers
+            if (golem.getRandom().nextInt(100) == 0) {
+                recordNearbyTrades();
+                
+                // If our current target no longer has valid trades, we should stop
+                // so canStart can find a better target (possibly the same villager with new trades)
+                if (!canTradeWith(targetVillager)) {
+                    targetVillager = null;
+                    golem.setAnimation(GolemAnimation.IDLE, 0);
+                    golem.getNavigation().stop();
+                    return;
+                }
+            }
 
             // Ensure animation is active while trading
             if (golem.getAnimation() == GolemAnimation.IDLE || golem.getAnimationTicks() <= 1) {
