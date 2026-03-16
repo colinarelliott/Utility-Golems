@@ -4352,6 +4352,8 @@ public class GolemAI {
                         if (!hasEnoughSaplings() && stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) return true;
                     }
                     if (golem.getGolemType() == GolemType.BAMBOO) {
+                        if (new FarmGoal(golem).canStart()) return false;
+                        
                         if (!hasHoe() && UtilityGolem.isHoe(stack)) return true;
                         if (!hasAxe() && UtilityGolem.isAxe(stack)) return true;
                         if (!hasWaterBucket() && !hasEmptyBucket() && (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET))) return true;
@@ -4435,9 +4437,10 @@ public class GolemAI {
 
         public boolean hasAnythingNeeded() {
             if (golem.getGolemType() == GolemType.BAMBOO) {
-                // We always WANT these things, but we don't NEED them to start farming if there's harvesting to do.
-                // However, this method is used by WithdrawItemsGoal.canStart().
-                // If we return true here, it will try to withdraw.
+                // If there is harvesting tasks (like mature nether wart), prioritize it over getting tools.
+                // This prevents the golem from rocking back and forth near nether wart if it's missing a hoe/axe.
+                if (new FarmGoal(golem).canStart()) return false;
+
                 boolean needsHoe = !hasHoe();
                 boolean needsAxe = !hasAxe();
                 boolean needsWater = !hasWaterBucket() && !hasEmptyBucket();
