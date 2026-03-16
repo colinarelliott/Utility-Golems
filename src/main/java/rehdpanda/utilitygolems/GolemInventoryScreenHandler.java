@@ -75,6 +75,7 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
                 for (int i = 0; i < GOLEM_INV_SIZE; i++) {
                     if (i == this.getIndex()) continue;
                     ItemStack otherStack = inventory.getStack(i);
+                    // Use areItemsEqual to ignore NBT/components for Hopper Golem filtering slots
                     if (!otherStack.isEmpty() && ItemStack.areItemsEqual(stack, otherStack)) {
                         return false;
                     }

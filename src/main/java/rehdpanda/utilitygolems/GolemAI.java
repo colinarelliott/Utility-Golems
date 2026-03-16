@@ -287,8 +287,8 @@ public class GolemAI {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 UGItems.WRENCH_ITEM
         ), false)));
-        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new CollectItemsFromInventoriesGoal(golem, 1.1D, 16)));
-        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DepositInHopperChestGoal(golem, 1.1D)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new DepositInHopperChestGoal(golem, 1.1D)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new CollectItemsFromInventoriesGoal(golem, 1.1D, 16)));
         golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
@@ -459,9 +459,20 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             if (golem.getGolemType() != GolemType.HOPPER) return false;
-            if (isInventoryFull()) return false;
+            if (isInventoryMostlyFull()) return false;
             targetChestPos = findChestWithTargetItems();
             return targetChestPos != null;
+        }
+
+        private boolean isInventoryMostlyFull() {
+            int emptySlots = 0;
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isEmpty()) {
+                    emptySlots++;
+                }
+            }
+            // If only 2 slots left, or less than 25% empty, consider it mostly full
+            return emptySlots < 2;
         }
 
         private boolean isInventoryFull() {
@@ -502,7 +513,12 @@ public class GolemAI {
         public void tick() {
             if (targetChestPos == null) return;
 
-            if (golem.getBlockPos().getSquaredDistance(targetChestPos) < 4.0 || golem.getNavigation().isIdle()) {
+            double dx = golem.getX() - (targetChestPos.getX() + 0.5);
+            double dy = Math.abs(golem.getY() - (targetChestPos.getY() + 0.5));
+            double dz = golem.getZ() - (targetChestPos.getZ() + 0.5);
+            double horizontalDistSq = dx * dx + dz * dz;
+
+            if ((horizontalDistSq < 4.0 && dy < 8.0) || golem.getNavigation().isIdle()) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     transferCooldown = 60;
@@ -577,7 +593,11 @@ public class GolemAI {
                 ItemStack filterStack = filterInv.getStack(i);
                 if (!filterStack.isEmpty()) {
                     anyFilter = true;
-                    if (ItemStack.areItemsEqual(stack, filterStack)) return true;
+                    if (golem.getGolemType() == GolemType.HOPPER) {
+                        if (ItemStack.areItemsEqual(stack, filterStack)) return true;
+                    } else {
+                        if (ItemStack.areItemsAndComponentsEqual(stack, filterStack)) return true;
+                    }
                 }
             }
             return false; // If no filter, don't collect anything (Hopper Golem fix)
@@ -620,8 +640,14 @@ public class GolemAI {
             Inventory golemInv = golem.getInventory();
             for (int i = 0; i < golemInv.size(); i++) {
                 ItemStack golemStack = golemInv.getStack(i);
-                if (!golemStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
-                    if (golemStack.getCount() < golemStack.getMaxCount()) {
+                if (!golemStack.isEmpty()) {
+                    boolean match;
+                    if (golem.getGolemType() == GolemType.HOPPER) {
+                        match = ItemStack.areItemsEqual(stack, golemStack);
+                    } else {
+                        match = ItemStack.areItemsAndComponentsEqual(stack, golemStack);
+                    }
+                    if (match && golemStack.getCount() < golemStack.getMaxCount()) {
                         return true;
                     }
                 }
@@ -634,16 +660,36 @@ public class GolemAI {
             // First try to merge into existing stacks
             for (int i = 0; i < golemInv.size(); i++) {
                 ItemStack golemStack = golemInv.getStack(i);
-                if (!golemStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
-                    int transferAmount = Math.min(stack.getCount(), golemStack.getMaxCount() - golemStack.getCount());
-                    if (transferAmount > 0) {
-                        golemStack.increment(transferAmount);
-                        stack.decrement(transferAmount);
+                if (!golemStack.isEmpty()) {
+                    boolean match;
+                    if (golem.getGolemType() == GolemType.HOPPER) {
+                        match = ItemStack.areItemsEqual(stack, golemStack);
+                    } else {
+                        match = ItemStack.areItemsAndComponentsEqual(stack, golemStack);
+                    }
+
+                    if (match) {
+                        int transferAmount = Math.min(stack.getCount(), golemStack.getMaxCount() - golemStack.getCount());
+                        if (transferAmount > 0) {
+                            golemStack.increment(transferAmount);
+                            stack.decrement(transferAmount);
+                        }
+                        // Hopper Golem: Once we've found a match, we don't want to create another stack
+                        if (golem.getGolemType() == GolemType.HOPPER) {
+                            return stack;
+                        }
                     }
                 }
                 if (stack.isEmpty()) return ItemStack.EMPTY;
             }
             
+            // For Hopper Golem, if we're here it means we didn't find a matching stack.
+            // Check if this item is already in ANY slot (though the loop above should have found it).
+            // But we also need to ensure we don't add it if it's already there but full.
+            if (golem.getGolemType() == GolemType.HOPPER && isAlreadyInInventory(stack)) {
+                return stack;
+            }
+
             // Then try to put into empty slots
             for (int i = 0; i < golemInv.size(); i++) {
                 ItemStack golemStack = golemInv.getStack(i);
@@ -670,13 +716,25 @@ public class GolemAI {
         @Override
         public boolean canStart() {
             if (golem.getGolemType() != GolemType.HOPPER) return false;
-            return hasItemsToDeposit() && golem.getChestPos() != null;
+            return (hasItemsToDeposit() || isInventoryNearlyFull()) && golem.getChestPos() != null;
+        }
+
+        private boolean isInventoryNearlyFull() {
+            int emptySlots = 0;
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isEmpty()) {
+                    emptySlots++;
+                }
+            }
+            return emptySlots < 4; // Start depositing if 3 or fewer slots are empty
         }
 
         private boolean hasItemsToDeposit() {
             Inventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
+                // Also deposit if we have any item that isn't the filter (but Hopper Golem currently only collects filter items)
+                // The main thing is to deposit if we have more than 1 of something OR if we are getting full
                 if (!stack.isEmpty() && stack.getCount() > 1) return true;
             }
             return false;
@@ -684,7 +742,7 @@ public class GolemAI {
 
         @Override
         public boolean shouldContinue() {
-            return hasItemsToDeposit() && golem.getChestPos() != null;
+            return (hasItemsToDeposit() || isInventoryNearlyFull()) && golem.getChestPos() != null;
         }
 
         @Override
@@ -715,7 +773,12 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return;
 
-            if (golem.getBlockPos().getSquaredDistance(chestPos) < 4.0) {
+            double dx = golem.getX() - (chestPos.getX() + 0.5);
+            double dy = Math.abs(golem.getY() - (chestPos.getY() + 0.5));
+            double dz = golem.getZ() - (chestPos.getZ() + 0.5);
+            double horizontalDistSq = dx * dx + dz * dz;
+
+            if (horizontalDistSq < 4.0 && dy < 8.0) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.DEPOSITING, 60);
                     transferCooldown = 60;
@@ -939,7 +1002,7 @@ public class GolemAI {
                 return;
             }
 
-            if (golem.getBlockPos().getSquaredDistance(targetChest) < 4.0) {
+            if (golem.getBlockPos().getSquaredDistance(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5) < 30.0) {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5);
                 

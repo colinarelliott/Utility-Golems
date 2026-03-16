@@ -129,21 +129,28 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     private static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, @Nullable Direction side) {
+        boolean ignoreNbt = false;
+        if (to instanceof GolemChestBlockEntity gTo) {
+            ignoreNbt = gTo.getGolemType() == GolemType.HOPPER;
+        } else if (from instanceof GolemChestBlockEntity gFrom) {
+            ignoreNbt = gFrom.getGolemType() == GolemType.HOPPER;
+        }
+
         if (to instanceof SidedInventory sidedInventory && side != null) {
             int[] slots = sidedInventory.getAvailableSlots(side);
             for (int i = 0; i < slots.length && !stack.isEmpty(); ++i) {
-                stack = transfer(from, to, stack, slots[i], side);
+                stack = transfer(from, to, stack, slots[i], side, ignoreNbt);
             }
         } else {
             int size = to.size();
             for (int i = 0; i < size && !stack.isEmpty(); ++i) {
-                stack = transfer(from, to, stack, i, side);
+                stack = transfer(from, to, stack, i, side, ignoreNbt);
             }
         }
         return stack;
     }
 
-    private static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, int slot, @Nullable Direction side) {
+    private static ItemStack transfer(@Nullable Inventory from, Inventory to, ItemStack stack, int slot, @Nullable Direction side, boolean ignoreNbt) {
         ItemStack itemStack = to.getStack(slot);
         if (canInsert(to, stack, slot, side)) {
             boolean changed = false;
@@ -151,7 +158,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
                 to.setStack(slot, stack);
                 stack = ItemStack.EMPTY;
                 changed = true;
-            } else if (canMergeItems(itemStack, stack)) {
+            } else if (canMergeItems(itemStack, stack, ignoreNbt)) {
                 int i = Math.min(to.getMaxCountPerStack(), stack.getMaxCount()) - itemStack.getCount();
                 int j = Math.min(stack.getCount(), i);
                 stack.decrement(j);
@@ -172,7 +179,10 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
         return !(inventory instanceof SidedInventory sidedInventory) || sidedInventory.canInsert(slot, stack, side);
     }
 
-    private static boolean canMergeItems(ItemStack first, ItemStack second) {
+    private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
+        if (ignoreNbt) {
+            return first.isOf(second.getItem()) && first.getDamage() == second.getDamage() && first.getCount() < first.getMaxCount();
+        }
         return first.isOf(second.getItem()) && first.getDamage() == second.getDamage() && first.getCount() < first.getMaxCount() && ItemStack.areItemsAndComponentsEqual(first, second);
     }
 
