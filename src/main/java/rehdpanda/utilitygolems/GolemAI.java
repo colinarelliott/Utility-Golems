@@ -2740,6 +2740,7 @@ public class GolemAI {
         }
 
         private boolean hasGoldGolemsItemsToDeposit() {
+            if (golem.getGoldTradeCount() >= 8) return true;
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
@@ -2952,6 +2953,9 @@ public class GolemAI {
             chestPos = null;
             if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
                 golem.setHeldItem(ItemStack.EMPTY);
+            }
+            if (golem.getGolemType() == GolemType.GOLD) {
+                golem.resetGoldTradeCount();
             }
             searchCooldown = 20 + golem.getRandom().nextInt(20);
         }
@@ -7942,6 +7946,9 @@ public class GolemAI {
             // Only start if we have gold and aren't holding something that's NOT gold (unless it's empty)
             if (!hasGoldIngot()) return false;
             
+            // Limit trades to 8 before depositing
+            if (golem.getGoldTradeCount() >= 8) return false;
+
             // If we are holding something that isn't gold, maybe we should finish depositing it first?
             // Actually, if we have gold in inventory but holding a trade result, we should probably finish that.
             if (!golem.getHeldItem().isEmpty() && !golem.getHeldItem().isOf(Items.GOLD_INGOT)) return false;
@@ -8109,6 +8116,7 @@ public class GolemAI {
             }
             itemEntity.discard();
             golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+            golem.incrementGoldTradeCount();
         }
 
         private boolean isPiglinReady(net.minecraft.entity.mob.PiglinEntity piglin) {
