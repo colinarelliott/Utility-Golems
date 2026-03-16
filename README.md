@@ -1,12 +1,11 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
-![GolemPhotoDay131](https://github.com/user-attachments/assets/171d5301-f636-4839-9d4e-d8e4cd92fa55)
-
+![UG-PhotoDay-135](https://github.com/user-attachments/assets/7fb74960-526c-4a7e-bdd8-128d00ec8c7b)
 
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Honeycomb, Gold, Stripped Bamboo, Sponge, Emerald, Cactus, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic
+- Left to Right, Row 2: Spawn Eggs, Hopper, Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic (+ Wrench), Tinted Glass
 
 
 #### Image Legend
