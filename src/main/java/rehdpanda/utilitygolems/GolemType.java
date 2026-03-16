@@ -90,10 +90,17 @@ public enum GolemType {
     HONEYCOMB("honeycomb_golem", "Honeycomb Golem", "textures/entity/honeycomb_golem.png",
             GolemAI::initHoneycombGoals,
             null
+    ),
+    HOPPER("hopper_golem", "Hopper Golem", "textures/entity/hopper_golem.png",
+            GolemAI::initHopperGoals,
+            null
+    ),
+    TINTED_GLASS("tinted_glass_golem", "Tinted Glass Golem", "textures/entity/tinted_glass_golem.png",
+            GolemAI::initTintedGlassGoals,
+            null
     );
 
 
-    private static Object BlockEntityType;
     private final String name;
     private final String friendlyName;
     private final String texturePath;
@@ -133,15 +140,14 @@ public enum GolemType {
     }
 
     public Identifier getTexture() {
-        Identifier texture = Identifier.of("utility-golems", texturePath);
-        return texture;
+        return Identifier.of("utility-golems", texturePath);
     }
 
     public Block getChestBlock() {
         if (targetChestType != null) {
             return targetChestType;
         }
-        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC || this == CACTUS) return null;
+        if (this == LAMP || this == FURNACE || this == JUKEBOX || this == SMOKER || this == BLAST_FURNACE || this == MEDIC || this == CACTUS || this == TINTED_GLASS) return null;
         return UGBlocks.GOLEM_CHESTS.get(this);
     }
 

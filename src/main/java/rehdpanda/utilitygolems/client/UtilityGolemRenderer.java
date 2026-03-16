@@ -1,19 +1,17 @@
 package rehdpanda.utilitygolems.client;
 
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.CopperGolemEntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import rehdpanda.utilitygolems.UtilityGolem;
-import rehdpanda.utilitygolems.GolemType;
 import rehdpanda.utilitygolems.GolemAnimation;
-import org.joml.Matrix4f;
+import rehdpanda.utilitygolems.GolemType;
+import rehdpanda.utilitygolems.UtilityGolem;
 
 public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
     private final GolemType type;
@@ -54,10 +52,19 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             renderState.isLampOn = utilityGolem.isLampOn();
             renderState.isStripped = utilityGolem.isStripped();
             renderState.isSmelting = utilityGolem.isSmelting();
+            renderState.isTinted = utilityGolem.getGolemType() == GolemType.TINTED_GLASS;
             renderState.yawDegrees = utilityGolem.getYaw();
             renderState.animationId = utilityGolem.getAnimation().ordinal();
             renderState.animationProgress = utilityGolem.getAnimationProgress(tickDelta);
         }
+    }
+
+    @Override
+    protected RenderLayer getRenderLayer(CopperGolemEntityRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
+        if (state instanceof UtilityGolemRenderState renderState && renderState.isTinted) {
+            return super.getRenderLayer(state, showBody, true, showOutline);
+        }
+        return super.getRenderLayer(state, showBody, translucent, showOutline);
     }
 
     @Override
@@ -68,7 +75,12 @@ public class UtilityGolemRenderer extends CopperGolemEntityRenderer {
             GolemAnimation anim = renderState.getAnimation();
             float yawDegrees = renderState.yawDegrees;
             
-            // If debug mode is on, we might see it in chat or console
+            // Tinted Glass Golem's held items should be rendered
+            // CopperGolemEntityRenderer usually doesn't render held items as the base model doesn't have an arm that supports it in vanilla?
+            // Wait, CopperGolem is from a mod or specific version. 
+            // If the model doesn't support it, we'd need a feature renderer.
+            
+            // If debug mode is on, we might see it chat or console
             if (renderState.isDebug && anim != GolemAnimation.IDLE) {
                 // System.out.println("[DEBUG] Rendering Golem " + type + " with animation: " + anim + " at progress " + p);
             }

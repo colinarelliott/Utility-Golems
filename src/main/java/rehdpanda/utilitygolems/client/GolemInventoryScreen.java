@@ -13,8 +13,9 @@ import rehdpanda.utilitygolems.GolemInventoryScreenHandler;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
-/// DRAWS THE INVENTORY SCREEN FOR GOLEMS
-
+/**
+ * Draws the inventory screen for golems
+ */
 public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHandler> {
     private static final Identifier TEXTURE = Identifier.of("minecraft", "textures/gui/container/dispenser.png");
 
@@ -230,32 +231,51 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
         if (golem != null) {
             if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD) {
                 drawEmeraldTradeIcons(context, mouseX, mouseY, golem);
-            } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.CACTUS) {
+            } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.CACTUS || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.HOPPER) {
                 drawCactusUI(context, mouseX, mouseY, golem);
+            } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.TINTED_GLASS) {
+                drawTintedGlassUI(context, mouseX, mouseY, golem);
             }
         }
         
         this.drawMouseoverTooltip(context, mouseX, mouseY);
     }
 
-    private void drawCactusUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {
-        // Draw deleted items count in dark red
-        String text = String.valueOf(golem.getDeletedItemsCount());
+    private void drawTintedGlassUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {
+        String text = String.valueOf(golem.getXpScore());
         int textWidth = textRenderer.getWidth(text);
-        context.drawText(textRenderer, text, x + backgroundWidth - textWidth - 8, y + 6, 0xFFAA0000, true);
+        // Top right of the inventory: x + 176 is the right edge, minus padding and text width.
+        // The title area is roughly 16 pixels high.
+        context.drawText(textRenderer, text, x + backgroundWidth - textWidth - 8, y + 6, 0xFF00FF00, true);
+    }
 
-        // Draw red X over occupied slots
+    private void drawCactusUI(DrawContext context, int mouseX, int mouseY, UtilityGolem golem) {
+        boolean isHopper = golem.getGolemType() == rehdpanda.utilitygolems.GolemType.HOPPER;
+        // Draw deleted items count in dark red (if cactus), or maybe hide/change if hopper
+        if (!isHopper) {
+            String text = String.valueOf(golem.getDeletedItemsCount());
+            int textWidth = textRenderer.getWidth(text);
+            context.drawText(textRenderer, text, x + backgroundWidth - textWidth - 8, y + 6, 0xFFAA0000, true);
+        }
+
+        // Draw overlay over occupied slots
         for (int i = 0; i < 9; i++) {
             ItemStack stack = golem.getInventory().getStack(i);
             if (!stack.isEmpty()) {
                 int slotX = x + 62 + (i % 3) * 18;
                 int slotY = y + 17 + (i / 3) * 18;
 
-                // Transparent red highlight
-                context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x40FF0000);
-
-                // Red X
-                context.drawCenteredTextWithShadow(textRenderer, "X", slotX + 8, slotY + 4, 0xFFFF0000);
+                if (isHopper) {
+                    // Transparent green highlight for hopper
+                    context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x4000FF00);
+                    // Green check or nothing? Requirement says "highlight them with green instead of red"
+                    context.drawCenteredTextWithShadow(textRenderer, "+", slotX + 8, slotY + 4, 0xFF00FF00);
+                } else {
+                    // Transparent red highlight
+                    context.fill(slotX, slotY, slotX + 16, slotY + 16, 0x40FF0000);
+                    // Red X
+                    context.drawCenteredTextWithShadow(textRenderer, "X", slotX + 8, slotY + 4, 0xFFFF0000);
+                }
             }
         }
     }

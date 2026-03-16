@@ -12,7 +12,6 @@
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
 - Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (15 varieties)
-  
 #### Adds additional golems on top of the copper golem with various uses. So far:
 - <code style="color : blue">Lapis Golem</code> (Digging)
   - Give the lapis golem a pickaxe and/or a shovel and it will dig then deposit items in a chest.
@@ -45,7 +44,9 @@
 - <code style="color : green">Bamboo Golem</code> (Farming)
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
   - Also give them a water bucket if no water is nearby. Crops need hydration!
+  - Can farm nether wart if given nether wart, soul sand and a shovel. No hydration required for this one.
   - <i>Variant</i>: <code>Stripped Bamboo Golem</code> is available if you use an Axe.
+  - Stripped Bamboo golems will plant in a checkered pattern (good for pumpkins & melons)
 - <code style="color : yellow">Gold Golem</code> (Piglin Trading)
   - Drop gold for piglins, retrieve items in return and put them in chest
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation)
@@ -74,8 +75,30 @@
   - Automatically harvests honey and honeycomb from nearby bee hives.
   - Needs glass bottles and shears.
   - Deposits harvested items into honeycomb chest.
+- <code style="color : gray">Hopper Golem</code> (Item Collection)
+  - Looks at nearby inventories for items it is holding in its inventory.
+  - Collects items from nearby chests and puts them in its hopper chest.
+  - Hopper chest acts like a vanilla hopper at half speed.
+  - Useful for storage system automation.
+- <code style="color : purple">Tinted Glass Golem</code> (XP Collection)
+  - Collects nearby XP orbs, displays amount in inventory.
+  - Takes glass bottles and fills them with XP, producing "Bottle O' Enchanting"
+  - Useful for mob farms and enchanting automation.
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
 
 - 500 durability, standard tool
+
+### Included Languages
+  - `en_us.json` (US English)
+  - `zh_cn.json` (Mandarin Chinese)
+  - `hi_in.json` (Hindi)
+  - `es_es.json` (Spanish)
+  - `fr_fr.json` (French)
+  - `ar_sa.json` (Arabic)
+  - `bn_in.json` (Bengali)
+  - `pt_br.json` (Portuguese)
+  - `ru_ru.json` (Russian)
+  - `ur_pk.json` (Urdu)
+  - `id_id.json` (Indonesian)
