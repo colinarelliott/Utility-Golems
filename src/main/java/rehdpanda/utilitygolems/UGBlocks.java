@@ -48,7 +48,7 @@ public class UGBlocks {
                 case NETHERITE -> Blocks.NETHERITE_BLOCK;
                 case ANCIENT -> Blocks.ANCIENT_DEBRIS;
                 case DIAMOND -> Blocks.DIAMOND_BLOCK;
-                case BAMBOO -> Blocks.OAK_PLANKS;
+                case BAMBOO -> Blocks.BAMBOO_PLANKS;
                 case SPONGE -> Blocks.SPONGE;
                 case DEEPSLATE -> Blocks.COBBLED_DEEPSLATE;
                 case FURNACE -> Blocks.FURNACE;
@@ -62,19 +62,8 @@ public class UGBlocks {
                 default -> Blocks.AIR;
             };
 
-            float hardness = switch (type) {
-                case BAMBOO -> Blocks.BAMBOO_BLOCK.getHardness();
-                case NETHERITE -> 5.0f; // Vanilla Netherite block is 50.0, which is too much for a chest
-                case ANCIENT -> 30.0f;
-                case HOPPER -> 2.5f; // Hopper is 3.0f, which is a bit hard for a chest
-                default -> materialBlock.getHardness();
-            };
-            float resistance = switch (type) {
-                case BAMBOO -> Blocks.BAMBOO_BLOCK.getBlastResistance();
-                case NETHERITE -> 6.0f; // Vanilla Netherite block is 1200.0
-                case ANCIENT -> 1200.0f;
-                default -> materialBlock.getBlastResistance();
-            };
+            float hardness = materialBlock.getHardness();
+            float resistance = materialBlock.getBlastResistance();
 
             Identifier id = Identifier.of(UGInit.MOD_ID, name);
             AbstractBlock.Settings settings = AbstractBlock.Settings.copy(materialBlock)

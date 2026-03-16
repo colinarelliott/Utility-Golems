@@ -518,23 +518,23 @@ public class GolemAI {
             double dz = golem.getZ() - (targetChestPos.getZ() + 0.5);
             double horizontalDistSq = dx * dx + dz * dz;
 
-            if ((horizontalDistSq < 4.0 && dy < 8.0) || golem.getNavigation().isIdle()) {
+            if ((horizontalDistSq < 1.5 && dy < 1.5) || golem.getNavigation().isIdle()) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     transferCooldown = 60;
+                } else if (transferCooldown == 1) {
                     collectItemsFromChest(targetChestPos);
                     updateHeldItem();
+                    transferCooldown = 0;
+                    targetChestPos = findChestWithTargetItems();
+                    if (targetChestPos != null) {
+                        golem.getNavigation().startMovingTo(targetChestPos.getX() + 0.5, targetChestPos.getY(), targetChestPos.getZ() + 0.5, speed);
+                    }
                 } else {
                     transferCooldown--;
-                    if (transferCooldown == 0) {
-                        targetChestPos = findChestWithTargetItems();
-                        if (targetChestPos != null) {
-                            golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
-                        }
-                    }
                 }
             } else {
-                golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
+                golem.getNavigation().startMovingTo(targetChestPos.getX() + 0.5, targetChestPos.getY(), targetChestPos.getZ() + 0.5, speed);
                 transferCooldown = 0;
             }
         }
@@ -778,17 +778,19 @@ public class GolemAI {
             double dz = golem.getZ() - (chestPos.getZ() + 0.5);
             double horizontalDistSq = dx * dx + dz * dz;
 
-            if (horizontalDistSq < 4.0 && dy < 8.0) {
+            if (horizontalDistSq < 1.5 && dy < 1.5) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.DEPOSITING, 60);
                     transferCooldown = 60;
+                } else if (transferCooldown == 1) {
                     depositItems();
                     updateHeldItem();
+                    transferCooldown = 0;
                 } else {
                     transferCooldown--;
                 }
             } else if (golem.getNavigation().isIdle()) {
-                golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), speed);
+                golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, speed);
                 transferCooldown = 0;
             }
         }
@@ -4692,7 +4694,7 @@ public class GolemAI {
             double horizontalDistSq = dx * dx + dz * dz;
             double verticalDist = Math.abs(dy);
 
-            if (horizontalDistSq > 4.0D || verticalDist > 4.0D) {
+            if (horizontalDistSq > 1.5D || verticalDist > 1.5D) {
                 // stuck check
                 Vec3d currentPos = new Vec3d(golem.getX(), golem.getY(), golem.getZ());
                 if (currentPos.squaredDistanceTo(lastPos) < 0.001) {
@@ -4701,7 +4703,7 @@ public class GolemAI {
                     stuckTicks = 0;
                 }
                 lastPos = currentPos;
-
+                
                 if (stuckTicks > 100) {
                     golem.blacklistPosition(chestPos);
                     stop();
@@ -4713,11 +4715,11 @@ public class GolemAI {
                     boolean possible;
                     // Lapis golems often have to travel significant vertical distances to return to their chest
                     if (golem.getGolemType() == GolemType.LAPIS) {
-                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, 1.2D);
                     } else if (verticalDist > 2.0D) {
-                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), golem.getY(), chestPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, golem.getY(), chestPos.getZ() + 0.5, 1.2D);
                     } else {
-                        possible = golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), 1.2D);
+                        possible = golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, 1.2D);
                     }
 
                     if (!possible) {
@@ -4733,6 +4735,10 @@ public class GolemAI {
                 if (delay > 0) {
                     delay--;
                     if (delay == 0) {
+                        withdrawItems();
+                        if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
+                            updateHeldItem();
+                        }
                         if (golem.getGolemType() == GolemType.NETHER_WART) {
                             if (!shouldContinue()) {
                                 stop();
@@ -4746,11 +4752,6 @@ public class GolemAI {
                     golem.getEntityWorld().addSyncedBlockEvent(chestPos, golem.getEntityWorld().getBlockState(chestPos).getBlock(), 1, 1);
                     golem.setSearching(true);
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
-                    boolean res = withdrawItems();
-                    golem.debugLog("WithdrawItemsGoal: withdrawItems result: " + res);
-                    if (golem.getGolemType() == GolemType.NETHER_WART || golem.getGolemType() == GolemType.HONEYCOMB) {
-                        updateHeldItem();
-                    }
                     delay = 60; // Wait for animation
                 }
             }
