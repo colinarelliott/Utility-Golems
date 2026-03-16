@@ -7431,6 +7431,7 @@ public class GolemAI {
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             if (state.isIn(BlockTags.LOGS)) return true;
             if (state.isOf(Blocks.CHORUS_FLOWER)) {
+                if (!golem.isChorusReady(pos)) return false;
                 // If it's a flower on end stone, it's a newly planted one.
                 // We should only break it once it has grown into a stem (becoming a CHORUS_PLANT)
                 // and new flowers have grown above/around it.
@@ -7887,6 +7888,9 @@ public class GolemAI {
                     Block saplingBlock = Block.getBlockFromItem(saplingStack.getItem());
                     if (saplingBlock != Blocks.AIR) {
                         golem.getEntityWorld().setBlockState(targetPos, saplingBlock.getDefaultState());
+                        if (saplingBlock == Blocks.CHORUS_FLOWER) {
+                            golem.recordChorusPlanting(targetPos);
+                        }
                         saplingStack.decrement(1);
                         golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
                         targetPos = null;

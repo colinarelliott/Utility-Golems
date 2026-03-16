@@ -615,6 +615,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 tickLamp();
             }
 
+            // Cleanup old chorus planting data every 1 minute
+            if (this.getEntityWorld().getTime() % 1200 == 0) {
+                long currentTime = this.getEntityWorld().getTime();
+                this.plantedChorusFlowers.entrySet().removeIf(entry -> (currentTime - entry.getValue()) > 4800); // 4 minutes
+            }
+
             // Occasionally spin head when idle
             if (this.getAnimation() == GolemAnimation.IDLE && this.random.nextInt(200) == 0) {
                 this.setAnimation(GolemAnimation.SPINNING_HEAD, 60);
@@ -1431,6 +1437,23 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private BlockPos chestPos;
     private BlockPos farmTarget;
+    private final Map<BlockPos, Long> plantedChorusFlowers = new java.util.HashMap<>();
+
+    public void recordChorusPlanting(BlockPos pos) {
+        this.plantedChorusFlowers.put(pos, this.getEntityWorld().getTime());
+    }
+
+    public boolean isChorusReady(BlockPos pos) {
+        if (!this.plantedChorusFlowers.containsKey(pos)) {
+            // If we don't know when it was planted, assume it's ready 
+            // (might have been planted by a different golem or player)
+            return true;
+        }
+        long plantedTime = this.plantedChorusFlowers.get(pos);
+        long currentTime = this.getEntityWorld().getTime();
+        // 2 minutes = 120 seconds = 2400 ticks
+        return (currentTime - plantedTime) >= 2400;
+    }
 
     @Override
     public void writeCustomData(net.minecraft.storage.WriteView writeView) {
