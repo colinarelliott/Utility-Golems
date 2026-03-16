@@ -726,6 +726,28 @@ public class GolemAI {
         private boolean canPlaceTorchAt(BlockPos pos) {
             World world = golem.getEntityWorld();
             if (!world.getBlockState(pos).isReplaceable()) return false;
+
+            // Don't place torches where mining golems are likely to work
+            List<UtilityGolem> miningGolems = world.getEntitiesByClass(UtilityGolem.class, new net.minecraft.util.math.Box(pos).expand(5.0), 
+                g -> g.getGolemType() == GolemType.LAPIS || g.getGolemType() == GolemType.DEEPSLATE || g.getGolemType() == GolemType.BAMBOO);
+            
+            for (UtilityGolem g : miningGolems) {
+                // If the golem is currently mining this block or its neighbors
+                BlockPos miningTarget = g.getFarmTarget(); // Shared field for some golems, or we check goal target if possible
+                if (miningTarget != null && miningTarget.getSquaredDistance(pos) < 4.0) return false;
+
+                // For Lapis Golems specifically, don't block their staircase path
+                if (g.getGolemType() == GolemType.LAPIS) {
+                    BlockPos chestPos = g.getChestPos();
+                    Direction miningDir = g.getMiningDirection();
+                    if (chestPos != null && miningDir != null) {
+                        // Check if pos is on the mining line
+                        boolean onLine = (miningDir.getAxis() == Direction.Axis.Z) ? pos.getX() == chestPos.getX() : pos.getZ() == chestPos.getZ();
+                        if (onLine) return false;
+                    }
+                }
+            }
+
             BlockState below = world.getBlockState(pos.down());
             return below.isSideSolidFullSquare(world, pos.down(), Direction.UP) || below.isIn(BlockTags.FENCES);
         }
@@ -2693,11 +2715,8 @@ public class GolemAI {
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
                 
-                // Deposit any ores of any quantity
-                if (UtilityGolem.isOre(stack)) return true;
-                
-                // Deposit anything that gets to a full stack
-                if (stack.getCount() >= stack.getMaxCount()) return true;
+                // Deposit any gathered blocks or ores
+                return true;
             }
             
             return false;
@@ -3055,11 +3074,6 @@ public class GolemAI {
                     if (!stack.isEmpty() && !UtilityGolem.isTool(stack)) {
                         if (golem.getGolemType() == GolemType.LAPIS) {
                             if (UtilityGolem.isTool(stack)) {
-                                continue;
-                            }
-                            
-                            // Only deposit if it's an ore or a full stack
-                            if (!UtilityGolem.isOre(stack) && stack.getCount() < stack.getMaxCount()) {
                                 continue;
                             }
                         }
@@ -5109,6 +5123,26 @@ public class GolemAI {
             BlockPos nextStepMiddle = (facing.getAxis() == Direction.Axis.X)
                     ? new BlockPos(startPos.getX() + facing.getOffsetX() * nextDist, nextY, lockedCoord)
                     : new BlockPos(lockedCoord, nextY, startPos.getZ() + facing.getOffsetZ() * nextDist);
+
+            // Reconstruct the floor of the staircase if it's missing or if it's a non-solid block (like a torch)
+            // that shouldn't be here. This ensures pathfinding works.
+            BlockPos floorPos = nextStepMiddle.down();
+            BlockState floorState = golem.getEntityWorld().getBlockState(floorPos);
+            if (!floorState.isAir() && !floorState.isReplaceable() && !floorState.isFullCube(golem.getEntityWorld(), floorPos)) {
+                // If there's something like a slab or stair, we should replace it with a full block
+                golem.debugLog("Lapis: Non-full block at floor " + floorPos.toShortString() + ", clearing it to reconstruct");
+                return floorPos;
+            }
+
+            if (floorState.isAir() || floorState.isReplaceable()) {
+                 // Prioritize clearing the space above it first, but if it's already clear enough to see the floor...
+                 if (golem.getEntityWorld().getBlockState(nextStepMiddle).isAir() && 
+                     golem.getEntityWorld().getBlockState(nextStepMiddle.up()).isAir()) {
+                     golem.debugLog("Lapis: Staircase floor broken at " + floorPos.toShortString() + ", attempting to reconstruct");
+                     this.isAirTarget = true;
+                     return floorPos;
+                 }
+            }
 
             // Clear the 3-high path for the next step.
             for (int yOffset = 2; yOffset >= 0; yOffset--) {
