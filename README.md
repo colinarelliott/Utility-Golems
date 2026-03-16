@@ -45,6 +45,7 @@
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
   - Also give them a water bucket if no water is nearby. Crops need hydration!
   - <i>Variant</i>: <code>Stripped Bamboo Golem</code> is available if you use an Axe.
+  - Stripped Bamboo golems will plant in a checkered pattern (good for pumpkins & melons)
 - <code style="color : yellow">Gold Golem</code> (Piglin Trading)
   - Drop gold for piglins, retrieve items in return and put them in chest
 - <code style="color : red">Redstone Golem</code> (Timing and Redstone Automation)
