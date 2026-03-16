@@ -149,7 +149,14 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
 
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        return world.isClient() ? (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY ? (BlockEntityTicker<T>) (BlockEntityTicker<? extends GolemChestBlockEntity>) (world1, pos, state1, blockEntity) -> ChestBlockEntity.clientTick(world1, pos, state1, blockEntity) : null) : null;
+        if (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY) {
+            if (world.isClient()) {
+                return (world1, pos, state1, blockEntity) -> ChestBlockEntity.clientTick(world1, pos, state1, (GolemChestBlockEntity) blockEntity);
+            } else {
+                return (world1, pos, state1, blockEntity) -> GolemChestBlockEntity.serverTick(world1, pos, state1, (GolemChestBlockEntity) blockEntity);
+            }
+        }
+        return null;
     }
 
     @Override

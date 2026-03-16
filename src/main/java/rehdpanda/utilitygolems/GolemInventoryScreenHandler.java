@@ -51,13 +51,34 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     private void addGolemInventory(Inventory inventory) {
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 3; ++col) {
-                this.addSlot(new Slot(
+                int index = col + row * 3;
+                this.addSlot(new GolemSlot(
                         inventory,
-                        col + row * 3,
+                        index,
                         62 + col * 18,
                         17 + row * 18
                 ));
             }
+        }
+    }
+
+    private class GolemSlot extends Slot {
+        public GolemSlot(Inventory inventory, int index, int x, int y) {
+            super(inventory, index, x, y);
+        }
+
+        @Override
+        public boolean canInsert(ItemStack stack) {
+            if (golem != null && golem.getGolemType() == GolemType.HOPPER) {
+                for (int i = 0; i < GOLEM_INV_SIZE; i++) {
+                    if (i == this.getIndex()) continue;
+                    ItemStack otherStack = inventory.getStack(i);
+                    if (!otherStack.isEmpty() && ItemStack.areItemsEqual(stack, otherStack)) {
+                        return false;
+                    }
+                }
+            }
+            return super.canInsert(stack);
         }
     }
 

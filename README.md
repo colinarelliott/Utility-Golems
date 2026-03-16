@@ -74,6 +74,11 @@
   - Automatically harvests honey and honeycomb from nearby bee hives.
   - Needs glass bottles and shears.
   - Deposits harvested items into honeycomb chest.
+- <code style="color : gray">Hopper Golem</code> (Item Collection)
+  - Looks at nearby inventories for items it is holding in its inventory.
+  - Collects items from nearby chests and puts them in its hopper chest.
+  - Hopper chest acts like a vanilla hopper at half speed.
+  - Useful for storage system automation.
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />

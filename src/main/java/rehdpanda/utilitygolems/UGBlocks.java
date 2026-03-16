@@ -57,6 +57,7 @@ public class UGBlocks {
                 case MEDIC -> Blocks.TARGET;
                 case CACTUS -> Blocks.CACTUS;
                 case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
+                case HOPPER -> Blocks.HOPPER;
                 default -> Blocks.AIR;
             };
 

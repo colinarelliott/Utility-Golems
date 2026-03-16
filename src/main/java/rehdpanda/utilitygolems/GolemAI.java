@@ -307,6 +307,334 @@ public class GolemAI {
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
         golem.getGoalSelector().add(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
+
+    public static void initHopperGoals(UtilityGolem golem) {
+        golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
+                UGItems.WRENCH_ITEM
+        ), false)));
+        golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new CollectItemsFromInventoriesGoal(golem, 1.1D, 16)));
+        golem.getGoalSelector().add(3, new DebugGoalWrapper(golem, new DepositInHopperChestGoal(golem, 1.1D)));
+        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
+        golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
+    }
+
+    public static class CollectItemsFromInventoriesGoal extends Goal {
+        private final UtilityGolem golem;
+        private final double speed;
+        private final int range;
+        private BlockPos targetChestPos;
+        private int transferCooldown = 0;
+
+        public CollectItemsFromInventoriesGoal(UtilityGolem golem, double speed, int range) {
+            this.golem = golem;
+            this.speed = speed;
+            this.range = range;
+            this.setControls(EnumSet.of(Goal.Control.MOVE));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (golem.getGolemType() != GolemType.HOPPER) return false;
+            if (isInventoryFull()) return false;
+            targetChestPos = findChestWithTargetItems();
+            return targetChestPos != null;
+        }
+
+        private boolean isInventoryFull() {
+            for (int i = 0; i < golem.getInventory().size(); i++) {
+                if (golem.getInventory().getStack(i).isEmpty()) return false;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return targetChestPos != null && !isInventoryFull() && golem.getEntityWorld().getBlockEntity(targetChestPos) instanceof Inventory;
+        }
+
+        @Override
+        public void start() {
+            if (targetChestPos != null) {
+                golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
+            }
+            updateHeldItem();
+        }
+
+        private void updateHeldItem() {
+            Inventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty() && stack.getCount() > 1) {
+                    ItemStack held = stack.copy();
+                    held.setCount(1);
+                    golem.setHeldItem(held);
+                    return;
+                }
+            }
+            golem.setHeldItem(ItemStack.EMPTY);
+        }
+
+        @Override
+        public void tick() {
+            if (targetChestPos == null) return;
+
+            if (golem.getBlockPos().getSquaredDistance(targetChestPos) < 4.0) {
+                if (transferCooldown <= 0) {
+                    golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
+                    transferCooldown = 60;
+                    collectItemsFromChest(targetChestPos);
+                    updateHeldItem();
+                } else {
+                    transferCooldown--;
+                    if (transferCooldown == 0) {
+                        targetChestPos = findChestWithTargetItems();
+                        if (targetChestPos != null) {
+                            golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
+                        }
+                    }
+                }
+            } else if (golem.getNavigation().isIdle()) {
+                golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
+                transferCooldown = 0;
+            }
+        }
+
+        private BlockPos findChestWithTargetItems() {
+            BlockPos pos = golem.getBlockPos();
+            BlockPos chestPos = golem.getChestPos();
+            
+            for (int x = -range; x <= range; x++) {
+                for (int y = -range / 2; y <= range / 2; y++) {
+                    for (int z = -range; z <= range; z++) {
+                        BlockPos checkPos = pos.add(x, y, z);
+                        if (checkPos.equals(chestPos)) continue;
+                        
+                        // Blacklist adjacent blocks to the golem's chest
+                        if (chestPos != null) {
+                            if (isAdjacent(checkPos, chestPos)) continue;
+                            
+                            // Handle double chests
+                            BlockState chestState = golem.getEntityWorld().getBlockState(chestPos);
+                            if (chestState.getBlock() instanceof GolemChestBlock) {
+                                net.minecraft.block.enums.ChestType chestType = chestState.get(GolemChestBlock.CHEST_TYPE);
+                                if (chestType != net.minecraft.block.enums.ChestType.SINGLE) {
+                                    BlockPos otherChestPos = chestPos.offset(GolemChestBlock.getFacing(chestState));
+                                    if (isAdjacent(checkPos, otherChestPos) || checkPos.equals(otherChestPos)) continue;
+                                }
+                            }
+                        }
+
+                        BlockEntity be = golem.getEntityWorld().getBlockEntity(checkPos);
+                        if (be instanceof Inventory inv && !(be instanceof GolemChestBlockEntity)) {
+                            if (hasTargetItems(inv)) return checkPos;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private boolean isAdjacent(BlockPos pos1, BlockPos pos2) {
+            return pos1.getManhattanDistance(pos2) == 1;
+        }
+
+        private boolean hasTargetItems(Inventory inv) {
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty() && matchesFilter(stack)) return true;
+            }
+            return false;
+        }
+
+        private boolean matchesFilter(ItemStack stack) {
+            Inventory filterInv = golem.getInventory();
+            boolean anyFilter = false;
+            for (int i = 0; i < filterInv.size(); i++) {
+                ItemStack filterStack = filterInv.getStack(i);
+                if (!filterStack.isEmpty()) {
+                    anyFilter = true;
+                    if (ItemStack.areItemsEqual(stack, filterStack)) return true;
+                }
+            }
+            return !anyFilter; // If no filter, collect everything
+        }
+
+        private void collectItemsFromChest(BlockPos pos) {
+            BlockEntity be = golem.getEntityWorld().getBlockEntity(pos);
+            if (be instanceof Inventory inv) {
+                for (int i = 0; i < inv.size(); i++) {
+                    ItemStack stack = inv.getStack(i);
+                    if (!stack.isEmpty() && matchesFilter(stack)) {
+                        // For Hopper Golem, don't collect if it would create a duplicate slot
+                        if (golem.getGolemType() == GolemType.HOPPER && isAlreadyInInventory(stack)) {
+                            // Only allow if we can merge into an existing stack
+                            if (!canMergeIntoExistingStack(stack)) {
+                                continue;
+                            }
+                        }
+                        
+                        ItemStack remaining = transferStackToGolem(stack);
+                        inv.setStack(i, remaining);
+                        if (isInventoryFull()) break;
+                    }
+                }
+            }
+        }
+
+        private boolean isAlreadyInInventory(ItemStack stack) {
+            Inventory golemInv = golem.getInventory();
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (!golemStack.isEmpty() && ItemStack.areItemsEqual(stack, golemStack)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean canMergeIntoExistingStack(ItemStack stack) {
+            Inventory golemInv = golem.getInventory();
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (!golemStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
+                    if (golemStack.getCount() < golemStack.getMaxCount()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private ItemStack transferStackToGolem(ItemStack stack) {
+            Inventory golemInv = golem.getInventory();
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (golemStack.isEmpty()) {
+                    golemInv.setStack(i, stack.copy());
+                    return ItemStack.EMPTY;
+                } else if (ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
+                    int transferAmount = Math.min(stack.getCount(), golemStack.getMaxCount() - golemStack.getCount());
+                    if (transferAmount > 0) {
+                        golemStack.increment(transferAmount);
+                        stack.decrement(transferAmount);
+                    }
+                }
+                if (stack.isEmpty()) return ItemStack.EMPTY;
+            }
+            return stack;
+        }
+    }
+
+    public static class DepositInHopperChestGoal extends Goal {
+        private final UtilityGolem golem;
+        private final double speed;
+        private int transferCooldown = 0;
+
+        public DepositInHopperChestGoal(UtilityGolem golem, double speed) {
+            this.golem = golem;
+            this.speed = speed;
+            this.setControls(EnumSet.of(Goal.Control.MOVE));
+        }
+
+        @Override
+        public boolean canStart() {
+            if (golem.getGolemType() != GolemType.HOPPER) return false;
+            return hasItemsToDeposit() && golem.getChestPos() != null;
+        }
+
+        private boolean hasItemsToDeposit() {
+            Inventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty() && stack.getCount() > 1) return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return hasItemsToDeposit() && golem.getChestPos() != null;
+        }
+
+        @Override
+        public void start() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos != null) {
+                golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), speed);
+            }
+            updateHeldItem();
+        }
+
+        private void updateHeldItem() {
+            Inventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                ItemStack stack = inv.getStack(i);
+                if (!stack.isEmpty() && stack.getCount() > 1) {
+                    ItemStack held = stack.copy();
+                    held.setCount(1);
+                    golem.setHeldItem(held);
+                    return;
+                }
+            }
+            golem.setHeldItem(ItemStack.EMPTY);
+        }
+
+        @Override
+        public void tick() {
+            BlockPos chestPos = golem.getChestPos();
+            if (chestPos == null) return;
+
+            if (golem.getBlockPos().getSquaredDistance(chestPos) < 4.0) {
+                if (transferCooldown <= 0) {
+                    golem.setAnimation(GolemAnimation.DEPOSITING, 60);
+                    transferCooldown = 60;
+                    depositItems();
+                    updateHeldItem();
+                } else {
+                    transferCooldown--;
+                }
+            } else if (golem.getNavigation().isIdle()) {
+                golem.getNavigation().startMovingTo(chestPos.getX(), chestPos.getY(), chestPos.getZ(), speed);
+                transferCooldown = 0;
+            }
+        }
+
+        private void depositItems() {
+            BlockPos chestPos = golem.getChestPos();
+            BlockEntity be = golem.getEntityWorld().getBlockEntity(chestPos);
+            if (be instanceof Inventory inv) {
+                Inventory golemInv = golem.getInventory();
+                for (int i = 0; i < golemInv.size(); i++) {
+                    ItemStack stack = golemInv.getStack(i);
+                    if (!stack.isEmpty() && stack.getCount() > 1) {
+                        ItemStack toDeposit = stack.copy();
+                        toDeposit.setCount(stack.getCount() - 1);
+                        ItemStack remaining = transferStack(toDeposit, inv);
+                        stack.setCount(remaining.getCount() + 1);
+                        golemInv.setStack(i, stack);
+                    }
+                }
+            }
+        }
+
+        private ItemStack transferStack(ItemStack stack, Inventory container) {
+            for (int i = 0; i < container.size(); i++) {
+                ItemStack containerStack = container.getStack(i);
+                if (containerStack.isEmpty()) {
+                    container.setStack(i, stack.copy());
+                    return ItemStack.EMPTY;
+                } else if (ItemStack.areItemsAndComponentsEqual(stack, containerStack)) {
+                    int transferAmount = Math.min(stack.getCount(), containerStack.getMaxCount() - containerStack.getCount());
+                    if (transferAmount > 0) {
+                        containerStack.increment(transferAmount);
+                        stack.decrement(transferAmount);
+                    }
+                }
+                if (stack.isEmpty()) return ItemStack.EMPTY;
+            }
+            return stack;
+        }
+    }
     
     /// DEBUG WRAPPER
     public static class DebugGoalWrapper extends Goal {
@@ -8404,6 +8732,15 @@ public class GolemAI {
                         }
                         
                         if (!isFamiliar) return false;
+
+                        // For Hopper Golem, don't pick up if it would create a duplicate slot
+                        if (golem.getGolemType() == GolemType.HOPPER) {
+                            if (isAlreadyInInventory(stack)) {
+                                if (!canMergeIntoExistingStack(stack)) {
+                                    return false;
+                                }
+                            }
+                        }
                         
                         // Only pickup if within 32 blocks of chest (if chest is known)
                         if (chestPos != null) {
@@ -8489,6 +8826,30 @@ public class GolemAI {
             } else {
                 pickup();
             }
+        }
+
+        private boolean isAlreadyInInventory(ItemStack stack) {
+            SimpleInventory golemInv = golem.getInventory();
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (!golemStack.isEmpty() && ItemStack.areItemsEqual(stack, golemStack)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean canMergeIntoExistingStack(ItemStack stack) {
+            SimpleInventory golemInv = golem.getInventory();
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (!golemStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
+                    if (golemStack.getCount() < golemStack.getMaxCount()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private void pickup() {

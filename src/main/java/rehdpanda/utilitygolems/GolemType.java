@@ -90,6 +90,10 @@ public enum GolemType {
     HONEYCOMB("honeycomb_golem", "Honeycomb Golem", "textures/entity/honeycomb_golem.png",
             GolemAI::initHoneycombGoals,
             null
+    ),
+    HOPPER("hopper_golem", "Hopper Golem", "textures/entity/hopper_golem.png",
+            GolemAI::initHopperGoals,
+            null
     );
 
 

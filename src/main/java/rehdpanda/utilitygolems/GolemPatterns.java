@@ -83,6 +83,7 @@ public class GolemPatterns {
             trySpawnGolem(serverWorld, pos, GolemType.MEDIC, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.HONEYCOMB, facing, false);
+            trySpawnGolem(serverWorld, pos, GolemType.HOPPER, facing, false);
         }
     }
 
@@ -108,6 +109,7 @@ public class GolemPatterns {
             case MEDIC -> Blocks.TARGET;
             case CACTUS -> Blocks.CACTUS;
             case HONEYCOMB -> Blocks.HONEYCOMB_BLOCK;
+            case HOPPER -> Blocks.HOPPER;
             default -> Blocks.LAPIS_BLOCK;
         };
 
