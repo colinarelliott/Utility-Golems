@@ -1,17 +1,17 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
 ### A mod for Minecraft 1.21.11
-![UG-PhotoDay](https://github.com/user-attachments/assets/bdc857c4-b6b8-47ec-83c1-367deec2454d)
+![GolemPhotoDay131](https://github.com/user-attachments/assets/171d5301-f636-4839-9d4e-d8e4cd92fa55)
+
 
 #### Image Legend
-- Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (20 varieties)
+- Left to Right, Row 1: Nether Wart, Redstone, Honeycomb, Gold, Stripped Bamboo, Sponge, Emerald, Cactus, Bamboo, Diamond, Lapis, Amethyst
+- Left to Right, Row 2: Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic
 
 
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
 - Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (15 varieties)
-  
 #### Adds additional golems on top of the copper golem with various uses. So far:
 - <code style="color : blue">Lapis Golem</code> (Digging)
   - Give the lapis golem a pickaxe and/or a shovel and it will dig then deposit items in a chest.
@@ -44,6 +44,7 @@
 - <code style="color : green">Bamboo Golem</code> (Farming)
   - Hoes the ground, plants seeds provided, harvests and deposits crops.
   - Also give them a water bucket if no water is nearby. Crops need hydration!
+  - Can farm nether wart if given nether wart, soul sand and a shovel. No hydration required for this one.
   - <i>Variant</i>: <code>Stripped Bamboo Golem</code> is available if you use an Axe.
   - Stripped Bamboo golems will plant in a checkered pattern (good for pumpkins & melons)
 - <code style="color : yellow">Gold Golem</code> (Piglin Trading)
@@ -79,6 +80,10 @@
   - Collects items from nearby chests and puts them in its hopper chest.
   - Hopper chest acts like a vanilla hopper at half speed.
   - Useful for storage system automation.
+- <code style="color : purple">Tinted Glass Golem</code> (XP Collection)
+  - Collects nearby XP orbs, displays amount in inventory.
+  - Takes glass bottles and fills them with XP, producing "Bottle O' Enchanting"
+  - Useful for mob farms and enchanting automation.
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
