@@ -66,6 +66,7 @@ public class UGBlocks {
                 case BAMBOO -> Blocks.BAMBOO_BLOCK.getHardness();
                 case NETHERITE -> 5.0f; // Vanilla Netherite block is 50.0, which is too much for a chest
                 case ANCIENT -> 30.0f;
+                case HOPPER -> 2.5f; // Hopper is 3.0f, which is a bit hard for a chest
                 default -> materialBlock.getHardness();
             };
             float resistance = switch (type) {

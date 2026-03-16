@@ -501,7 +501,7 @@ public class GolemAI {
         public void tick() {
             if (targetChestPos == null) return;
 
-            if (golem.getBlockPos().getSquaredDistance(targetChestPos) < 4.0) {
+            if (golem.getBlockPos().getSquaredDistance(targetChestPos) < 4.0 || golem.getNavigation().isIdle()) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     transferCooldown = 60;
@@ -516,7 +516,7 @@ public class GolemAI {
                         }
                     }
                 }
-            } else if (golem.getNavigation().isIdle()) {
+            } else {
                 golem.getNavigation().startMovingTo(targetChestPos.getX(), targetChestPos.getY(), targetChestPos.getZ(), speed);
                 transferCooldown = 0;
             }
@@ -579,7 +579,7 @@ public class GolemAI {
                     if (ItemStack.areItemsEqual(stack, filterStack)) return true;
                 }
             }
-            return !anyFilter; // If no filter, collect everything
+            return false; // If no filter, don't collect anything (Hopper Golem fix)
         }
 
         private void collectItemsFromChest(BlockPos pos) {
@@ -630,12 +630,10 @@ public class GolemAI {
 
         private ItemStack transferStackToGolem(ItemStack stack) {
             Inventory golemInv = golem.getInventory();
+            // First try to merge into existing stacks
             for (int i = 0; i < golemInv.size(); i++) {
                 ItemStack golemStack = golemInv.getStack(i);
-                if (golemStack.isEmpty()) {
-                    golemInv.setStack(i, stack.copy());
-                    return ItemStack.EMPTY;
-                } else if (ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
+                if (!golemStack.isEmpty() && ItemStack.areItemsAndComponentsEqual(stack, golemStack)) {
                     int transferAmount = Math.min(stack.getCount(), golemStack.getMaxCount() - golemStack.getCount());
                     if (transferAmount > 0) {
                         golemStack.increment(transferAmount);
@@ -643,6 +641,15 @@ public class GolemAI {
                     }
                 }
                 if (stack.isEmpty()) return ItemStack.EMPTY;
+            }
+            
+            // Then try to put into empty slots
+            for (int i = 0; i < golemInv.size(); i++) {
+                ItemStack golemStack = golemInv.getStack(i);
+                if (golemStack.isEmpty()) {
+                    golemInv.setStack(i, stack.copy());
+                    return ItemStack.EMPTY;
+                }
             }
             return stack;
         }
