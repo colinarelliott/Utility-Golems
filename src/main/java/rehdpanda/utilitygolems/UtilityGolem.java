@@ -1821,7 +1821,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public boolean canPickUpLoot() {
-        if (this.golemType == GolemType.REDSTONE) return false;
+        if (this.golemType == GolemType.REDSTONE || this.golemType == GolemType.CACTUS) return false;
         return super.canPickUpLoot();
     }
 

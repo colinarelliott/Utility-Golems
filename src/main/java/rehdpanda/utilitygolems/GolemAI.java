@@ -294,7 +294,6 @@ public class GolemAI {
                 UGItems.WRENCH_ITEM
         ), false)));
         golem.getGoalSelector().add(2, new DebugGoalWrapper(golem, new DeleteBlacklistedItemsGoal(golem, 1.1D, 16)));
-        golem.getGoalSelector().add(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().add(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
 
@@ -8069,6 +8068,8 @@ public class GolemAI {
         }
 
         private net.minecraft.entity.ItemEntity findNearbyDroppedItem() {
+            // Cactus Golems should NOT pick up items off the ground.
+            if (golem.getGolemType() == GolemType.CACTUS) return null;
             List<net.minecraft.entity.ItemEntity> items = golem.getEntityWorld().getEntitiesByClass(
                     net.minecraft.entity.ItemEntity.class,
                     golem.getBoundingBox().expand(4.0),
@@ -8230,6 +8231,8 @@ public class GolemAI {
         }
 
         private net.minecraft.entity.ItemEntity findNearbyItem() {
+            // Cactus Golems should NOT pick up items off the ground.
+            if (golem.getGolemType() == GolemType.CACTUS) return null;
             // Bamboo Golems should prioritize harvesting over picking up items
             if (golem.getGolemType() == GolemType.BAMBOO) {
                 if (hasMatureCropsNearby()) {
