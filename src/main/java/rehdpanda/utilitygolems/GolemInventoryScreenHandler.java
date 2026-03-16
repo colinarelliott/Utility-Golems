@@ -8,7 +8,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 
-/// Handles the 3x3 inventory UI for utility golems
+/**
+ * Handles the 3x3 inventory UI for utility golems
+ */
 public class GolemInventoryScreenHandler extends ScreenHandler {
 
     private static final int GOLEM_INV_SIZE = 9;

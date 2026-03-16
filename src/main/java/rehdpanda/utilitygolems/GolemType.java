@@ -101,7 +101,6 @@ public enum GolemType {
     );
 
 
-    private static Object BlockEntityType;
     private final String name;
     private final String friendlyName;
     private final String texturePath;
@@ -141,8 +140,7 @@ public enum GolemType {
     }
 
     public Identifier getTexture() {
-        Identifier texture = Identifier.of("utility-golems", texturePath);
-        return texture;
+        return Identifier.of("utility-golems", texturePath);
     }
 
     public Block getChestBlock() {

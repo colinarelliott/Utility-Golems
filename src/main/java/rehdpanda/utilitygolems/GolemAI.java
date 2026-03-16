@@ -1,57 +1,26 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.block.CampfireBlock;
-import net.minecraft.block.DoorBlock;
-import net.minecraft.block.TrapdoorBlock;
-import net.minecraft.block.FenceGateBlock;
-import net.minecraft.block.TntBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.ButtonBlock;
-import net.minecraft.block.ChestBlock;
-import net.minecraft.block.CocoaBlock;
-import net.minecraft.block.CropBlock;
-import net.minecraft.block.HorizontalFacingBlock;
-import net.minecraft.block.JukeboxBlock;
-import net.minecraft.block.LeverBlock;
-import net.minecraft.block.NetherWartBlock;
-import net.minecraft.block.PressurePlateBlock;
-import net.minecraft.block.SweetBerryBushBlock;
+import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.JukeboxPlayableComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.ExperienceOrbEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.passive.WolfEntity;
-import net.minecraft.entity.passive.CatEntity;
-import net.minecraft.entity.passive.PandaEntity;
-import net.minecraft.entity.passive.LlamaEntity;
-import net.minecraft.entity.passive.AbstractHorseEntity;
-import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.passive.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.recipe.Ingredient;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -60,6 +29,11 @@ import net.minecraft.village.TradeOfferList;
 import net.minecraft.village.TradedItem;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.loot.context.LootWorldContext;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -69,7 +43,7 @@ import java.util.Optional;
 
 public class GolemAI {
 
-    /// BOOLEAN FUNCTIONS
+    // BOOLEAN FUNCTIONS
     public static boolean isIngredient(ItemStack stack) {
         return stack.isOf(Items.NETHER_WART) || stack.isOf(Items.GLOWSTONE_DUST) || stack.isOf(Items.REDSTONE)
                 || stack.isOf(Items.FERMENTED_SPIDER_EYE) || stack.isOf(Items.MAGMA_CREAM) || stack.isOf(Items.SUGAR)
@@ -124,7 +98,7 @@ public class GolemAI {
                 || stack.isOf(Items.SPIDER_EYE);
     }
 
-    /// INITIALIZE GOALS
+    // INITIALIZE GOALS
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().add(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.ofItems(
                 Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE,
@@ -785,7 +759,7 @@ public class GolemAI {
         }
     }
     
-    /// DEBUG WRAPPER
+    // DEBUG WRAPPER
     public static class DebugGoalWrapper extends Goal {
         private final UtilityGolem golem;
         private final Goal innerGoal;
@@ -887,7 +861,7 @@ public class GolemAI {
         }
     }
 
-    /// STAY NEAR CHEST GOAL
+    // STAY NEAR CHEST GOAL
     public static class DeleteBlacklistedItemsGoal extends Goal {
         private final UtilityGolem golem;
         private final double speed;
@@ -1103,7 +1077,7 @@ public class GolemAI {
         }
     }
 
-    /// ADVANCED GOAL LOGIC
+    // ADVANCED GOAL LOGIC
     public static class PlaceTorchGoal extends Goal {
         private final UtilityGolem golem;
         private BlockPos targetPos;
@@ -3351,7 +3325,7 @@ public class GolemAI {
             SimpleInventory inv = golem.getInventory();
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
-                /// MAKE SURE THE STACK IS NOT A TOOL THAT SHOULD BE KEPT
+                // MAKE SURE THE STACK IS NOT A TOOL THAT SHOULD BE KEPT
                 if (!stack.isEmpty() && stack.getCount() >= stack.getMaxCount()) {
                     if (UtilityGolem.isTool(stack)) {
                         continue;
@@ -9767,7 +9741,7 @@ public class GolemAI {
             // Progress is only reset in canStart() if the pattern is changed.
         }
     }
-    /// HOLD WRENCH GOAL
+    // HOLD WRENCH GOAL
     public static class HoldWrenchGoal extends Goal {
         private final UtilityGolem golem;
 
@@ -9806,7 +9780,7 @@ public class GolemAI {
         }
     }
 
-    /// HEAL GOLEMS GOAL
+    // HEAL GOLEMS GOAL
     public static class HealGolemsGoal extends Goal {
         private final UtilityGolem golem;
         private UtilityGolem targetGolem;

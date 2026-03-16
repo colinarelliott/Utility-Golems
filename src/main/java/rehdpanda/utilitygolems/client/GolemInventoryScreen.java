@@ -13,8 +13,9 @@ import rehdpanda.utilitygolems.GolemInventoryScreenHandler;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
-/// DRAWS THE INVENTORY SCREEN FOR GOLEMS
-
+/**
+ * Draws the inventory screen for golems
+ */
 public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHandler> {
     private static final Identifier TEXTURE = Identifier.of("minecraft", "textures/gui/container/dispenser.png");
 

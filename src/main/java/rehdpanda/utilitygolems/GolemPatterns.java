@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 
 public class GolemPatterns {
 
-    //find golem block patterns
+    // find golem block patterns
     private static BlockPattern createGolemPattern(Block bottomBlock) {
         return BlockPatternBuilder.start()
                 .aisle("^", "B") // top to bottom: Pumpkin (^), Bottom block (B)

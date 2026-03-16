@@ -1,24 +1,17 @@
-// java
 package rehdpanda.utilitygolems.client;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.gui.screen.ingame.FurnaceScreen;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
-import rehdpanda.utilitygolems.client.GolemJukeboxScreen;
-import net.minecraft.client.render.entity.CopperGolemEntityRenderer;
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.Identifier;
 import rehdpanda.utilitygolems.GolemType;
-import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UGBlocks;
+import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
-
-/// HANDLES CLIENT SIDE RENDERING OF GOLEMS
 public class UGClient implements ClientModInitializer {
 
     @Override
