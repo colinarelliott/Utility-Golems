@@ -6265,6 +6265,19 @@ public class GolemAI {
                 }
             }
 
+            // Priority 2.5: Nether Wart Farm Construction (if we have shovel, soul sand, and nether wart)
+            if (hasNetherWart() && hasItem(Items.SOUL_SAND) && hasShovel()) {
+                for (int x = -4; x <= 4; x++) {
+                    for (int z = -4; z <= 4; z++) {
+                        for (int y = -1; y <= 1; y++) {
+                            BlockPos p = chestPos.add(x, y, z);
+                            if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
+                            if (shouldPlant(p, null)) return p;
+                        }
+                    }
+                }
+            }
+
             // Priority 3: Water
             BlockPos waterPos = findWaterCenter(chestPos);
             if (waterPos == null && hasWaterBucket()) {
@@ -6330,10 +6343,11 @@ public class GolemAI {
         private boolean isFamiliarItem(ItemStack stack) {
             boolean isHoe = UtilityGolem.isHoe(stack);
             boolean isAxe = UtilityGolem.isAxe(stack);
+            boolean isShovel = UtilityGolem.isShovel(stack);
             boolean isCrop = stack.isOf(Items.WHEAT) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO) || stack.isOf(Items.BEETROOT) ||
                             stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON) || stack.isOf(Items.MELON_SLICE);
             boolean isSeed = stack.isOf(Items.WHEAT_SEEDS) || stack.isOf(Items.BEETROOT_SEEDS) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.TORCHFLOWER_SEEDS) || stack.isOf(Items.PITCHER_POD);
-            return isHoe || isAxe || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET);
+            return isHoe || isAxe || isShovel || isCrop || isSeed || stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || stack.isOf(Items.SOUL_SAND);
         }
 
         private List<BlockPos> getOtherGolemsTargets() {
@@ -6514,6 +6528,29 @@ public class GolemAI {
             // Cocoa beans
             if (state.isAir() && hasCocoaBeans() && findJungleLogNearby(pos) != null) return true;
 
+            // Digging for Nether Wart farm (9x9 plot)
+            if (hasNetherWart() && hasItem(Items.SOUL_SAND) && hasShovel() && !state.isOf(Blocks.SOUL_SAND) && isAboveSafe) {
+                BlockPos chestPos = golem.getChestPos();
+                if (chestPos != null) {
+                    if (Math.abs(pos.getX() - chestPos.getX()) <= 4 && Math.abs(pos.getZ() - chestPos.getZ()) <= 4) {
+                        // Check if it's already a planting spot for something else or if it's a water spot
+                        if (waterPos != null && pos.equals(waterPos)) return false;
+                        // Avoid digging up established farmland if it's already hydrated or has crops
+                        if (state.isOf(Blocks.FARMLAND)) return false;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private boolean hasShovel() {
+            if (UtilityGolem.isShovel(golem.getHeldItem())) return true;
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isShovel(inv.getStack(i))) return true;
+            }
             return false;
         }
 
@@ -6728,6 +6765,18 @@ public class GolemAI {
             }
         }
 
+        private void swapToShovel() {
+            SimpleInventory inv = golem.getInventory();
+            for (int i = 0; i < inv.size(); i++) {
+                if (UtilityGolem.isShovel(inv.getStack(i))) {
+                    ItemStack currentHeld = golem.getHeldItem();
+                    golem.setHeldItem(inv.getStack(i).copy());
+                    inv.setStack(i, currentHeld);
+                    break;
+                }
+            }
+        }
+
         private void performFarmAction() {
             World world = golem.getEntityWorld();
             BlockState state = world.getBlockState(targetPos);
@@ -6743,6 +6792,13 @@ public class GolemAI {
             } else if (shouldTill(targetPos, waterPos)) {
                 if (!UtilityGolem.isHoe(golem.getHeldItem())) {
                     swapToHoe();
+                }
+            } else if (shouldPlant(targetPos, waterPos)) {
+                // If we need to dig for nether wart farm
+                if (!state.isOf(Blocks.SOUL_SAND) && hasItem(Items.SOUL_SAND) && hasNetherWart()) {
+                    if (!UtilityGolem.isShovel(golem.getHeldItem()) && hasShovel()) {
+                        swapToShovel();
+                    }
                 }
             }
 
@@ -6805,6 +6861,9 @@ public class GolemAI {
                     } else if (UtilityGolem.isAxe(golem.getHeldItem()) && !(state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON))) {
                         // If we are holding an axe but it's not pumpkin/melon, swap to hoe or seeds if we have them
                         if (hasHoe()) swapToHoe();
+                    } else if (state.isOf(Blocks.NETHER_WART)) {
+                        // Nether wart doesn't need tools. If we are holding a tool that's not needed, maybe swap to empty or just proceed.
+                        // Actually, the current logic uses the tool for drops.
                     }
 
                     LootWorldContext.Builder builder = new LootWorldContext.Builder(serverWorld)
@@ -6868,8 +6927,52 @@ public class GolemAI {
                 return;
             }
 
-            // 5. Plant
+            // 5. Plant and Nether Wart Farm
             if (shouldPlant(targetPos, waterPos)) {
+                // Nether Wart Farm Construction: Dig and place Soul Sand
+                if (!state.isOf(Blocks.SOUL_SAND) && hasItem(Items.SOUL_SAND) && hasNetherWart() && hasShovel()) {
+                    if (!UtilityGolem.isShovel(golem.getHeldItem())) {
+                        swapToShovel();
+                    }
+                    if (UtilityGolem.isShovel(golem.getHeldItem())) {
+                        world.breakBlock(targetPos, true, golem);
+                        ItemStack soulSand = ItemStack.EMPTY;
+                        if (golem.getHeldItem().isOf(Items.SOUL_SAND)) {
+                            soulSand = golem.getHeldItem();
+                        } else {
+                            SimpleInventory inv = golem.getInventory();
+                            for (int i = 0; i < inv.size(); i++) {
+                                if (inv.getStack(i).isOf(Items.SOUL_SAND)) {
+                                    soulSand = inv.getStack(i);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!soulSand.isEmpty()) {
+                            world.setBlockState(targetPos, Blocks.SOUL_SAND.getDefaultState());
+                            soulSand.decrement(1);
+                            if (soulSand.isEmpty() && golem.getHeldItem() == soulSand) {
+                                golem.setHeldItem(ItemStack.EMPTY);
+                            }
+                            world.playSound(null, targetPos, net.minecraft.sound.SoundEvents.BLOCK_SOUL_SAND_PLACE, net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        }
+
+                        // Damage shovel
+                        ItemStack shovel = golem.getHeldItem();
+                        if (UtilityGolem.isShovel(shovel)) {
+                            if (world instanceof ServerWorld serverWorld) {
+                                shovel.damage(1, serverWorld, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                            }
+                        }
+                        
+                        golem.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+                        targetPos = null;
+                        golem.setFarmTarget(null);
+                        return;
+                    }
+                }
+
                 ItemStack seeds = golem.getHeldItem();
                 if (!isSeed(seeds)) {
                     seeds = getSeeds();

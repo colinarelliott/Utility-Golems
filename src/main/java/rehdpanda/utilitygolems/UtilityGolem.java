@@ -42,6 +42,11 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
+import net.minecraft.registry.Registry;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
@@ -563,6 +568,27 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     @Override
     public void tick() {
+        if (this.golemType == GolemType.BAMBOO && !this.getEntityWorld().isClient()) {
+            ItemStack boots = this.getEquippedStack(EquipmentSlot.FEET);
+            if (!boots.isEmpty()) {
+                // In 1.21.1, Enchantments are handled via Registry. 
+                // We need to check if the boots have the soul speed enchantment.
+                int soulSpeedLevel = EnchantmentHelper.getLevel(this.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.SOUL_SPEED), boots);
+                if (soulSpeedLevel > 0) {
+                    BlockState standingOn = this.getEntityWorld().getBlockState(this.getBlockPos().down());
+                    if (standingOn.isOf(Blocks.SOUL_SAND) || standingOn.isOf(Blocks.SOUL_SOIL)) {
+                        this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).addTemporaryModifier(new net.minecraft.entity.attribute.EntityAttributeModifier(Identifier.of("utility-golems", "soul_speed_boost"), 0.05D + 0.01D * (double)soulSpeedLevel, net.minecraft.entity.attribute.EntityAttributeModifier.Operation.ADD_VALUE));
+                    } else {
+                        this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+                    }
+                } else {
+                    this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+                }
+            } else {
+                this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+            }
+        }
+
         if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
             // Suppression of CopperGolemEntity behaviors is handled by disabling POPPY_SLOT 
             // and clearing goals in initGoals.
