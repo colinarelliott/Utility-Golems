@@ -69,8 +69,11 @@ public class UGBlocks {
             AbstractBlock.Settings settings = AbstractBlock.Settings.copy(materialBlock)
                     .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
                     .strength(hardness, resistance)
-                    .luminance(state -> 0)
-                    .nonOpaque();
+                    .luminance(state -> 0);
+
+            if (type == GolemType.TINTED_GLASS || type == GolemType.AMETHYST) {
+                settings = settings.nonOpaque();
+            }
 
             if (type != GolemType.BAMBOO && type != GolemType.SPONGE) {
                 settings = settings.requiresTool();
