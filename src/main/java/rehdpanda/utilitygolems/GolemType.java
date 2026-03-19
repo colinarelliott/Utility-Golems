@@ -6,6 +6,7 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.passive.CopperGolemEntity;
 import net.minecraft.util.Identifier;
 
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import java.util.function.Consumer;
@@ -14,7 +15,7 @@ import net.minecraft.block.Block;
 
 /// DESCRIBES THE VARIOUS TYPES OF GOLEM
 
-public enum GolemType {
+public enum GolemType implements StringIdentifiable {
     LAPIS("lapis_golem", "Lapis Golem", "textures/entity/lapis_golem.png",
             GolemAI::initLapisGoals,
             null),
@@ -114,6 +115,11 @@ public enum GolemType {
         this.texturePath = texturePath;
         this.aiInitializer = aiInitializer;
         this.targetChestType = targetChestType;
+    }
+
+    @Override
+    public String asString() {
+        return this.name;
     }
 
     public DefaultAttributeContainer.Builder getAttributes() {

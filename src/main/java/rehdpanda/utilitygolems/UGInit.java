@@ -1,4 +1,5 @@
 package rehdpanda.utilitygolems;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -12,6 +13,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
@@ -33,6 +35,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -315,50 +318,67 @@ public class UGInit implements ModInitializer {
             });
         });
 
+
         /// REGISTER DEBUG COMMANDS
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
-                    CommandManager.literal("UG-debug")
-                            .executes(context -> {
-                                ServerCommandSource source = context.getSource();
-                                source.sendFeedback(
-                                        () -> Text.literal("Spawning Utility Golems test items..."),
-                                        false
-                                );
-                                ServerPlayerEntity player = source.getPlayer();
-                                if (player == null) {
-                                    return 0;
-                                }
-                                give(player, Items.GOLD_BLOCK);
-                                give(player, Items.LAPIS_BLOCK);
-                                give(player, Items.EMERALD_BLOCK);
-                                give(player, Items.NETHERITE_BLOCK);
-                                give(player, Items.ANCIENT_DEBRIS);
-                                give(player, Items.REDSTONE_BLOCK);
-                                give(player, Items.AMETHYST_BLOCK);
-                                give(player, Items.DIAMOND_BLOCK);
-                                give(player, Items.BAMBOO_BLOCK);
-                                give(player, Items.FURNACE);
-                                give(player, Items.JUKEBOX);
-                                give(player, Items.REDSTONE_LAMP);
-                                give(player, Items.NETHER_WART);
-                                give(player, Items.STRIPPED_BAMBOO_BLOCK);
-                                give(player, Items.SPONGE);
-                                give(player, Items.COBBLED_DEEPSLATE);
-                                give(player, Items.CARVED_PUMPKIN);
-                                give(player, Items.HONEYCOMB_BLOCK);
-                                give(player, Items.TARGET);
-                                give(player, UGItems.WRENCH_ITEM);
-                                give(player, UGItems.GOLEM_SPAWN_EGGS.get(GolemType.HONEYCOMB));
+                    CommandManager.literal("golem")
+                            .then(CommandManager.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                    .suggests((context, builder) -> {
+                                        for (GolemType gt : GolemType.values()) {
+                                            builder.suggest(gt.getName());
+                                        }
+                                        return builder.buildFuture();
+                                    })
+                                    .then(CommandManager.argument("equipped", BoolArgumentType.bool())
+                                            .executes(context -> {
+                                                ServerCommandSource source = (ServerCommandSource) context.getSource();
+                                                ServerPlayerEntity player = source.getPlayer();
+                                                if (player == null) {
+                                                    source.sendError(Text.literal("Command can only be used by players."));
+                                                    return 0;
+                                                }
+                                                
+                                                String typeName = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "type");
+                                                GolemType foundType = null;
+                                                for (GolemType gt : GolemType.values()) {
+                                                    if (gt.getName().equalsIgnoreCase(typeName)) {
+                                                        foundType = gt;
+                                                        break;
+                                                    }
+                                                }
+                                                if (foundType == null) {
+                                                    source.sendError(Text.literal("Unknown golem type: " + typeName));
+                                                    return 0;
+                                                }
+                                                final GolemType type = foundType;
 
-                                ItemStack nameTag = new ItemStack(Items.NAME_TAG);
-                                nameTag.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, Text.literal("debug"));
-                                player.getInventory().insertStack(nameTag);
+                                                boolean equipped = BoolArgumentType.getBool(context, "equipped");
 
-                                source.sendFeedback(() -> Text.literal("Debug items given!"), false);
+                                                ServerWorld world = source.getWorld();
+                                                EntityType<UtilityGolem> entityType = GOLEM_TYPES.get(type);
+                                                if (entityType == null) {
+                                                    source.sendError(Text.literal("Golem type not registered: " + type.getName()));
+                                                    return 0;
+                                                }
 
-                                return 1;
-                            })
+                                                UtilityGolem golem = new UtilityGolem(entityType, world, type);
+                                                golem.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), 0.0F);
+                                                
+                                                if (equipped) {
+                                                    final ItemStack equipment = getStandardEquipment(type);
+                                                    if (!equipment.isEmpty()) {
+                                                        golem.setHeldItem(equipment);
+                                                    }
+                                                    // Give them some extra in inventory just in case
+                                                    golem.getInventory().addStack(equipment.copy());
+                                                }
+                                                world.spawnEntity(golem);
+                                                source.sendFeedback(() -> Text.literal("Summoned " + type.getFriendlyName() + (equipped ? " (Equipped)" : "")), true);
+                                                return 1;
+                                            })
+                                    )
+                            )
             );
         });
 
@@ -408,9 +428,6 @@ public class UGInit implements ModInitializer {
         LOGGER.info("Utility Golems registered: " + GOLEM_TYPES.keySet());
     }
 
-    private void give(ServerPlayerEntity player, Item item) {
-        player.getInventory().insertStack(new ItemStack(item, 1));
-    }
 
     public static void syncDiscoveredTrades(UtilityGolem golem) {
         if (!golem.getEntityWorld().isClient() && golem.getEntityWorld() instanceof ServerWorld) {
@@ -419,5 +436,27 @@ public class UGInit implements ModInitializer {
                 ServerPlayNetworking.send(player, payload);
             }
         }
+    }
+
+    private static ItemStack getStandardEquipment(GolemType type) {
+        return switch (type) {
+            case LAPIS -> new ItemStack(Items.DIAMOND_PICKAXE);
+            case REDSTONE -> new ItemStack(Items.REDSTONE_BLOCK);
+            case EMERALD -> new ItemStack(Items.EMERALD);
+            case GOLD -> new ItemStack(Items.GOLD_INGOT);
+            case AMETHYST -> new ItemStack(Items.GOLDEN_APPLE);
+            case NETHERITE, ANCIENT -> new ItemStack(Items.NETHERITE_SWORD);
+            case FURNACE, SMOKER, BLAST_FURNACE -> new ItemStack(Items.COAL, 64);
+            case BAMBOO -> new ItemStack(Items.DIAMOND_HOE);
+            case DIAMOND -> new ItemStack(Items.DIAMOND);
+            case SPONGE -> new ItemStack(Items.FISHING_ROD);
+            case DEEPSLATE -> new ItemStack(Items.DIAMOND_AXE);
+            case JUKEBOX -> new ItemStack(Items.MUSIC_DISC_CAT);
+            case LAMP -> new ItemStack(Items.TORCH, 64);
+            case NETHER_WART -> new ItemStack(Items.GLASS_BOTTLE, 64);
+            case MEDIC, CACTUS, HOPPER -> new ItemStack(UGItems.WRENCH_ITEM);
+            case HONEYCOMB -> new ItemStack(Items.SHEARS);
+            case TINTED_GLASS -> new ItemStack(Items.GLASS_BOTTLE, 64);
+        };
     }
 }
