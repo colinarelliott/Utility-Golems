@@ -85,6 +85,12 @@
   - Takes glass bottles and fills them with XP, producing "Bottle O' Enchanting"
   - Useful for mob farms and enchanting automation.
 
+### Golem Chests
+- Most golems will spawn with a chest associated. These chests fulfill various purposes.
+- Each chest has a crafting recipe that is composed of a chest surrounded by the base material used to make the block.
+- For example, a diamond chest will save you one diamond if you craft it with the chest.
+- Hopper chests are crafted with a hopper on top and below the chest.
+
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
 
