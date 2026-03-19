@@ -90,6 +90,7 @@
 - Each chest has a crafting recipe that is composed of a chest surrounded by the base material used to make the block.
 - For example, a diamond chest will save you one diamond if you craft it with the chest.
 - Hopper chests are crafted with a hopper on top and below the chest.
+- [View all chest recipes](https://github.com/colinarelliott/Utility-Golems/wiki/Crafting-Recipes#chests)
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />
