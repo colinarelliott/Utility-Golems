@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "Peti Jukebox",
   "block.utility-golems.nether_wart_golem_chest": "Peti Nether Wart",
   "block.utility-golems.honeycomb_golem_chest": "Peti Sarang Madu",
+  "block.utility-golems.hopper_golem_chest": "Peti Penampung",
   "container.utility-golems.lapis_golem_chest_double": "Peti Ganda Lapis",
   "container.utility-golems.redstone_golem_chest_double": "Peti Ganda Redstone",
   "container.utility-golems.emerald_golem_chest_double": "Peti Ganda Zamrud",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "Peti Ganda Jukebox",
   "container.utility-golems.nether_wart_golem_chest_double": "Peti Ganda Nether Wart",
   "container.utility-golems.honeycomb_golem_chest_double": "Peti Ganda Sarang Madu",
+  "container.utility-golems.hopper_golem_chest_double": "Peti Ganda Penampung",
   "item.utility-golems.lapis_golem_chest": "Peti Lapis",
   "item.utility-golems.redstone_golem_chest": "Peti Redstone",
   "item.utility-golems.emerald_golem_chest": "Peti Zamrud",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "Peti Jukebox",
   "item.utility-golems.nether_wart_golem_chest": "Peti Nether Wart",
   "item.utility-golems.honeycomb_golem_chest": "Peti Sarang Madu",
+  "item.utility-golems.hopper_golem_chest": "Peti Penampung",
   "item.utility-golems.wrench": "Kunci Inggris",
   "item.utility-golems.wrench.description": "Digunakan untuk memperbaiki golem yang rusak",
   "item.utility-golems.lapis_golem_spawn_egg": "Telur Spawn Golem Lapis",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "Telur Spawn Golem Medik",
   "item.utility-golems.cactus_golem_spawn_egg": "Telur Spawn Golem Kaktus",
   "item.utility-golems.honeycomb_golem_spawn_egg": "Telur Spawn Golem Sarang Madu",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "Telur Spawn Golem Kaca Gelap",
   "item.utility-golems.lapis_chest": "Peti Lapis",
   "item.utility-golems.redstone_chest": "Peti Redstone",
   "item.utility-golems.emerald_chest": "Peti Zamrud",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "Golem Medik",
   "entity.utility-golems.cactus_golem": "Golem Kaktus",
   "entity.utility-golems.honeycomb_golem": "Golem Sarang Madu",
+  "entity.utility-golems.hopper_golem": "Golem Penampung",
+  "entity.utility-golems.tinted_glass_golem": "Golem Kaca Gelap",
   "gui.utility-golems.clear_selection": "Bersihkan Pilihan Beli",
-  "gui.utility-golems.golem_dead": "Golem sudah mati! Letakkan labu untuk membangkitkannya kembali."
+  "gui.utility-golems.golem_dead": "Golem sudah mati! Letakkan labu untuk membangkitkannya kembali。",
+  "gui.utility-golems.held_item_tooltip": "Barang yang dipegang: Shift + klik kanan golem untuk mengambil"
 }
