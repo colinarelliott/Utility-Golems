@@ -518,7 +518,7 @@ public class GolemAI {
             double dz = golem.getZ() - (targetChestPos.getZ() + 0.5);
             double horizontalDistSq = dx * dx + dz * dz;
 
-            if ((horizontalDistSq < 1.5 && dy < 1.5) || golem.getNavigation().isIdle()) {
+            if (horizontalDistSq < 1.5 && dy < 1.5) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     transferCooldown = 60;
@@ -789,7 +789,7 @@ public class GolemAI {
                 } else {
                     transferCooldown--;
                 }
-            } else if (golem.getNavigation().isIdle()) {
+            } else {
                 golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, speed);
                 transferCooldown = 0;
             }
@@ -1004,7 +1004,7 @@ public class GolemAI {
                 return;
             }
 
-            if (golem.getBlockPos().getSquaredDistance(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5) < 30.0) {
+            if (golem.getBlockPos().getSquaredDistance(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5) < 4.0) {
                 golem.getNavigation().stop();
                 golem.getLookControl().lookAt(targetChest.getX() + 0.5, targetChest.getY() + 0.5, targetChest.getZ() + 0.5);
                 
