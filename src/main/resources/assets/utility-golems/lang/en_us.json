@@ -103,5 +103,6 @@
   "entity.utility-golems.hopper_golem": "Hopper Golem",
   "entity.utility-golems.tinted_glass_golem": "Tinted Glass Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection",
-  "gui.utility-golems.golem_dead": "Golem is dead! Place a pumpkin to respawn."
+  "gui.utility-golems.golem_dead": "Golem is dead! Place a pumpkin to respawn.",
+  "gui.utility-golems.held_item_tooltip": "Held Item: Shift + right click golem to retrieve"
 }

@@ -14,11 +14,13 @@ import net.minecraft.screen.slot.Slot;
 public class GolemInventoryScreenHandler extends ScreenHandler {
 
     private static final int GOLEM_INV_SIZE = 9;
-    private static final int PLAYER_INV_START = GOLEM_INV_SIZE;
+    private static final int HELD_ITEM_SLOT_INDEX = 9; // Slot index for held item in the UI
+    private static final int PLAYER_INV_START = 10;
     private static final int PLAYER_INV_END = PLAYER_INV_START + 27;
     private static final int HOTBAR_END = PLAYER_INV_END + 9;
 
     private final Inventory inventory;
+    private final Inventory heldItemInventory = new SimpleInventory(1);
     private final UtilityGolem golem;
 
     public UtilityGolem getGolem() {
@@ -43,11 +45,44 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
         this.inventory = inventory;
         this.golem = golem;
 
+        if (golem != null) {
+            this.heldItemInventory.setStack(0, golem.getHeldItem());
+        }
+
         inventory.onOpen(playerInventory.player);
 
         addGolemInventory(inventory);
+        addHeldItemSlot();
         addPlayerInventory(playerInventory);
         addHotbar(playerInventory);
+    }
+
+    private void addHeldItemSlot() {
+        this.addSlot(new ReadOnlySlot(this.heldItemInventory, 0, 134, 35));
+    }
+
+    private class ReadOnlySlot extends Slot {
+        public ReadOnlySlot(Inventory inventory, int index, int x, int y) {
+            super(inventory, index, x, y);
+        }
+
+        @Override
+        public boolean canInsert(ItemStack stack) {
+            return false;
+        }
+
+        @Override
+        public boolean canTakeItems(PlayerEntity playerEntity) {
+            return false;
+        }
+
+        @Override
+        public ItemStack getStack() {
+            if (golem != null) {
+                return golem.getHeldItem();
+            }
+            return super.getStack();
+        }
     }
 
     private void addGolemInventory(Inventory inventory) {
@@ -122,6 +157,17 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     @Override
+    public void sendContentUpdates() {
+        if (this.golem != null) {
+            ItemStack currentHeldItem = golem.getHeldItem();
+            if (!ItemStack.areEqual(this.heldItemInventory.getStack(0), currentHeldItem)) {
+                this.heldItemInventory.setStack(0, currentHeldItem.copy());
+            }
+        }
+        super.sendContentUpdates();
+    }
+
+    @Override
     public boolean canUse(PlayerEntity player) {
         return inventory.canPlayerUse(player)
                 && (golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F));
@@ -136,7 +182,7 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
             ItemStack stack = slot.getStack();
             result = stack.copy();
 
-            if (index < GOLEM_INV_SIZE) {
+            if (index < PLAYER_INV_START) {
                 if (!insertItem(stack, PLAYER_INV_START, HOTBAR_END, true)) {
                     return ItemStack.EMPTY;
                 }

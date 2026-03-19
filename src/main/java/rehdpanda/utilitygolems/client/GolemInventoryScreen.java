@@ -204,22 +204,25 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
         if (golem != null && (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) {
             // Draw top part (the 3x3 grid and label area): 0 to 71 from texture
             context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0.0f, 0.0f, backgroundWidth, 75, 256, 256);
-            
+
             // Draw extra background for buttons (always 40 now)
             int extraHeight = 40;
-            
+
             // Fill the spacer with a generic background color from the texture (e.g., at 7, 7)
             for (int i = 0; i < extraHeight; i += 5) {
                 int h = Math.min(10, extraHeight - i);
                 context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, x , y + 75 + i, 0.0f, 7.0f, backgroundWidth, h, 256, 256);
             }
-            
+
             // Draw the player inventory part (which normally starts at 75 in the dispenser texture)
             // Dispenser texture: top part 0-75, player inventory 75-166.
             context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y + 75 + extraHeight, 0.0f, 75.0f, backgroundWidth, 91, 256, 256);
         } else {
             context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0.0f, 0.0f, backgroundWidth, backgroundHeight, 256, 256);
         }
+
+        // Draw held item slot background
+        context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, x + 133, y + 34, 61.0f, 16.0f, 18, 18, 256, 256);
     }
 
     @Override
@@ -237,7 +240,12 @@ public class GolemInventoryScreen extends HandledScreen<GolemInventoryScreenHand
                 drawTintedGlassUI(context, mouseX, mouseY, golem);
             }
         }
-        
+
+        // Draw tooltip for held item slot if hovered
+        if (mouseX >= x + 133 && mouseX < x + 151 && mouseY >= y + 34 && mouseY < y + 52) {
+            context.drawTooltip(textRenderer, Text.translatable("gui.utility-golems.held_item_tooltip"), mouseX, mouseY);
+        }
+
         this.drawMouseoverTooltip(context, mouseX, mouseY);
     }
 
