@@ -3351,7 +3351,8 @@ public class GolemAI {
                         if (stack.isOf(Items.MELON_SLICE)) return true; // Always deposit melon slices
                         if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
                             // Only deposit seeds/carrots/potatoes if we have more than 16 (keep some for planting)
-                            if (getSeedCount(stack.getItem()) > 16) return true;
+                            // However, if the inventory is full, we should still deposit them to make room.
+                            if (getSeedCount(stack.getItem()) > 16 || isInventoryFull()) return true;
                             continue;
                         }
                     }
@@ -3650,13 +3651,26 @@ public class GolemAI {
                                 continue;
                             }
                             if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
-                                if (getSeedCount(stack.getItem()) <= 16) continue;
-                                // Transfer only the excess
-                                int toTransfer = getSeedCount(stack.getItem()) - 16;
+                                int seedCount = getSeedCount(stack.getItem());
+                                if (seedCount <= 16 && !isInventoryFull()) continue;
+                                
+                                // Transfer only the excess, unless inventory is full then transfer as much as needed to get down to 16 or clear the slot
+                                int toKeep = 16;
+                                if (seedCount <= 16 && isInventoryFull()) {
+                                    // If we have <= 16 but inventory is full, we still want to keep some if possible, 
+                                    // but if we need to clear space, we might have to deposit some.
+                                    // Let's keep it simple: if full, we can deposit even below 16 if it's the only way to clear a slot,
+                                    // but usually we just deposit what's over 16.
+                                    // If total is 16 and we are full, we should deposit SOME to make room.
+                                    toKeep = 8; 
+                                }
+                                
+                                int toTransfer = seedCount - toKeep;
                                 if (toTransfer <= 0) continue;
+                                
                                 ItemStack toDeposit = stack.copyWithCount(Math.min(stack.getCount(), toTransfer));
-                                ItemStack remaining = transferStack(toDeposit, container);
-                                stack.setCount(stack.getCount() - (toDeposit.getCount() - remaining.getCount()));
+                                ItemStack remaining_stack = transferStack(toDeposit, container);
+                                stack.setCount(stack.getCount() - (toDeposit.getCount() - remaining_stack.getCount()));
                                 continue;
                             }
                         }
