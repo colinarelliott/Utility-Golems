@@ -518,7 +518,7 @@ public class GolemAI {
             double dz = golem.getZ() - (targetChestPos.getZ() + 0.5);
             double horizontalDistSq = dx * dx + dz * dz;
 
-            if (horizontalDistSq < 1.5 && dy < 1.5) {
+            if (horizontalDistSq < 4.0 && dy < 8.0 && canSee(targetChestPos)) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     transferCooldown = 60;
@@ -537,6 +537,19 @@ public class GolemAI {
                 golem.getNavigation().startMovingTo(targetChestPos.getX() + 0.5, targetChestPos.getY(), targetChestPos.getZ() + 0.5, speed);
                 transferCooldown = 0;
             }
+        }
+
+        private boolean canSee(BlockPos pos) {
+            Vec3d start = golem.getEyePos();
+            Vec3d end = Vec3d.ofCenter(pos);
+            net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(
+                    start, end,
+                    net.minecraft.world.RaycastContext.ShapeType.VISUAL,
+                    net.minecraft.world.RaycastContext.FluidHandling.NONE,
+                    golem
+            );
+            net.minecraft.util.hit.BlockHitResult result = golem.getEntityWorld().raycast(context);
+            return result.getType() == net.minecraft.util.hit.HitResult.Type.MISS || result.getBlockPos().equals(pos);
         }
 
         private BlockPos findChestWithTargetItems() {
@@ -778,7 +791,7 @@ public class GolemAI {
             double dz = golem.getZ() - (chestPos.getZ() + 0.5);
             double horizontalDistSq = dx * dx + dz * dz;
 
-            if (horizontalDistSq < 1.5 && dy < 1.5) {
+            if (horizontalDistSq < 4.0 && dy < 8.0 && canSee(chestPos)) {
                 if (transferCooldown <= 0) {
                     golem.setAnimation(GolemAnimation.DEPOSITING, 60);
                     transferCooldown = 60;
@@ -793,6 +806,19 @@ public class GolemAI {
                 golem.getNavigation().startMovingTo(chestPos.getX() + 0.5, chestPos.getY(), chestPos.getZ() + 0.5, speed);
                 transferCooldown = 0;
             }
+        }
+
+        private boolean canSee(BlockPos pos) {
+            Vec3d start = golem.getEyePos();
+            Vec3d end = Vec3d.ofCenter(pos);
+            net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(
+                    start, end,
+                    net.minecraft.world.RaycastContext.ShapeType.VISUAL,
+                    net.minecraft.world.RaycastContext.FluidHandling.NONE,
+                    golem
+            );
+            net.minecraft.util.hit.BlockHitResult result = golem.getEntityWorld().raycast(context);
+            return result.getType() == net.minecraft.util.hit.HitResult.Type.MISS || result.getBlockPos().equals(pos);
         }
 
         private void depositItems() {
