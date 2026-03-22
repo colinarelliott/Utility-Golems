@@ -3641,16 +3641,16 @@ public class GolemAI {
                                 continue;
                             }
                         }
-                        if (golem.getGolemType() == GolemType.BAMBOO) {
-                            if (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isTool(stack)) {
-                                continue;
-                            }
-                            if (stack.isOf(Items.MELON_SLICE)) {
-                                ItemStack remaining_stack = transferStack(stack, container);
-                                golemInv.setStack(i, remaining_stack);
-                                continue;
-                            }
-                            if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
+            if (golem.getGolemType() == GolemType.BAMBOO) {
+                if (stack.isOf(Items.WATER_BUCKET) || stack.isOf(Items.BUCKET) || UtilityGolem.isTool(stack)) {
+                    continue;
+                }
+                if (stack.isOf(Items.MELON_SLICE) || stack.isOf(Items.PUMPKIN) || stack.isOf(Items.MELON) || stack.isOf(Items.NETHER_WART) || stack.isOf(Items.COCOA_BEANS)) {
+                    ItemStack remaining_stack = transferStack(stack, container);
+                    golemInv.setStack(i, remaining_stack);
+                    continue;
+                }
+                if (isSeed(stack) || stack.isOf(Items.PUMPKIN_SEEDS) || stack.isOf(Items.MELON_SEEDS) || stack.isOf(Items.CARROT) || stack.isOf(Items.POTATO)) {
                                 int seedCount = getSeedCount(stack.getItem());
                                 if (seedCount <= 16 && !isInventoryFull()) continue;
                                 
@@ -6287,6 +6287,19 @@ public class GolemAI {
             return false;
         }
 
+        private boolean canSee(BlockPos pos) {
+            Vec3d start = golem.getEyePos();
+            Vec3d end = Vec3d.ofCenter(pos);
+            net.minecraft.world.RaycastContext context = new net.minecraft.world.RaycastContext(
+                    start, end,
+                    net.minecraft.world.RaycastContext.ShapeType.VISUAL,
+                    net.minecraft.world.RaycastContext.FluidHandling.NONE,
+                    golem
+            );
+            net.minecraft.util.hit.BlockHitResult result = golem.getEntityWorld().raycast(context);
+            return result.getType() == net.minecraft.util.hit.HitResult.Type.MISS || result.getBlockPos().equals(pos);
+        }
+
         private BlockPos findNearbyChest() {
             return golem.findNearbyChest();
         }
@@ -6300,31 +6313,32 @@ public class GolemAI {
             // We search for tasks within the 32x32 area around the chest.
             List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
             
-            // Priority 1: Pick up dropped items in the field
+            // Priority 1: Harvest mature crops
+            for (int y = -3; y <= 3; y++) {
+                for (int x = -16; x <= 16; x++) {
+                    for (int z = -16; z <= 16; z++) {
+                        BlockPos p = chestPos.add(x, y, z);
+                        if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
+                        if (shouldHarvest(p, null)) {
+                            // Check line of sight
+                            if (canSee(p)) return p;
+                        }
+                    }
+                }
+            }
+
+            // Priority 2: Pick up dropped items in the field
             List<net.minecraft.entity.ItemEntity> items = golem.getEntityWorld().getEntitiesByClass(
                     net.minecraft.entity.ItemEntity.class,
                     new net.minecraft.util.math.Box(chestPos).expand(16.0),
-                    item -> !item.cannotPickup() && isFamiliarItem(item.getStack())
+                    item -> !item.cannotPickup() && isFamiliarItem(item.getStack()) && canSee(item.getBlockPos())
             );
             if (!items.isEmpty()) {
                 net.minecraft.entity.ItemEntity closest = items.stream()
                         .min(Comparator.comparingDouble(golem::squaredDistanceTo))
                         .orElse(null);
                 if (closest != null) {
-                    // Check if it's within a growth spot for a stripped golem.
-                    // If it is, and we should ONLY be tilling/harvesting there, pickup is fine.
                     return closest.getBlockPos();
-                }
-            }
-
-            // Priority 2: Harvest mature crops
-            for (int x = -16; x <= 16; x++) {
-                for (int z = -16; z <= 16; z++) {
-                    for (int y = -3; y <= 3; y++) {
-                        BlockPos p = chestPos.add(x, y, z);
-                        if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
-                        if (shouldHarvest(p, null)) return p;
-                    }
                 }
             }
 
@@ -6335,7 +6349,9 @@ public class GolemAI {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos p = chestPos.add(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
-                            if (shouldPlant(p, null)) return p;
+                            if (shouldPlant(p, null)) {
+                                if (canSee(p)) return p;
+                            }
                         }
                     }
                 }
@@ -6345,15 +6361,17 @@ public class GolemAI {
             BlockPos waterPos = findWaterCenter(chestPos);
             if (waterPos == null && hasWaterBucket()) {
                 BlockPos waterSpot = findPlaceForWater(chestPos);
-                if (waterSpot != null && !otherGolemsTargets.contains(waterSpot)) return waterSpot;
+                if (waterSpot != null && !otherGolemsTargets.contains(waterSpot)) {
+                    if (canSee(waterSpot)) return waterSpot;
+                }
             }
 
             // Priority 4: Tilling and Planting (requires water)
             if (waterPos != null) {
                 // Focus on the 9x9 area around this water source (one field)
-                for (int x = -4; x <= 4; x++) {
-                    for (int z = -4; z <= 4; z++) {
-                        for (int y = -1; y <= 1; y++) {
+                for (int y = -1; y <= 1; y++) {
+                    for (int x = -4; x <= 4; x++) {
+                        for (int z = -4; z <= 4; z++) {
                             BlockPos p = waterPos.add(x, y, z);
                             if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
@@ -6361,7 +6379,9 @@ public class GolemAI {
                             if (golem.isStripped()) {
                                 if ((Math.abs(p.getX() - waterPos.getX()) + Math.abs(p.getZ() - waterPos.getZ())) % 2 == 0) {
                                     // This is a seed spot
-                                    if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
+                                    if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) {
+                                        if (canSee(p)) return p;
+                                    }
                                 } else {
                                     // This is a growth spot. Golem should only till it if it's not farmland/dirt/grass (e.g. if it was harvested)
                                     // Actually, pumpkins/melons grow on dirt, grass, or farmland. 
@@ -6370,30 +6390,40 @@ public class GolemAI {
                                     // BUT, wait, pumpkins don't NEED farmland. They can grow on dirt. 
                                     // The issue description says: "Doesnt use hoe for blocks that were under pumpkin/melons."
                                     // This suggests the golem SHOULD till those spots.
-                                    if (shouldTill(p, waterPos)) return p;
+                                    if (shouldTill(p, waterPos)) {
+                                        if (canSee(p)) return p;
+                                    }
                                 }
                             } else {
-                                if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) return p;
+                                if (shouldTill(p, waterPos) || shouldPlant(p, waterPos)) {
+                                    if (canSee(p)) return p;
+                                }
                             }
                         }
                     }
                 }
             } else if (!hasWaterBucket()) {
                 // Fallback: search around chest if no water bucket is available (e.g. user-made field)
-                for (int x = -16; x <= 16; x++) {
-                    for (int z = -16; z <= 16; z++) {
-                        for (int y = -3; y <= 3; y++) {
+                for (int y = -3; y <= 3; y++) {
+                    for (int x = -16; x <= 16; x++) {
+                        for (int z = -16; z <= 16; z++) {
                             BlockPos p = chestPos.add(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
                             if (golem.isStripped()) {
                                 if ((Math.abs(p.getX() - chestPos.getX()) + Math.abs(p.getZ() - chestPos.getZ())) % 2 == 0) {
-                                    if (shouldTill(p, null) || shouldPlant(p, null)) return p;
+                                    if (shouldTill(p, null) || shouldPlant(p, null)) {
+                                        if (canSee(p)) return p;
+                                    }
                                 } else {
-                                    if (shouldTill(p, null)) return p;
+                                    if (shouldTill(p, null)) {
+                                        if (canSee(p)) return p;
+                                    }
                                 }
                             } else {
-                                if (shouldTill(p, null) || shouldPlant(p, null)) return p;
+                                if (shouldTill(p, null) || shouldPlant(p, null)) {
+                                    if (canSee(p)) return p;
+                                }
                             }
                         }
                     }
@@ -6518,6 +6548,15 @@ public class GolemAI {
             if (waterPos != null && pos.equals(waterPos)) return false;
             BlockState state = golem.getEntityWorld().getBlockState(pos);
             Block block = state.getBlock();
+            
+            // If stripped, ONLY harvest pumpkins and melons
+            if (golem.isStripped()) {
+                if (state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON)) {
+                    return true;
+                }
+                return false;
+            }
+            
             if (block instanceof CropBlock crop) {
                 return crop.isMature(state);
             }
@@ -6925,8 +6964,15 @@ public class GolemAI {
                         // If we are holding an axe but it's not pumpkin/melon, swap to hoe or seeds if we have them
                         if (hasHoe()) swapToHoe();
                     } else if (state.isOf(Blocks.NETHER_WART)) {
-                        // Nether wart doesn't need tools. If we are holding a tool that's not needed, maybe swap to empty or just proceed.
-                        // Actually, the current logic uses the tool for drops.
+                        // Nether wart doesn't need tools.
+                    }
+
+                    // Check if we can actually harvest this (e.g. if we need a tool for pumpkin/melon but don't have one)
+                    boolean needsAxe = state.isOf(Blocks.PUMPKIN) || state.isOf(Blocks.MELON);
+                    if (needsAxe && !hasAxe()) {
+                        targetPos = null;
+                        golem.setFarmTarget(null);
+                        return;
                     }
 
                     LootWorldContext.Builder builder = new LootWorldContext.Builder(serverWorld)

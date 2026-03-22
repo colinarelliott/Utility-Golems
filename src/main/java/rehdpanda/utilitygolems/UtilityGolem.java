@@ -1227,7 +1227,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             return ActionResult.SUCCESS;
         }
 
-        if (this.golemType == GolemType.BAMBOO && isHoe(playerStack)) {
+        if (this.golemType == GolemType.BAMBOO && isTool(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
