@@ -6308,8 +6308,8 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return null;
 
-            // Search radius: two chunks is 32 blocks. 
-            // The golem should focus on "one established field" within this radius.
+            // Search radius: 32 blocks (covers a large area).
+            // A standard 9x9 field has 81 blocks.
             // We search for tasks within the 32x32 area around the chest.
             List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
             
@@ -6330,11 +6330,12 @@ public class GolemAI {
             // Priority 2: Pick up dropped items in the field
             List<net.minecraft.entity.ItemEntity> items = golem.getEntityWorld().getEntitiesByClass(
                     net.minecraft.entity.ItemEntity.class,
-                    new net.minecraft.util.math.Box(chestPos).expand(16.0),
+                    new net.minecraft.util.math.Box(chestPos).expand(32.0),
                     item -> !item.cannotPickup() && isFamiliarItem(item.getStack()) && canSee(item.getBlockPos())
             );
             if (!items.isEmpty()) {
                 net.minecraft.entity.ItemEntity closest = items.stream()
+                        .filter(item -> item.squaredDistanceTo(chestPos.toCenterPos()) <= 32.0 * 32.0)
                         .min(Comparator.comparingDouble(golem::squaredDistanceTo))
                         .orElse(null);
                 if (closest != null) {
@@ -6368,10 +6369,10 @@ public class GolemAI {
 
             // Priority 4: Tilling and Planting (requires water)
             if (waterPos != null) {
-                // Focus on the 9x9 area around this water source (one field)
+                // Focus on the 33x33 area around this water source (multiple fields if they are close)
                 for (int y = -1; y <= 1; y++) {
-                    for (int x = -4; x <= 4; x++) {
-                        for (int z = -4; z <= 4; z++) {
+                    for (int x = -16; x <= 16; x++) {
+                        for (int z = -16; z <= 16; z++) {
                             BlockPos p = waterPos.add(x, y, z);
                             if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
