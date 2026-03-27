@@ -1188,6 +1188,26 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             }
         }
 
+        if (this.golemType == GolemType.REDSTONE && playerStack.isOf(Items.CLOCK)) {
+            if (!player.getEntityWorld().isClient()) {
+                if (!player.getAbilities().creativeMode) {
+                    playerStack.decrement(1);
+                }
+                BlockPos pos = this.getBlockPos();
+                BlockState state = UGBlocks.REDSTONE_GOLEM_STATUE.getDefaultState().with(RedstoneGolemStatueBlock.FACING, this.getHorizontalFacing().getOpposite());
+                this.getEntityWorld().setBlockState(pos, state);
+                BlockEntity be = this.getEntityWorld().getBlockEntity(pos);
+                if (be instanceof RedstoneGolemStatueBlockEntity statueBe) {
+                    if (this.hasCustomName()) {
+                        statueBe.setCustomName(this.getCustomName());
+                    }
+                }
+                this.getEntityWorld().playSound(null, pos, SoundEvents.ENTITY_COPPER_GOLEM_BECOME_STATUE, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                this.discard();
+            }
+            return ActionResult.SUCCESS;
+        }
+
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 this.setStripped(true);

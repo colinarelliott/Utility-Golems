@@ -21,9 +21,33 @@ import java.util.Map;
 public class UGBlocks {
     public static final Map<GolemType, Block> GOLEM_CHESTS = new HashMap<>();
     public static BlockEntityType<GolemChestBlockEntity> GOLEM_CHEST_BLOCK_ENTITY;
+    public static Block REDSTONE_GOLEM_STATUE;
+    public static BlockEntityType<RedstoneGolemStatueBlockEntity> REDSTONE_GOLEM_STATUE_BLOCK_ENTITY;
     public static Block LIGHT_BLOCK;
 
     public static void register() {
+        Identifier statueId = Identifier.of(UGInit.MOD_ID, "redstone_golem_statue");
+        REDSTONE_GOLEM_STATUE = Registry.register(
+                Registries.BLOCK,
+                statueId,
+                new RedstoneGolemStatueBlock(AbstractBlock.Settings.create()
+                        .registryKey(RegistryKey.of(RegistryKeys.BLOCK, statueId))
+                        .strength(3.5F, 3.5F)
+                        .requiresTool()
+                        .nonOpaque())
+        );
+        Registry.register(
+                Registries.ITEM,
+                statueId,
+                new BlockItem(REDSTONE_GOLEM_STATUE, new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, statueId)))
+        );
+
+        REDSTONE_GOLEM_STATUE_BLOCK_ENTITY = Registry.register(
+                Registries.BLOCK_ENTITY_TYPE,
+                statueId,
+                FabricBlockEntityTypeBuilder.create(RedstoneGolemStatueBlockEntity::new, REDSTONE_GOLEM_STATUE).build()
+        );
+
         Identifier lightId = Identifier.of(UGInit.MOD_ID, "light_block");
         LIGHT_BLOCK = Registry.register(
                 Registries.BLOCK,

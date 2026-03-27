@@ -24,6 +24,7 @@ public class UGClient implements ClientModInitializer {
 
         // Register block entity renderer using the non-deprecated API
         BlockEntityRendererFactories.register(UGBlocks.GOLEM_CHEST_BLOCK_ENTITY, GolemChestBlockEntityRenderer::new);
+        BlockEntityRendererFactories.register(UGBlocks.REDSTONE_GOLEM_STATUE_BLOCK_ENTITY, RedstoneGolemStatueBlockEntityRenderer::new);
 
         // Register the renderer for all golem types
         for (GolemType type : GolemType.values()) {
