@@ -1,17 +1,17 @@
 package rehdpanda.utilitygolems;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,37 +26,37 @@ public class UGBlocks {
     public static Block LIGHT_BLOCK;
 
     public static void register() {
-        Identifier statueId = Identifier.of(UGInit.MOD_ID, "redstone_golem_statue");
+        ResourceLocation statueId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, "redstone_golem_statue");
         REDSTONE_GOLEM_STATUE = Registry.register(
-                Registries.BLOCK,
+                BuiltInRegistries.BLOCK,
                 statueId,
-                new RedstoneGolemStatueBlock(AbstractBlock.Settings.create()
-                        .registryKey(RegistryKey.of(RegistryKeys.BLOCK, statueId))
+                new RedstoneGolemStatueBlock(BlockBehaviour.Properties.of()
+                        .setId(ResourceKey.create(Registries.BLOCK, statueId))
                         .strength(3.5F, 3.5F)
-                        .requiresTool()
-                        .nonOpaque())
+                        .requiresCorrectToolForDrops()
+                        .noOcclusion())
         );
         Registry.register(
-                Registries.ITEM,
+                BuiltInRegistries.ITEM,
                 statueId,
-                new BlockItem(REDSTONE_GOLEM_STATUE, new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, statueId)))
+                new BlockItem(REDSTONE_GOLEM_STATUE, new net.minecraft.world.item.Item.Properties().setId(ResourceKey.create(Registries.ITEM, statueId)))
         );
 
         REDSTONE_GOLEM_STATUE_BLOCK_ENTITY = Registry.register(
-                Registries.BLOCK_ENTITY_TYPE,
+                BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 statueId,
                 FabricBlockEntityTypeBuilder.create(RedstoneGolemStatueBlockEntity::new, REDSTONE_GOLEM_STATUE).build()
         );
 
-        Identifier lightId = Identifier.of(UGInit.MOD_ID, "light_block");
+        ResourceLocation lightId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, "light_block");
         LIGHT_BLOCK = Registry.register(
-                Registries.BLOCK,
+                BuiltInRegistries.BLOCK,
                 lightId,
-                new LightBlock(AbstractBlock.Settings.create()
-                        .registryKey(RegistryKey.of(RegistryKeys.BLOCK, lightId))
-                        .luminance(state -> state.get(LightBlock.LEVEL))
+                new LightBlock(BlockBehaviour.Properties.of()
+                        .setId(ResourceKey.create(Registries.BLOCK, lightId))
+                        .lightLevel(state -> state.getValue(LightBlock.LEVEL))
                         .noCollision()
-                        .nonOpaque()
+                        .noOcclusion()
                         .air())
         );
         List<Block> chestBlocks = new ArrayList<>();
@@ -86,25 +86,25 @@ public class UGBlocks {
                 default -> Blocks.AIR;
             };
 
-            float hardness = materialBlock.getHardness();
-            float resistance = materialBlock.getBlastResistance();
+            float hardness = materialBlock.defaultDestroyTime();
+            float resistance = materialBlock.getExplosionResistance();
 
-            Identifier id = Identifier.of(UGInit.MOD_ID, name);
-            AbstractBlock.Settings settings = AbstractBlock.Settings.copy(materialBlock)
-                    .registryKey(RegistryKey.of(RegistryKeys.BLOCK, id))
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, name);
+            BlockBehaviour.Properties settings = BlockBehaviour.Properties.ofFullCopy(materialBlock)
+                    .setId(ResourceKey.create(Registries.BLOCK, id))
                     .strength(hardness, resistance)
-                    .luminance(state -> 0);
+                    .lightLevel(state -> 0);
 
             if (type == GolemType.TINTED_GLASS || type == GolemType.AMETHYST) {
-                settings = settings.nonOpaque();
+                settings = settings.noOcclusion();
             }
 
             if (type != GolemType.BAMBOO && type != GolemType.SPONGE) {
-                settings = settings.requiresTool();
+                settings = settings.requiresCorrectToolForDrops();
             }
 
             Block block = Registry.register(
-                    Registries.BLOCK,
+                    BuiltInRegistries.BLOCK,
                     id,
                     new GolemChestBlock(settings)
             );
@@ -112,15 +112,15 @@ public class UGBlocks {
             chestBlocks.add(block);
 
             Registry.register(
-                    Registries.ITEM,
-                    Identifier.of(UGInit.MOD_ID, name),
-                    new BlockItem(block, new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(UGInit.MOD_ID, name))))
+                    BuiltInRegistries.ITEM,
+                    ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, name),
+                    new BlockItem(block, new net.minecraft.world.item.Item.Properties().setId(ResourceKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, name))))
             );
         }
 
         GOLEM_CHEST_BLOCK_ENTITY = Registry.register(
-                Registries.BLOCK_ENTITY_TYPE,
-                Identifier.of(UGInit.MOD_ID, "golem_chest"),
+                BuiltInRegistries.BLOCK_ENTITY_TYPE,
+                ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, "golem_chest"),
                 FabricBlockEntityTypeBuilder.create(GolemChestBlockEntity::new, chestBlocks.toArray(new Block[0])).build()
         );
     }

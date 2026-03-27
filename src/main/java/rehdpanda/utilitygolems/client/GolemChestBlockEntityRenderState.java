@@ -1,8 +1,8 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.block.enums.ChestType;
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.core.Direction;
 import rehdpanda.utilitygolems.GolemType;
 
 public class GolemChestBlockEntityRenderState extends BlockEntityRenderState {

@@ -1,13 +1,13 @@
 package rehdpanda.utilitygolems;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.Item;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,26 +18,26 @@ public class UGItems {
     public static final Map<GolemType, Item> GOLEM_SPAWN_EGGS = new HashMap<>();
 
     public static void register() {
-        Identifier wrenchId = Identifier.of(UGInit.MOD_ID, "wrench");
+        ResourceLocation wrenchId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, "wrench");
         UGInit.LOGGER.info("Registering wrench item with ID: " + wrenchId);
         WRENCH_ITEM = Registry.register(
-                Registries.ITEM,
+                BuiltInRegistries.ITEM,
                 wrenchId,
-                new Item(new Item.Settings()
-                        .registryKey(RegistryKey.of(RegistryKeys.ITEM, wrenchId))
-                        .maxCount(1)
-                        .maxDamage(500)
-                        .component(DataComponentTypes.LORE, new LoreComponent(List.of(Text.translatable("item.utility-golems.wrench.description")))))
+                new Item(new Item.Properties()
+                        .setId(ResourceKey.create(Registries.ITEM, wrenchId))
+                        .stacksTo(1)
+                        .durability(500)
+                        .component(DataComponents.LORE, new ItemLore(List.of(Component.translatable("item.utility-golems.wrench.description")))))
         );
     }
 
     public static void registerSpawnEggs() {
         for (GolemType type : GolemType.values()) {
-            Identifier eggId = Identifier.of(UGInit.MOD_ID, type.getName() + "_spawn_egg");
-            Item.Settings settings = new Item.Settings()
-                    .registryKey(RegistryKey.of(RegistryKeys.ITEM, eggId));
+            ResourceLocation eggId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, type.getName() + "_spawn_egg");
+            Item.Properties settings = new Item.Properties()
+                    .setId(ResourceKey.create(Registries.ITEM, eggId));
             Item egg = new UtilityGolemSpawnEggItem(settings, type);
-            Registry.register(Registries.ITEM, eggId, egg);
+            Registry.register(BuiltInRegistries.ITEM, eggId, egg);
             GOLEM_SPAWN_EGGS.put(type, egg);
         }
     }

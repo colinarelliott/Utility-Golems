@@ -1,7 +1,7 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.core.Direction;
 
 public class RedstoneGolemStatueBlockEntityRenderState extends BlockEntityRenderState {
     public Direction facing;

@@ -1,17 +1,17 @@
 package rehdpanda.utilitygolems;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.pattern.BlockPattern;
-import net.minecraft.block.pattern.BlockPatternBuilder;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.pattern.BlockPattern;
+import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
 
 public class GolemPatterns {
 
@@ -19,52 +19,52 @@ public class GolemPatterns {
     private static BlockPattern createGolemPattern(Block bottomBlock) {
         return BlockPatternBuilder.start()
                 .aisle("^", "B") // top to bottom: Pumpkin (^), Bottom block (B)
-                .where('B', cbp -> cbp.getBlockState().getBlock() == bottomBlock)
-                .where('^', cbp -> cbp.getBlockState().getBlock() == Blocks.CARVED_PUMPKIN)
+                .where('B', cbp -> cbp.getState().getBlock() == bottomBlock)
+                .where('^', cbp -> cbp.getState().getBlock() == Blocks.CARVED_PUMPKIN)
                 .build();
     }
 
     // Called from Mixin after block is placed
-    public static void onPumpkinPlaced(World world, BlockPos pos) {
-        if (world instanceof ServerWorld serverWorld) {
+    public static void onPumpkinPlaced(Level world, BlockPos pos) {
+        if (world instanceof ServerLevel serverWorld) {
             // Check if placed on a GolemChestBlock that has a dead golem
-            BlockPos belowPos = pos.down();
+            BlockPos belowPos = pos.below();
             BlockState belowState = world.getBlockState(belowPos);
             if (belowState.getBlock() instanceof GolemChestBlock) {
                 BlockEntity be = world.getBlockEntity(belowPos);
                 if (be instanceof GolemChestBlockEntity chestEntity && chestEntity.isGolemDead()) {
                     GolemType type = chestEntity.getGolemType();
                     if (type != null) {
-                        Direction facing = belowState.get(GolemChestBlock.FACING);
+                        Direction facing = belowState.getValue(GolemChestBlock.FACING);
                         boolean isStripped = false;
-                        if (belowState.contains(GolemChestBlock.STRIPPED)) {
-                            isStripped = belowState.get(GolemChestBlock.STRIPPED);
+                        if (belowState.hasProperty(GolemChestBlock.STRIPPED)) {
+                            isStripped = belowState.getValue(GolemChestBlock.STRIPPED);
                         }
 
                         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), serverWorld, type);
-                        net.minecraft.entity.player.PlayerEntity creator = world.getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 10.0, false);
+                        net.minecraft.world.entity.player.Player creator = world.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 10.0, false);
                         if (creator != null) {
-                            golem.setOwnerUuid(creator.getUuid());
+                            golem.setOwnerUuid(creator.getUUID());
                         }
                         golem.setStripped(isStripped);
                         golem.setChestPos(belowPos);
-                        golem.refreshPositionAndAngles(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
-                        golem.initialize(serverWorld, serverWorld.getLocalDifficulty(pos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
-                        serverWorld.spawnEntity(golem);
+                        golem.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.toYRot(), 0);
+                        golem.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(pos), net.minecraft.world.entity.EntityMobSpawnType.MOB_SUMMONED, null);
+                        serverWorld.addFreshEntity(golem);
 
                         chestEntity.setGolemDead(false);
-                        world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                        world.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 
                         // Play some effects
-                        serverWorld.spawnParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.5, 0.5, 0.5, 0.1);
-                        world.playSound(null, pos, SoundEvents.BLOCK_PUMPKIN_CARVE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                        serverWorld.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.5, 0.5, 0.5, 0.1);
+                        world.playSound(null, pos, SoundEvents.PUMPKIN_CARVE, SoundSource.BLOCKS, 1.0f, 1.0f);
                         return;
                     }
                 }
             }
 
-            net.minecraft.entity.player.PlayerEntity player = world.getClosestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
-            Direction facing = player != null ? player.getHorizontalFacing().getOpposite() : Direction.NORTH;
+            net.minecraft.world.entity.player.Player player = world.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
+            Direction facing = player != null ? player.getDirection().getOpposite() : Direction.NORTH;
 
             trySpawnGolem(serverWorld, pos, GolemType.LAPIS, facing, false);
             trySpawnGolem(serverWorld, pos, GolemType.REDSTONE, facing, false);
@@ -92,7 +92,7 @@ public class GolemPatterns {
         }
     }
 
-    private static void trySpawnGolem(ServerWorld world, BlockPos pos, GolemType type, Direction facing, boolean isStripped) {
+    private static void trySpawnGolem(ServerLevel world, BlockPos pos, GolemType type, Direction facing, boolean isStripped) {
         Block bottomBlock = switch (type) {
             case LAPIS -> Blocks.LAPIS_BLOCK;
             case REDSTONE -> Blocks.REDSTONE_BLOCK;
@@ -121,27 +121,27 @@ public class GolemPatterns {
 
         BlockPattern pattern = createGolemPattern(bottomBlock);
 
-        BlockPattern.Result result = pattern.searchAround(world, pos);
+        BlockPattern.BlockPatternMatch result = pattern.find(world, pos);
         if (result == null) return;
 
         // Spawn the golem at the pumpkin position
-        BlockPos spawnPos = result.translate(0, 0, 0).getBlockPos();
+        BlockPos spawnPos = result.getBlock(0, 0, 0).getPos();
         UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), world, type);
-        net.minecraft.entity.player.PlayerEntity creator = world.getClosestPlayer(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 10.0, false);
+        net.minecraft.world.entity.player.Player creator = world.getNearestPlayer(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 10.0, false);
         if (creator != null) {
-            golem.setOwnerUuid(creator.getUuid());
+            golem.setOwnerUuid(creator.getUUID());
         }
         golem.setStripped(isStripped);
-        golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.getPositiveHorizontalDegrees(), 0);
-        golem.initialize(world, world.getLocalDifficulty(spawnPos), net.minecraft.entity.SpawnReason.MOB_SUMMONED, null);
-        world.spawnEntity(golem);
+        golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.toYRot(), 0);
+        golem.finalizeSpawn(world, world.getCurrentDifficultyAt(spawnPos), net.minecraft.world.entity.EntityMobSpawnType.MOB_SUMMONED, null);
+        world.addFreshEntity(golem);
 
         // Remove blocks used in the pattern
         for (int i = 0; i < pattern.getWidth(); i++) {
             for (int j = 0; j < pattern.getHeight(); j++) {
                 for (int k = 0; k < pattern.getDepth(); k++) {
-                    BlockPos removePos = result.translate(i, j, k).getBlockPos();
-                    world.setBlockState(removePos, Blocks.AIR.getDefaultState());
+                    BlockPos removePos = result.getBlock(i, j, k).getPos();
+                    world.setBlockAndUpdate(removePos, Blocks.AIR.defaultBlockState());
                 }
             }
         }
@@ -150,13 +150,13 @@ public class GolemPatterns {
         if (chestBlock != null) {
             // Find a suitable place for the chest - let's put it where the bottom block was
             // In the aisle "^", "B", B is at (0, 1, 0) if ^ is (0, 0, 0)
-            BlockPos bottomPos = result.translate(0, 1, 0).getBlockPos();
+            BlockPos bottomPos = result.getBlock(0, 1, 0).getPos();
             golem.setChestPos(bottomPos);
-            BlockState chestState = chestBlock.getDefaultState().with(GolemChestBlock.FACING, facing);
-            if (chestState.contains(GolemChestBlock.STRIPPED)) {
-                chestState = chestState.with(GolemChestBlock.STRIPPED, isStripped);
+            BlockState chestState = chestBlock.defaultBlockState().setValue(GolemChestBlock.FACING, facing);
+            if (chestState.hasProperty(GolemChestBlock.STRIPPED)) {
+                chestState = chestState.setValue(GolemChestBlock.STRIPPED, isStripped);
             }
-            world.setBlockState(bottomPos, chestState);
+            world.setBlockAndUpdate(bottomPos, chestState);
         }
     }
 }

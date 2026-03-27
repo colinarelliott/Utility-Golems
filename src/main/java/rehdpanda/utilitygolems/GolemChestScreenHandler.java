@@ -1,31 +1,31 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.core.BlockPos;
 
-public class GolemChestScreenHandler extends ScreenHandler {
-    private final Inventory inventory;
+public class GolemChestScreenHandler extends AbstractContainerMenu {
+    private final Container inventory;
     private final BlockPos pos;
     private boolean golemDead;
 
-    public GolemChestScreenHandler(int syncId, PlayerInventory playerInventory) {
-        this(syncId, playerInventory, new SimpleInventory(54), BlockPos.ORIGIN, false);
+    public GolemChestScreenHandler(int syncId, Inventory playerInventory) {
+        this(syncId, playerInventory, new SimpleContainer(54), BlockPos.ZERO, false);
     }
 
-    public GolemChestScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory, BlockPos pos, boolean golemDead) {
+    public GolemChestScreenHandler(int syncId, Inventory playerInventory, Container inventory, BlockPos pos, boolean golemDead) {
         super(UGInit.GOLEM_CHEST_SCREEN_HANDLER, syncId);
         this.inventory = inventory;
         this.pos = pos;
         this.golemDead = golemDead;
 
-        int rows = inventory.size() / 9;
-        inventory.onOpen(playerInventory.player);
+        int rows = inventory.getContainerSize() / 9;
+        inventory.startOpen(playerInventory.player);
 
         // Chest inventory
         for (int j = 0; j < rows; ++j) {
@@ -50,47 +50,47 @@ public class GolemChestScreenHandler extends ScreenHandler {
     }
 
     public int getRows() {
-        return this.inventory.size() / 9;
+        return this.inventory.getContainerSize() / 9;
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
-        return this.inventory.canPlayerUse(player);
+    public boolean stillValid(Player player) {
+        return this.inventory.stillValid(player);
     }
 
     @Override
-    public ItemStack quickMove(PlayerEntity player, int index) {
+    public ItemStack quickMoveStack(Player player, int index) {
         ItemStack itemStack = ItemStack.EMPTY;
         Slot slot = (Slot)this.slots.get(index);
         int rows = getRows();
         int inventorySize = rows * 9;
-        if (slot != null && slot.hasStack()) {
-            ItemStack itemStack2 = slot.getStack();
+        if (slot != null && slot.hasItem()) {
+            ItemStack itemStack2 = slot.getItem();
             itemStack = itemStack2.copy();
             if (index < inventorySize) {
-                if (!this.insertItem(itemStack2, inventorySize, inventorySize + 36, true)) {
+                if (!this.moveItemStackTo(itemStack2, inventorySize, inventorySize + 36, true)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.insertItem(itemStack2, 0, inventorySize, false)) {
+            } else if (!this.moveItemStackTo(itemStack2, 0, inventorySize, false)) {
                 return ItemStack.EMPTY;
             }
             if (itemStack2.isEmpty()) {
-                slot.setStack(ItemStack.EMPTY);
+                slot.setByPlayer(ItemStack.EMPTY);
             } else {
-                slot.markDirty();
+                slot.setChanged();
             }
             if (itemStack2.getCount() == itemStack.getCount()) {
                 return ItemStack.EMPTY;
             }
-            slot.onTakeItem(player, itemStack2);
+            slot.onTake(player, itemStack2);
         }
         return itemStack;
     }
 
     @Override
-    public void onClosed(PlayerEntity player) {
-        super.onClosed(player);
-        this.inventory.onClose(player);
+    public void removed(Player player) {
+        super.removed(player);
+        this.inventory.stopOpen(player);
     }
 
     public boolean isGolemDead() {

@@ -1,3 +1,4 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiClass
 package rehdpanda.utilitygolems;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.api.ModInitializer;
@@ -8,35 +9,36 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.resource.featuretoggle.FeatureSet;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.EntityMobSpawnType;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,170 +51,170 @@ public class UGInit implements ModInitializer {
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started, String schematicName) implements CustomPayload {
-        public static final Id<SyncPatternPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_pattern"));
-        public static final PacketCodec<RegistryByteBuf, SyncPatternPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, SyncPatternPayload::entityId,
-                PacketCodecs.VAR_INT, SyncPatternPayload::patternOrdinal,
-                PacketCodecs.VAR_INT, SyncPatternPayload::width,
-                PacketCodecs.VAR_INT, SyncPatternPayload::length,
-                ItemStack.OPTIONAL_PACKET_CODEC, SyncPatternPayload::filter,
-                PacketCodecs.BOOLEAN, SyncPatternPayload::started,
-                PacketCodecs.STRING, SyncPatternPayload::schematicName,
+    public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started, String schematicName) implements CustomPacketPayload {
+        public static final Type<SyncPatternPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sync_pattern"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SyncPatternPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, SyncPatternPayload::entityId,
+                ByteBufCodecs.VAR_INT, SyncPatternPayload::patternOrdinal,
+                ByteBufCodecs.VAR_INT, SyncPatternPayload::width,
+                ByteBufCodecs.VAR_INT, SyncPatternPayload::length,
+                ItemStack.OPTIONAL_STREAM_CODEC, SyncPatternPayload::filter,
+                ByteBufCodecs.BOOL, SyncPatternPayload::started,
+                ByteBufCodecs.STRING_UTF8, SyncPatternPayload::schematicName,
                 SyncPatternPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPayload {
-        public static final Id<SyncDiscoveredTradesPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_discovered_trades"));
-        public static final PacketCodec<RegistryByteBuf, SyncDiscoveredTradesPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, SyncDiscoveredTradesPayload::entityId,
-                ItemStack.PACKET_CODEC.collect(PacketCodecs.toList()), SyncDiscoveredTradesPayload::trades,
+    public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPacketPayload {
+        public static final Type<SyncDiscoveredTradesPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sync_discovered_trades"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SyncDiscoveredTradesPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, SyncDiscoveredTradesPayload::entityId,
+                ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()), SyncDiscoveredTradesPayload::trades,
                 SyncDiscoveredTradesPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPayload {
-        public static final Id<SelectBuyItemPayload> ID = new Id<>(Identifier.of(MOD_ID, "select_buy_item"));
-        public static final PacketCodec<RegistryByteBuf, SelectBuyItemPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, SelectBuyItemPayload::entityId,
-                ItemStack.OPTIONAL_PACKET_CODEC, SelectBuyItemPayload::selectedItem,
+    public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPacketPayload {
+        public static final Type<SelectBuyItemPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "select_buy_item"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SelectBuyItemPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, SelectBuyItemPayload::entityId,
+                ItemStack.OPTIONAL_STREAM_CODEC, SelectBuyItemPayload::selectedItem,
                 SelectBuyItemPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record JukeboxActionPayload(int entityId, int actionId) implements CustomPayload {
-        public static final Id<JukeboxActionPayload> ID = new Id<>(Identifier.of(MOD_ID, "jukebox_action"));
-        public static final PacketCodec<RegistryByteBuf, JukeboxActionPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, JukeboxActionPayload::entityId,
-                PacketCodecs.VAR_INT, JukeboxActionPayload::actionId,
+    public record JukeboxActionPayload(int entityId, int actionId) implements CustomPacketPayload {
+        public static final Type<JukeboxActionPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "jukebox_action"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, JukeboxActionPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, JukeboxActionPayload::entityId,
+                ByteBufCodecs.VAR_INT, JukeboxActionPayload::actionId,
                 JukeboxActionPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record RedstoneActionPayload(int entityId, int actionId) implements CustomPayload {
-        public static final Id<RedstoneActionPayload> ID = new Id<>(Identifier.of(MOD_ID, "redstone_action"));
-        public static final PacketCodec<RegistryByteBuf, RedstoneActionPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, RedstoneActionPayload::entityId,
-                PacketCodecs.VAR_INT, RedstoneActionPayload::actionId,
+    public record RedstoneActionPayload(int entityId, int actionId) implements CustomPacketPayload {
+        public static final Type<RedstoneActionPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "redstone_action"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RedstoneActionPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, RedstoneActionPayload::entityId,
+                ByteBufCodecs.VAR_INT, RedstoneActionPayload::actionId,
                 RedstoneActionPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record SyncRedstoneProgramPayload(int entityId, List<UtilityGolem.RedstoneInteraction> program) implements CustomPayload {
-        public static final Id<SyncRedstoneProgramPayload> ID = new Id<>(Identifier.of(MOD_ID, "sync_redstone_program"));
-        public static final PacketCodec<RegistryByteBuf, SyncRedstoneProgramPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, SyncRedstoneProgramPayload::entityId,
-                PacketCodec.tuple(
-                        BlockPos.PACKET_CODEC, UtilityGolem.RedstoneInteraction::pos,
-                        PacketCodecs.VAR_INT, UtilityGolem.RedstoneInteraction::interval,
+    public record SyncRedstoneProgramPayload(int entityId, List<UtilityGolem.RedstoneInteraction> program) implements CustomPacketPayload {
+        public static final Type<SyncRedstoneProgramPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sync_redstone_program"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SyncRedstoneProgramPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, SyncRedstoneProgramPayload::entityId,
+                StreamCodec.composite(
+                        BlockPos.STREAM_CODEC, UtilityGolem.RedstoneInteraction::pos,
+                        ByteBufCodecs.VAR_INT, UtilityGolem.RedstoneInteraction::interval,
                         UtilityGolem.RedstoneInteraction::new
-                ).collect(PacketCodecs.toList()), SyncRedstoneProgramPayload::program,
+                ).apply(ByteBufCodecs.list()), SyncRedstoneProgramPayload::program,
                 SyncRedstoneProgramPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public record ClearCactusSlotPayload(int entityId, int slotIndex) implements CustomPayload {
-        public static final Id<ClearCactusSlotPayload> ID = new Id<>(Identifier.of(MOD_ID, "clear_cactus_slot"));
-        public static final PacketCodec<RegistryByteBuf, ClearCactusSlotPayload> CODEC = PacketCodec.tuple(
-                PacketCodecs.VAR_INT, ClearCactusSlotPayload::entityId,
-                PacketCodecs.VAR_INT, ClearCactusSlotPayload::slotIndex,
+    public record ClearCactusSlotPayload(int entityId, int slotIndex) implements CustomPacketPayload {
+        public static final Type<ClearCactusSlotPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "clear_cactus_slot"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ClearCactusSlotPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, ClearCactusSlotPayload::entityId,
+                ByteBufCodecs.VAR_INT, ClearCactusSlotPayload::slotIndex,
                 ClearCactusSlotPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
-    public static final ScreenHandlerType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_inventory"), new ExtendedScreenHandlerType<>(
+    public static final MenuType<GolemInventoryScreenHandler> GOLEM_SCREEN_HANDLER_TYPE =
+            Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(MOD_ID, "golem_inventory"), new ExtendedScreenHandlerType<>(
                     (syncId, playerInventory, entityId) -> {
-                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        Entity entity = playerInventory.player.level().getEntity(entityId);
                         if (entity instanceof UtilityGolem golem) {
                             return new GolemInventoryScreenHandler(syncId, playerInventory, golem.getInventory(), golem);
                         }
                         return new GolemInventoryScreenHandler(syncId, playerInventory);
-                    }, PacketCodecs.INTEGER
+                    }, ByteBufCodecs.INT
             ));
-    public static final ScreenHandlerType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_furnace"), new ScreenHandlerType<>(GolemFurnaceScreenHandler::new, FeatureSet.empty()));
+    public static final MenuType<GolemFurnaceScreenHandler> GOLEM_FURNACE_HANDLER =
+            Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(MOD_ID, "golem_furnace"), new MenuType<>(GolemFurnaceScreenHandler::new, FeatureFlagSet.of()));
 
-    public static final ScreenHandlerType<GolemJukeboxScreenHandler> GOLEM_JUKEBOX_HANDLER =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_jukebox"), new ExtendedScreenHandlerType<>(
+    public static final MenuType<GolemJukeboxScreenHandler> GOLEM_JUKEBOX_HANDLER =
+            Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(MOD_ID, "golem_jukebox"), new ExtendedScreenHandlerType<>(
                     (syncId, playerInventory, entityId) -> {
-                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        Entity entity = playerInventory.player.level().getEntity(entityId);
                         if (entity instanceof UtilityGolem golem) {
                             return new GolemJukeboxScreenHandler(syncId, playerInventory, golem.getJukeboxInventory(), golem);
                         }
                         return new GolemJukeboxScreenHandler(syncId, playerInventory);
-                    }, PacketCodecs.INTEGER
+                    }, ByteBufCodecs.INT
             ));
 
-    public static record GolemChestPayload(BlockPos pos, boolean golemDead, int inventorySize) implements CustomPayload {
-        public static final Id<GolemChestPayload> ID = new Id<>(Identifier.of(MOD_ID, "golem_chest_payload"));
-        public static final PacketCodec<RegistryByteBuf, GolemChestPayload> CODEC = PacketCodec.tuple(
-                BlockPos.PACKET_CODEC, GolemChestPayload::pos,
-                PacketCodecs.BOOLEAN, GolemChestPayload::golemDead,
-                PacketCodecs.VAR_INT, GolemChestPayload::inventorySize,
+    public static record GolemChestPayload(BlockPos pos, boolean golemDead, int inventorySize) implements CustomPacketPayload {
+        public static final Type<GolemChestPayload> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "golem_chest_payload"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, GolemChestPayload> CODEC = StreamCodec.composite(
+                BlockPos.STREAM_CODEC, GolemChestPayload::pos,
+                ByteBufCodecs.BOOL, GolemChestPayload::golemDead,
+                ByteBufCodecs.VAR_INT, GolemChestPayload::inventorySize,
                 GolemChestPayload::new
         );
 
         @Override
-        public Id<? extends CustomPayload> getId() {
+        public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
     }
 
-    public static final ScreenHandlerType<GolemChestScreenHandler> GOLEM_CHEST_SCREEN_HANDLER =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "golem_chest"), new ExtendedScreenHandlerType<>(
+    public static final MenuType<GolemChestScreenHandler> GOLEM_CHEST_SCREEN_HANDLER =
+            Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(MOD_ID, "golem_chest"), new ExtendedScreenHandlerType<>(
                     (syncId, playerInventory, payload) -> {
-                        return new GolemChestScreenHandler(syncId, playerInventory, new SimpleInventory(payload.inventorySize()), payload.pos(), payload.golemDead());
+                        return new GolemChestScreenHandler(syncId, playerInventory, new SimpleContainer(payload.inventorySize()), payload.pos(), payload.golemDead());
                     }, GolemChestPayload.CODEC
             ));
 
-    public static final ScreenHandlerType<RedstoneGolemScreenHandler> REDSTONE_GOLEM_HANDLER =
-            Registry.register(Registries.SCREEN_HANDLER, Identifier.of(MOD_ID, "redstone_golem"), new ExtendedScreenHandlerType<>(
+    public static final MenuType<RedstoneGolemScreenHandler> REDSTONE_GOLEM_HANDLER =
+            Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(MOD_ID, "redstone_golem"), new ExtendedScreenHandlerType<>(
                     (syncId, playerInventory, entityId) -> {
-                        Entity entity = playerInventory.player.getEntityWorld().getEntityById(entityId);
+                        Entity entity = playerInventory.player.level().getEntity(entityId);
                         if (entity instanceof UtilityGolem golem) {
                             return new RedstoneGolemScreenHandler(syncId, playerInventory, golem);
                         }
                         return new RedstoneGolemScreenHandler(syncId, playerInventory);
-                    }, PacketCodecs.INTEGER
+                    }, ByteBufCodecs.INT
             ));
 
 
@@ -236,7 +238,7 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     golem.setSelectedBuyItem(payload.selectedItem());
                 }
@@ -245,7 +247,7 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(JukeboxActionPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     switch (payload.actionId()) {
                         case 0 -> {
@@ -264,7 +266,7 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(RedstoneActionPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     switch (payload.actionId()) {
                         case 0 -> golem.setRedstoneProgramStarted(!golem.isRedstoneProgramStarted());
@@ -280,7 +282,7 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(SyncRedstoneProgramPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     golem.setRedstoneProgram(payload.program());
                 }
@@ -289,10 +291,10 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(ClearCactusSlotPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem && golem.getGolemType() == GolemType.CACTUS) {
-                    if (payload.slotIndex() >= 0 && payload.slotIndex() < golem.getInventory().size()) {
-                        golem.getInventory().setStack(payload.slotIndex(), ItemStack.EMPTY);
+                    if (payload.slotIndex() >= 0 && payload.slotIndex() < golem.getInventory().getContainerSize()) {
+                        golem.getInventory().setItem(payload.slotIndex(), ItemStack.EMPTY);
                     }
                 }
             });
@@ -300,7 +302,7 @@ public class UGInit implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(SyncPatternPayload.ID, (payload, context) -> {
             context.server().execute(() -> {
-                Entity entity = context.player().getEntityWorld().getEntityById(payload.entityId());
+                Entity entity = context.player().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     BuildPattern pattern = BuildPattern.values()[payload.patternOrdinal()];
                     golem.setBuildPattern(pattern);
@@ -313,7 +315,7 @@ public class UGInit implements ModInitializer {
                     if (payload.schematicName() != null) {
                         golem.setSchematicName(payload.schematicName());
                     }
-                    context.player().sendMessage(Text.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)") + (golem.getSchematicName().isEmpty() ? "" : (" | Schematic: " + golem.getSchematicName()))), true);
+                    context.player().displayClientMessage(Component.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)") + (golem.getSchematicName().isEmpty() ? "" : (" | Schematic: " + golem.getSchematicName()))), true);
                 }
             });
         });
@@ -322,20 +324,20 @@ public class UGInit implements ModInitializer {
         /// REGISTER DEBUG COMMANDS
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
-                    CommandManager.literal("golem")
-                            .then(CommandManager.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    Commands.literal("golem")
+                            .then(Commands.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
                                     .suggests((context, builder) -> {
                                         for (GolemType gt : GolemType.values()) {
                                             builder.suggest(gt.getName());
                                         }
                                         return builder.buildFuture();
                                     })
-                                    .then(CommandManager.argument("equipped", BoolArgumentType.bool())
+                                    .then(Commands.argument("equipped", BoolArgumentType.bool())
                                             .executes(context -> {
-                                                ServerCommandSource source = (ServerCommandSource) context.getSource();
-                                                ServerPlayerEntity player = source.getPlayer();
+                                                CommandSourceStack source = (CommandSourceStack) context.getSource();
+                                                ServerPlayer player = source.getPlayer();
                                                 if (player == null) {
-                                                    source.sendError(Text.literal("Command can only be used by players."));
+                                                    source.sendFailure(Component.literal("Command can only be used by players."));
                                                     return 0;
                                                 }
                                                 
@@ -348,22 +350,22 @@ public class UGInit implements ModInitializer {
                                                     }
                                                 }
                                                 if (foundType == null) {
-                                                    source.sendError(Text.literal("Unknown golem type: " + typeName));
+                                                    source.sendFailure(Component.literal("Unknown golem type: " + typeName));
                                                     return 0;
                                                 }
                                                 final GolemType type = foundType;
 
                                                 boolean equipped = BoolArgumentType.getBool(context, "equipped");
 
-                                                ServerWorld world = source.getWorld();
+                                                ServerLevel world = source.getLevel();
                                                 EntityType<UtilityGolem> entityType = GOLEM_TYPES.get(type);
                                                 if (entityType == null) {
-                                                    source.sendError(Text.literal("Golem type not registered: " + type.getName()));
+                                                    source.sendFailure(Component.literal("Golem type not registered: " + type.getName()));
                                                     return 0;
                                                 }
 
                                                 UtilityGolem golem = new UtilityGolem(entityType, world, type);
-                                                golem.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), 0.0F);
+                                                golem.snapTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
                                                 
                                                 if (equipped) {
                                                     final ItemStack equipment = getStandardEquipment(type);
@@ -371,10 +373,10 @@ public class UGInit implements ModInitializer {
                                                         golem.setHeldItem(equipment);
                                                     }
                                                     // Give them some extra in inventory just in case
-                                                    golem.getInventory().addStack(equipment.copy());
+                                                    golem.getInventory().addItem(equipment.copy());
                                                 }
-                                                world.spawnEntity(golem);
-                                                source.sendFeedback(() -> Text.literal("Summoned " + type.getFriendlyName() + (equipped ? " (Equipped)" : "")), true);
+                                                world.addFreshEntity(golem);
+                                                source.sendSuccess(() -> Component.literal("Summoned " + type.getFriendlyName() + (equipped ? " (Equipped)" : "")), true);
                                                 return 1;
                                             })
                                     )
@@ -382,22 +384,22 @@ public class UGInit implements ModInitializer {
             );
         });
 
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(entries -> {
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
             for (GolemType type : GolemType.values()) {
-                entries.add(UGItems.GOLEM_SPAWN_EGGS.get(type));
+                entries.accept(UGItems.GOLEM_SPAWN_EGGS.get(type));
             }
         });
 
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> {
-            entries.add(UGItems.WRENCH_ITEM);
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.accept(UGItems.WRENCH_ITEM);
         });
 
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> {
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
             for (GolemType type : GolemType.values()) {
                 if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE || type == GolemType.MEDIC || type == GolemType.CACTUS) continue;
-                net.minecraft.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
+                net.minecraft.world.level.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
                 if (chest != null) {
-                    entries.add(chest);
+                    entries.accept(chest);
                 }
             }
         });
@@ -406,11 +408,11 @@ public class UGInit implements ModInitializer {
         for (GolemType type : GolemType.values()) {
             // Create the entity type
             EntityType<UtilityGolem> entityType = FabricEntityTypeBuilder.create(
-                            SpawnGroup.CREATURE,
-                            (EntityType<UtilityGolem> et, net.minecraft.world.World world) -> new UtilityGolem(et, world, type)
+                            MobCategory.CREATURE,
+                            (EntityType<UtilityGolem> et, net.minecraft.world.level.Level world) -> new UtilityGolem(et, world, type)
                     )
                     .dimensions(EntityDimensions.fixed(0.6F, 1.8F))
-                    .build(RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of(MOD_ID, type.getName())));
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(MOD_ID, type.getName())));
 
 
             GOLEM_TYPES.put(type, entityType);
@@ -420,8 +422,8 @@ public class UGInit implements ModInitializer {
 
             // Register in the global registry
             Registry.register(
-                    Registries.ENTITY_TYPE,
-                    Identifier.of(MOD_ID, type.getName()),
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MOD_ID, type.getName()),
                     entityType
             );
         }
@@ -430,9 +432,9 @@ public class UGInit implements ModInitializer {
 
 
     public static void syncDiscoveredTrades(UtilityGolem golem) {
-        if (!golem.getEntityWorld().isClient() && golem.getEntityWorld() instanceof ServerWorld) {
+        if (!golem.level().isClientSide() && golem.level() instanceof ServerLevel) {
             SyncDiscoveredTradesPayload payload = new SyncDiscoveredTradesPayload(golem.getId(), golem.getDiscoveredTrades());
-            for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(golem)) {
+            for (ServerPlayer player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(golem)) {
                 ServerPlayNetworking.send(player, payload);
             }
         }

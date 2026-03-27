@@ -1,17 +1,17 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 
 /**
  * Handles the 3x3 inventory UI for utility golems
  */
-public class GolemInventoryScreenHandler extends ScreenHandler {
+public class GolemInventoryScreenHandler extends AbstractContainerMenu {
 
     private static final int GOLEM_INV_SIZE = 9;
     private static final int HELD_ITEM_SLOT_INDEX = 9; // Slot index for held item in the UI
@@ -19,8 +19,8 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     private static final int PLAYER_INV_END = PLAYER_INV_START + 27;
     private static final int HOTBAR_END = PLAYER_INV_END + 9;
 
-    private final Inventory inventory;
-    private final Inventory heldItemInventory = new SimpleInventory(1);
+    private final Container inventory;
+    private final Container heldItemInventory = new SimpleContainer(1);
     private final UtilityGolem golem;
 
     public UtilityGolem getGolem() {
@@ -28,28 +28,28 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     // Client constructor
-    public GolemInventoryScreenHandler(int syncId, PlayerInventory playerInventory) {
-        this(syncId, playerInventory, new SimpleInventory(GOLEM_INV_SIZE), null);
+    public GolemInventoryScreenHandler(int syncId, Inventory playerInventory) {
+        this(syncId, playerInventory, new SimpleContainer(GOLEM_INV_SIZE), null);
     }
 
     // Server constructor
     public GolemInventoryScreenHandler(
             int syncId,
-            PlayerInventory playerInventory,
-            Inventory inventory,
+            Inventory playerInventory,
+            Container inventory,
             UtilityGolem golem
     ) {
         super(UGInit.GOLEM_SCREEN_HANDLER_TYPE, syncId);
-        checkSize(inventory, GOLEM_INV_SIZE);
+        checkContainerSize(inventory, GOLEM_INV_SIZE);
 
         this.inventory = inventory;
         this.golem = golem;
 
         if (golem != null) {
-            this.heldItemInventory.setStack(0, golem.getHeldItem());
+            this.heldItemInventory.setItem(0, golem.getHeldItem());
         }
 
-        inventory.onOpen(playerInventory.player);
+        inventory.startOpen(playerInventory.player);
 
         addGolemInventory(inventory);
         addHeldItemSlot();
@@ -62,30 +62,30 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     private class ReadOnlySlot extends Slot {
-        public ReadOnlySlot(Inventory inventory, int index, int x, int y) {
+        public ReadOnlySlot(Container inventory, int index, int x, int y) {
             super(inventory, index, x, y);
         }
 
         @Override
-        public boolean canInsert(ItemStack stack) {
+        public boolean mayPlace(ItemStack stack) {
             return false;
         }
 
         @Override
-        public boolean canTakeItems(PlayerEntity playerEntity) {
+        public boolean mayPickup(Player playerEntity) {
             return false;
         }
 
         @Override
-        public ItemStack getStack() {
+        public ItemStack getItem() {
             if (golem != null) {
                 return golem.getHeldItem();
             }
-            return super.getStack();
+            return super.getItem();
         }
     }
 
-    private void addGolemInventory(Inventory inventory) {
+    private void addGolemInventory(Container inventory) {
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 3; ++col) {
                 int index = col + row * 3;
@@ -100,27 +100,27 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     private class GolemSlot extends Slot {
-        public GolemSlot(Inventory inventory, int index, int x, int y) {
+        public GolemSlot(Container inventory, int index, int x, int y) {
             super(inventory, index, x, y);
         }
 
         @Override
-        public boolean canInsert(ItemStack stack) {
+        public boolean mayPlace(ItemStack stack) {
             if (golem != null && golem.getGolemType() == GolemType.HOPPER) {
                 for (int i = 0; i < GOLEM_INV_SIZE; i++) {
-                    if (i == this.getIndex()) continue;
-                    ItemStack otherStack = inventory.getStack(i);
+                    if (i == this.getContainerSlot()) continue;
+                    ItemStack otherStack = container.getItem(i);
                     // Use areItemsEqual to ignore NBT/components for Hopper Golem filtering slots
-                    if (!otherStack.isEmpty() && ItemStack.areItemsEqual(stack, otherStack)) {
+                    if (!otherStack.isEmpty() && ItemStack.isSameItem(stack, otherStack)) {
                         return false;
                     }
                 }
             }
-            return super.canInsert(stack);
+            return super.mayPlace(stack);
         }
     }
 
-    private void addPlayerInventory(PlayerInventory playerInventory) {
+    private void addPlayerInventory(Inventory playerInventory) {
         UtilityGolem golem = getGolem();
         int offset = 0;
         if (golem != null && (golem.getGolemType() == GolemType.DIAMOND || golem.getGolemType() == GolemType.EMERALD)) {
@@ -139,7 +139,7 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
         }
     }
 
-    private void addHotbar(PlayerInventory playerInventory) {
+    private void addHotbar(Inventory playerInventory) {
         UtilityGolem golem = getGolem();
         int offset = 0;
         if (golem != null && (golem.getGolemType() == GolemType.DIAMOND || golem.getGolemType() == GolemType.EMERALD)) {
@@ -157,57 +157,57 @@ public class GolemInventoryScreenHandler extends ScreenHandler {
     }
 
     @Override
-    public void sendContentUpdates() {
+    public void broadcastChanges() {
         if (this.golem != null) {
             ItemStack currentHeldItem = golem.getHeldItem();
-            if (!ItemStack.areEqual(this.heldItemInventory.getStack(0), currentHeldItem)) {
-                this.heldItemInventory.setStack(0, currentHeldItem.copy());
+            if (!ItemStack.matches(this.heldItemInventory.getItem(0), currentHeldItem)) {
+                this.heldItemInventory.setItem(0, currentHeldItem.copy());
             }
         }
-        super.sendContentUpdates();
+        super.broadcastChanges();
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
-        return inventory.canPlayerUse(player)
+    public boolean stillValid(Player player) {
+        return inventory.stillValid(player)
                 && (golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F));
     }
 
     @Override
-    public ItemStack quickMove(PlayerEntity player, int index) {
+    public ItemStack quickMoveStack(Player player, int index) {
         ItemStack result = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
 
-        if (slot != null && slot.hasStack()) {
-            ItemStack stack = slot.getStack();
+        if (slot != null && slot.hasItem()) {
+            ItemStack stack = slot.getItem();
             result = stack.copy();
 
             if (index < PLAYER_INV_START) {
-                if (!insertItem(stack, PLAYER_INV_START, HOTBAR_END, true)) {
+                if (!moveItemStackTo(stack, PLAYER_INV_START, HOTBAR_END, true)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!insertItem(stack, 0, GOLEM_INV_SIZE, false)) {
+            } else if (!moveItemStackTo(stack, 0, GOLEM_INV_SIZE, false)) {
                 return ItemStack.EMPTY;
             }
 
             if (stack.isEmpty()) {
-                slot.setStack(ItemStack.EMPTY);
+                slot.setByPlayer(ItemStack.EMPTY);
             } else {
-                slot.markDirty();
+                slot.setChanged();
             }
 
-            slot.onTakeItem(player, stack);
+            slot.onTake(player, stack);
         }
 
         return result;
     }
 
     @Override
-    public void onClosed(PlayerEntity player) {
-        super.onClosed(player);
-        this.inventory.onClose(player);
-        if (player.getEntityWorld() != null && this.inventory instanceof GolemChestBlockEntity golemChestBlockEntity) {
-            player.getEntityWorld().addSyncedBlockEvent(golemChestBlockEntity.getPos(), golemChestBlockEntity.getCachedState().getBlock(), 1, 0);
+    public void removed(Player player) {
+        super.removed(player);
+        this.inventory.stopOpen(player);
+        if (player.level() != null && this.inventory instanceof GolemChestBlockEntity golemChestBlockEntity) {
+            player.level().blockEvent(golemChestBlockEntity.getBlockPos(), golemChestBlockEntity.getBlockState().getBlock(), 1, 0);
         }
     }
 }

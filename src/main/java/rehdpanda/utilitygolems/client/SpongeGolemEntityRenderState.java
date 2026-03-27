@@ -1,7 +1,7 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+import net.minecraft.core.BlockPos;
 
 public class SpongeGolemEntityRenderState extends UtilityGolemRenderState {
     public BlockPos fishingTarget;

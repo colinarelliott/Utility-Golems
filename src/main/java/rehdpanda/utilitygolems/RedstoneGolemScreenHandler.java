@@ -1,18 +1,18 @@
 package rehdpanda.utilitygolems;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 
-public class RedstoneGolemScreenHandler extends ScreenHandler {
+public class RedstoneGolemScreenHandler extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
-    public RedstoneGolemScreenHandler(int syncId, PlayerInventory playerInventory) {
+    public RedstoneGolemScreenHandler(int syncId, Inventory playerInventory) {
         this(syncId, playerInventory, null);
     }
 
-    public RedstoneGolemScreenHandler(int syncId, PlayerInventory playerInventory, UtilityGolem golem) {
+    public RedstoneGolemScreenHandler(int syncId, Inventory playerInventory, UtilityGolem golem) {
         super(UGInit.REDSTONE_GOLEM_HANDLER, syncId);
         this.golem = golem;
 
@@ -34,12 +34,12 @@ public class RedstoneGolemScreenHandler extends ScreenHandler {
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
+    public boolean stillValid(Player player) {
         return (golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F));
     }
 
     @Override
-    public ItemStack quickMove(PlayerEntity player, int index) {
+    public ItemStack quickMoveStack(Player player, int index) {
         return ItemStack.EMPTY;
     }
 }

@@ -1,157 +1,162 @@
 // java
 package rehdpanda.utilitygolems;
 
-import net.minecraft.block.*;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityTicker;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.state.StateManager;
-import net.minecraft.state.property.EnumProperty;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.BlockMirror;
-import net.minecraft.util.BlockRotation;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.block.enums.ChestType;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.BlockView;
-import net.minecraft.block.ShapeContext;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 import rehdpanda.utilitygolems.GolemChestBlockEntity;
 
 import java.util.function.Supplier;
 
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.WorldView;
-import net.minecraft.world.tick.ScheduledTickView;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 
-import net.minecraft.util.ItemScatterer;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.DoubleInventory;
-import net.minecraft.inventory.Inventory;
+import net.minecraft.world.Containers;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.Container;
 
-public class GolemChestBlock extends Block implements BlockEntityProvider {
-    public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
-    public static final EnumProperty<ChestType> CHEST_TYPE = Properties.CHEST_TYPE;
-    public static final net.minecraft.state.property.BooleanProperty STRIPPED = net.minecraft.state.property.BooleanProperty.of("stripped");
+public class GolemChestBlock extends Block implements EntityBlock {
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<ChestType> CHEST_TYPE = BlockStateProperties.CHEST_TYPE;
+    public static final net.minecraft.world.level.block.state.properties.BooleanProperty STRIPPED = net.minecraft.world.level.block.state.properties.BooleanProperty.create("stripped");
 
-    public GolemChestBlock(AbstractBlock.Settings settings) {
+    public GolemChestBlock(BlockBehaviour.Properties settings) {
         super(settings);
-        this.setDefaultState(this.stateManager.getDefaultState().with(FACING, Direction.NORTH).with(CHEST_TYPE, ChestType.SINGLE).with(STRIPPED, false));
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(CHEST_TYPE, ChestType.SINGLE).setValue(STRIPPED, false));
     }
 
     @Override
-    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, CHEST_TYPE, STRIPPED);
     }
 
     @Override
-    public BlockState getPlacementState(ItemPlacementContext ctx) {
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         ChestType chestType = ChestType.SINGLE;
-        Direction direction = ctx.getHorizontalPlayerFacing().getOpposite();
-        Direction direction2 = ctx.getSide();
-        boolean bl = ctx.shouldCancelInteraction();
+        Direction direction = ctx.getHorizontalDirection().getOpposite();
+        Direction direction2 = ctx.getClickedFace();
+        boolean bl = ctx.isSecondaryUseActive();
         if (direction2.getAxis().isHorizontal() && bl) {
             Direction direction3 = this.getNeighborChestDirection(ctx, direction2.getOpposite());
             if (direction3 != null && direction3.getAxis() != direction2.getAxis()) {
                 direction = direction3;
-                chestType = direction3.rotateYCounterclockwise() == direction2.getOpposite() ? ChestType.RIGHT : ChestType.LEFT;
+                chestType = direction3.getCounterClockWise() == direction2.getOpposite() ? ChestType.RIGHT : ChestType.LEFT;
             }
         }
         if (chestType == ChestType.SINGLE) {
-            Direction direction4 = this.getNeighborChestDirection(ctx, direction.rotateYClockwise());
+            Direction direction4 = this.getNeighborChestDirection(ctx, direction.getClockWise());
             if (direction4 != null && direction4.getAxis() == direction.getAxis()) {
                 chestType = ChestType.LEFT;
             } else {
-                Direction direction5 = this.getNeighborChestDirection(ctx, direction.rotateYCounterclockwise());
+                Direction direction5 = this.getNeighborChestDirection(ctx, direction.getCounterClockWise());
                 if (direction5 != null && direction5.getAxis() == direction.getAxis()) {
                     chestType = ChestType.RIGHT;
                 }
             }
         }
-        return this.getDefaultState().with(FACING, direction).with(CHEST_TYPE, chestType).with(STRIPPED, false);
+        return this.defaultBlockState().setValue(FACING, direction).setValue(CHEST_TYPE, chestType).setValue(STRIPPED, false);
     }
 
     @Nullable
-    private Direction getNeighborChestDirection(ItemPlacementContext ctx, Direction dir) {
-        BlockState blockState = ctx.getWorld().getBlockState(ctx.getBlockPos().offset(dir));
-        return blockState.isOf(this) && blockState.get(CHEST_TYPE) == ChestType.SINGLE && blockState.get(STRIPPED) == false ? blockState.get(FACING) : null;
+    private Direction getNeighborChestDirection(BlockPlaceContext ctx, Direction dir) {
+        BlockState blockState = ctx.getLevel().getBlockState(ctx.getClickedPos().relative(dir));
+        return blockState.is(this) && blockState.getValue(CHEST_TYPE) == ChestType.SINGLE && blockState.getValue(STRIPPED) == false ? blockState.getValue(FACING) : null;
     }
 
     @Override
-    protected BlockState getStateForNeighborUpdate(BlockState state, WorldView world, ScheduledTickView tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, @Nullable Random random) {
-        if (neighborState.isOf(this) && direction.getAxis().isHorizontal()) {
-            ChestType neighborType = neighborState.get(CHEST_TYPE);
-            if (state.get(CHEST_TYPE) == ChestType.SINGLE) {
-                if (neighborType != ChestType.SINGLE && state.get(FACING) == neighborState.get(FACING) && getFacing(neighborState) == direction.getOpposite() && state.get(STRIPPED) == neighborState.get(STRIPPED)) {
-                    return state.with(CHEST_TYPE, neighborType.getOpposite());
+    protected BlockState updateShape(BlockState state, LevelReader world, ScheduledTickAccess tickView, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, @Nullable RandomSource random) {
+        if (neighborState.is(this) && direction.getAxis().isHorizontal()) {
+            ChestType neighborType = neighborState.getValue(CHEST_TYPE);
+            if (state.getValue(CHEST_TYPE) == ChestType.SINGLE) {
+                if (neighborType != ChestType.SINGLE && state.getValue(FACING) == neighborState.getValue(FACING) && getFacing(neighborState) == direction.getOpposite() && state.getValue(STRIPPED) == neighborState.getValue(STRIPPED)) {
+                    return state.setValue(CHEST_TYPE, neighborType.getOpposite());
                 }
             } else if (direction == getFacing(state)) {
-                if (neighborState.get(FACING) != state.get(FACING) || neighborType != state.get(CHEST_TYPE).getOpposite() || state.get(STRIPPED) != neighborState.get(STRIPPED)) {
-                    return state.with(CHEST_TYPE, ChestType.SINGLE);
+                if (neighborState.getValue(FACING) != state.getValue(FACING) || neighborType != state.getValue(CHEST_TYPE).getOpposite() || state.getValue(STRIPPED) != neighborState.getValue(STRIPPED)) {
+                    return state.setValue(CHEST_TYPE, ChestType.SINGLE);
                 }
             }
-        } else if (state.get(CHEST_TYPE) != ChestType.SINGLE && direction == getFacing(state)) {
-            return state.with(CHEST_TYPE, ChestType.SINGLE);
+        } else if (state.getValue(CHEST_TYPE) != ChestType.SINGLE && direction == getFacing(state)) {
+            return state.setValue(CHEST_TYPE, ChestType.SINGLE);
         }
-        return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
+        return super.updateShape(state, world, tickView, pos, direction, neighborPos, neighborState, random);
     }
 
     public static Direction getFacing(BlockState state) {
-        Direction direction = state.get(FACING);
-        return state.get(CHEST_TYPE) == ChestType.LEFT ? direction.rotateYClockwise() : direction.rotateYCounterclockwise();
+        Direction direction = state.getValue(FACING);
+        return state.getValue(CHEST_TYPE) == ChestType.LEFT ? direction.getClockWise() : direction.getCounterClockWise();
     }
 
     @Override
-    public BlockState rotate(BlockState state, BlockRotation rotation) {
-        return state.with(FACING, rotation.rotate(state.get(FACING)));
+    public BlockState rotate(BlockState state, Rotation rotation) {
+        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
     }
 
     @Override
-    public BlockState mirror(BlockState state, BlockMirror mirror) {
-        return state.rotate(mirror.getRotation(state.get(FACING)));
+    public BlockState mirror(BlockState state, Mirror mirror) {
+        return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
 
-    private static final VoxelShape SHAPE = Block.createCuboidShape(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
+    private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
 
     @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Override
-    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new GolemChestBlockEntity(pos, state);
     }
 
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
         if (type == UGBlocks.GOLEM_CHEST_BLOCK_ENTITY) {
-            if (world.isClient()) {
-                return (world1, pos, state1, blockEntity) -> ChestBlockEntity.clientTick(world1, pos, state1, (GolemChestBlockEntity) blockEntity);
+            if (world.isClientSide()) {
+                return (world1, pos, state1, blockEntity) -> ChestBlockEntity.lidAnimateTick(world1, pos, state1, (GolemChestBlockEntity) blockEntity);
             } else {
                 return (world1, pos, state1, blockEntity) -> GolemChestBlockEntity.serverTick(world1, pos, state1, (GolemChestBlockEntity) blockEntity);
             }
@@ -160,20 +165,20 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
     }
 
     @Override
-    protected boolean onSyncedBlockEvent(BlockState state, World world, BlockPos pos, int type, int data) {
+    protected boolean triggerEvent(BlockState state, Level world, BlockPos pos, int type, int data) {
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if (blockEntity instanceof GolemChestBlockEntity) {
-            boolean result = blockEntity.onSyncedBlockEvent(type, data);
+            boolean result = blockEntity.triggerEvent(type, data);
             
             // Handle double chest synchronization
-            ChestType chestType = state.get(CHEST_TYPE);
+            ChestType chestType = state.getValue(CHEST_TYPE);
             if (chestType != ChestType.SINGLE) {
-                BlockPos otherPos = pos.offset(getFacing(state));
+                BlockPos otherPos = pos.relative(getFacing(state));
                 BlockState otherState = world.getBlockState(otherPos);
-                if (otherState.isOf(state.getBlock()) && otherState.get(CHEST_TYPE) == chestType.getOpposite()) {
+                if (otherState.is(state.getBlock()) && otherState.getValue(CHEST_TYPE) == chestType.getOpposite()) {
                     BlockEntity otherBE = world.getBlockEntity(otherPos);
                     if (otherBE instanceof GolemChestBlockEntity) {
-                        otherBE.onSyncedBlockEvent(type, data);
+                        otherBE.triggerEvent(type, data);
                     }
                 }
             }
@@ -184,44 +189,44 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
 
 
     @Override
-    protected void onStateReplaced(BlockState state, net.minecraft.server.world.ServerWorld world, BlockPos pos, boolean moved) {
+    protected void affectNeighborsAfterRemoval(BlockState state, net.minecraft.server.level.ServerLevel world, BlockPos pos, boolean moved) {
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if (blockEntity instanceof GolemChestBlockEntity) {
-            ItemScatterer.spawn(world, pos, (GolemChestBlockEntity)blockEntity);
-            world.updateComparators(pos, this);
+            Containers.dropContents(world, pos, (GolemChestBlockEntity)blockEntity);
+            world.updateNeighbourForOutputSignal(pos, this);
         }
-        super.onStateReplaced(state, world, pos, moved);
+        super.affectNeighborsAfterRemoval(state, world, pos, moved);
     }
 
     @Override
-    protected ActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-        if (state.isOf(UGBlocks.GOLEM_CHESTS.get(GolemType.BAMBOO)) && !state.get(STRIPPED) && stack.getItem() instanceof net.minecraft.item.AxeItem) {
-            if (!world.isClient()) {
-                world.setBlockState(pos, state.with(STRIPPED, true), 3);
-                world.playSound(null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                if (!player.getAbilities().creativeMode) {
-                    stack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+    protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (state.is(UGBlocks.GOLEM_CHESTS.get(GolemType.BAMBOO)) && !state.getValue(STRIPPED) && stack.getItem() instanceof net.minecraft.world.item.AxeItem) {
+            if (!world.isClientSide()) {
+                world.setBlock(pos, state.setValue(STRIPPED, true), 3);
+                world.playSound(null, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 1.0F, 1.0F);
+                if (!player.getAbilities().instabuild) {
+                    stack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                 }
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
-        return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
+        return super.useItemOn(stack, state, world, pos, player, hand, hit);
     }
 
     @Override
-    protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (world.isClient()) {
-            return ActionResult.SUCCESS;
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        if (world.isClientSide()) {
+            return InteractionResult.SUCCESS;
         } else {
-            Inventory inventory = GolemChestBlockEntity.getInventory(this, state, world, pos, false);
+            Container inventory = GolemChestBlockEntity.getInventory(this, state, world, pos, false);
             if (inventory != null) {
                 boolean isDead = false;
-                if (inventory instanceof DoubleInventory doubleInventory) {
+                if (inventory instanceof CompoundContainer doubleInventory) {
                     // Check both halves
                     if (world.getBlockEntity(pos) instanceof GolemChestBlockEntity be && be.isGolemDead()) {
                         isDead = true;
                     } else {
-                        BlockPos otherPos = pos.offset(getFacing(state));
+                        BlockPos otherPos = pos.relative(getFacing(state));
                         if (world.getBlockEntity(otherPos) instanceof GolemChestBlockEntity otherBe && otherBe.isGolemDead()) {
                             isDead = true;
                         }
@@ -232,26 +237,26 @@ public class GolemChestBlock extends Block implements BlockEntityProvider {
                 }
                 
                 final boolean finalIsDead = isDead;
-                player.openHandledScreen(new net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory<UGInit.GolemChestPayload>() {
+                player.openMenu(new net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory<UGInit.GolemChestPayload>() {
                     @Override
-                    public UGInit.GolemChestPayload getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
-                        return new UGInit.GolemChestPayload(pos, finalIsDead, inventory.size());
+                    public UGInit.GolemChestPayload getScreenOpeningData(net.minecraft.server.level.ServerPlayer player) {
+                        return new UGInit.GolemChestPayload(pos, finalIsDead, inventory.getContainerSize());
                     }
 
                     @Override
-                    public Text getDisplayName() {
-                        return inventory instanceof DoubleInventory 
-                            ? Text.translatable(state.getBlock().getTranslationKey().replace("block.", "container.") + "_double")
-                            : Text.translatable(state.getBlock().getTranslationKey());
+                    public Component getDisplayName() {
+                        return inventory instanceof CompoundContainer
+                            ? Component.translatable(state.getBlock().getDescriptionId().replace("block.", "container.") + "_double")
+                            : Component.translatable(state.getBlock().getDescriptionId());
                     }
 
                     @Override
-                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                    public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
                         return new GolemChestScreenHandler(syncId, playerInventory, inventory, pos, finalIsDead);
                     }
                 });
             }
-            return ActionResult.CONSUME;
+            return InteractionResult.CONSUME;
         }
     }
 }

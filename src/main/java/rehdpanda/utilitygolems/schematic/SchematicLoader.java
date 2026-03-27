@@ -1,8 +1,8 @@
 package rehdpanda.utilitygolems.schematic;
 
-import net.minecraft.block.Block;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -111,9 +111,9 @@ public class SchematicLoader {
                     // Handle possible minecraft: prefix
                     if (!blockName.contains(":")) blockName = "minecraft:" + blockName;
 
-                    Identifier idf = Identifier.tryParse(blockName);
+                    ResourceLocation idf = ResourceLocation.tryParse(blockName);
                     if (idf != null) {
-                        Block block = Registries.BLOCK.get(idf);
+                        Block block = BuiltInRegistries.BLOCK.getValue(idf);
                         palette.put(id, block);
                     }
                 }
@@ -211,40 +211,40 @@ public class SchematicLoader {
     private static Block mapLegacyIdToBlock(int id) {
         // Very basic legacy mapping for common building blocks
         switch (id) {
-            case 0: return net.minecraft.block.Blocks.AIR;
-            case 1: return net.minecraft.block.Blocks.STONE;
-            case 2: return net.minecraft.block.Blocks.GRASS_BLOCK;
-            case 3: return net.minecraft.block.Blocks.DIRT;
-            case 4: return net.minecraft.block.Blocks.COBBLESTONE;
-            case 5: return net.minecraft.block.Blocks.OAK_PLANKS;
-            case 6: return net.minecraft.block.Blocks.OAK_SAPLING;
-            case 7: return net.minecraft.block.Blocks.BEDROCK;
-            case 12: return net.minecraft.block.Blocks.SAND;
-            case 13: return net.minecraft.block.Blocks.GRAVEL;
-            case 14: return net.minecraft.block.Blocks.GOLD_ORE;
-            case 15: return net.minecraft.block.Blocks.IRON_ORE;
-            case 16: return net.minecraft.block.Blocks.COAL_ORE;
-            case 17: return net.minecraft.block.Blocks.OAK_LOG;
-            case 18: return net.minecraft.block.Blocks.OAK_LEAVES;
-            case 20: return net.minecraft.block.Blocks.GLASS;
-            case 24: return net.minecraft.block.Blocks.SANDSTONE;
-            case 35: return net.minecraft.block.Blocks.WHITE_WOOL;
-            case 41: return net.minecraft.block.Blocks.GOLD_BLOCK;
-            case 42: return net.minecraft.block.Blocks.IRON_BLOCK;
-            case 43: return net.minecraft.block.Blocks.STONE_SLAB;
-            case 44: return net.minecraft.block.Blocks.STONE_SLAB;
-            case 45: return net.minecraft.block.Blocks.BRICKS;
-            case 48: return net.minecraft.block.Blocks.MOSSY_COBBLESTONE;
-            case 49: return net.minecraft.block.Blocks.OBSIDIAN;
-            case 56: return net.minecraft.block.Blocks.DIAMOND_ORE;
-            case 57: return net.minecraft.block.Blocks.DIAMOND_BLOCK;
-            case 87: return net.minecraft.block.Blocks.NETHERRACK;
-            case 88: return net.minecraft.block.Blocks.SOUL_SAND;
-            case 89: return net.minecraft.block.Blocks.GLOWSTONE;
-            case 98: return net.minecraft.block.Blocks.STONE_BRICKS;
-            case 121: return net.minecraft.block.Blocks.END_STONE;
-            case 155: return net.minecraft.block.Blocks.QUARTZ_BLOCK;
-            default: return net.minecraft.block.Blocks.STONE; // Fallback
+            case 0: return net.minecraft.world.level.block.Blocks.AIR;
+            case 1: return net.minecraft.world.level.block.Blocks.STONE;
+            case 2: return net.minecraft.world.level.block.Blocks.GRASS_BLOCK;
+            case 3: return net.minecraft.world.level.block.Blocks.DIRT;
+            case 4: return net.minecraft.world.level.block.Blocks.COBBLESTONE;
+            case 5: return net.minecraft.world.level.block.Blocks.OAK_PLANKS;
+            case 6: return net.minecraft.world.level.block.Blocks.OAK_SAPLING;
+            case 7: return net.minecraft.world.level.block.Blocks.BEDROCK;
+            case 12: return net.minecraft.world.level.block.Blocks.SAND;
+            case 13: return net.minecraft.world.level.block.Blocks.GRAVEL;
+            case 14: return net.minecraft.world.level.block.Blocks.GOLD_ORE;
+            case 15: return net.minecraft.world.level.block.Blocks.IRON_ORE;
+            case 16: return net.minecraft.world.level.block.Blocks.COAL_ORE;
+            case 17: return net.minecraft.world.level.block.Blocks.OAK_LOG;
+            case 18: return net.minecraft.world.level.block.Blocks.OAK_LEAVES;
+            case 20: return net.minecraft.world.level.block.Blocks.GLASS;
+            case 24: return net.minecraft.world.level.block.Blocks.SANDSTONE;
+            case 35: return net.minecraft.world.level.block.Blocks.WHITE_WOOL;
+            case 41: return net.minecraft.world.level.block.Blocks.GOLD_BLOCK;
+            case 42: return net.minecraft.world.level.block.Blocks.IRON_BLOCK;
+            case 43: return net.minecraft.world.level.block.Blocks.STONE_SLAB;
+            case 44: return net.minecraft.world.level.block.Blocks.STONE_SLAB;
+            case 45: return net.minecraft.world.level.block.Blocks.BRICKS;
+            case 48: return net.minecraft.world.level.block.Blocks.MOSSY_COBBLESTONE;
+            case 49: return net.minecraft.world.level.block.Blocks.OBSIDIAN;
+            case 56: return net.minecraft.world.level.block.Blocks.DIAMOND_ORE;
+            case 57: return net.minecraft.world.level.block.Blocks.DIAMOND_BLOCK;
+            case 87: return net.minecraft.world.level.block.Blocks.NETHERRACK;
+            case 88: return net.minecraft.world.level.block.Blocks.SOUL_SAND;
+            case 89: return net.minecraft.world.level.block.Blocks.GLOWSTONE;
+            case 98: return net.minecraft.world.level.block.Blocks.STONE_BRICKS;
+            case 121: return net.minecraft.world.level.block.Blocks.END_STONE;
+            case 155: return net.minecraft.world.level.block.Blocks.QUARTZ_BLOCK;
+            default: return net.minecraft.world.level.block.Blocks.STONE; // Fallback
         }
     }
 
@@ -280,7 +280,7 @@ public class SchematicLoader {
 
             try {
                 // Method 1: readCompressed(Path, NbtSizeTracker) - common in 1.20.5+
-                return nbtIo.getMethod("readCompressed", Path.class, net.minecraft.nbt.NbtSizeTracker.class).invoke(null, file, net.minecraft.nbt.NbtSizeTracker.ofUnlimitedBytes());
+                return nbtIo.getMethod("readCompressed", Path.class, net.minecraft.nbt.NbtAccounter.class).invoke(null, file, net.minecraft.nbt.NbtAccounter.unlimitedHeap());
             } catch (Throwable e) {
                 // System.out.println("[DEBUG_LOG] NbtIo.readCompressed(Path, NbtSizeTracker) failed: " + e.getMessage());
             }
@@ -295,7 +295,7 @@ public class SchematicLoader {
             try {
                 // Method 3: readCompressed(InputStream, NbtSizeTracker)
                 try (InputStream is = Files.newInputStream(file)) {
-                    return nbtIo.getMethod("readCompressed", InputStream.class, net.minecraft.nbt.NbtSizeTracker.class).invoke(null, is, net.minecraft.nbt.NbtSizeTracker.ofUnlimitedBytes());
+                    return nbtIo.getMethod("readCompressed", InputStream.class, net.minecraft.nbt.NbtAccounter.class).invoke(null, is, net.minecraft.nbt.NbtAccounter.unlimitedHeap());
                 }
             } catch (Throwable e) {
                 // System.out.println("[DEBUG_LOG] NbtIo.readCompressed(InputStream, NbtSizeTracker) failed: " + e.getMessage());

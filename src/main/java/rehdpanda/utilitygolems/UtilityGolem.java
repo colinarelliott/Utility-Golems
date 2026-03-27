@@ -1,67 +1,72 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiClass
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package rehdpanda.utilitygolems;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.JukeboxPlayableComponent;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.*;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.goal.GoalSelector;
-import net.minecraft.entity.ai.goal.SwimGoal;
-import net.minecraft.entity.ai.goal.TemptGoal;
-import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.ai.pathing.MobNavigation;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.passive.CopperGolemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.LocalDifficulty;
-import net.minecraft.world.ServerWorldAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldEvents;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.npc.InventoryCarrier;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.JukeboxPlayable;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.TemptGoal;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.world.effect.MobEffectInstance;
+import rehdpanda.utilitygolems.UtilityGolem;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LevelEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 // Base class for Utility Golems
-public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
+import net.minecraft.world.entity.PathfinderMob;
+public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
     private final GolemType golemType;
-    private static final TrackedData<Integer> XP_SCORE = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final EntityDataAccessor<Integer> XP_SCORE = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
-    private final SimpleInventory inventory = new SimpleInventory(9);
-    private final SimpleInventory furnaceInventory = new SimpleInventory(3);
-    private final SimpleInventory jukeboxInventory = new SimpleInventory(9);
+    private final SimpleContainer inventory = new SimpleContainer(9);
+    private final SimpleContainer furnaceInventory = new SimpleContainer(3);
+    private final SimpleContainer jukeboxInventory = new SimpleContainer(9);
     private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
     private BlockPos jukeboxStartPos = null;
@@ -73,7 +78,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private int cookTimeTotal;
     private BlockPos lastLightPos;
 
-    private final net.minecraft.screen.PropertyDelegate furnacePropertyDelegate = new net.minecraft.screen.PropertyDelegate() {
+    private final net.minecraft.world.inventory.ContainerData furnacePropertyDelegate = new net.minecraft.world.inventory.ContainerData() {
         @Override
         public int get(int index) {
             return switch (index) {
@@ -96,36 +101,36 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         @Override
-        public int size() {
+        public int getCount() {
             return 4;
         }
     };
 
-    private static final TrackedData<Optional<BlockPos>> FISHING_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
-    private static final TrackedData<Optional<BlockPos>> DEBUG_TARGET = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_POS);
-    private static final TrackedData<Integer> SELECTED_PATTERN = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> WALL_WIDTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> WALL_LENGTH = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Boolean> BUILDING_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> LAMP_ON = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> STRIPPED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final EntityDataAccessor<Optional<BlockPos>> FISHING_TARGET = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Optional<BlockPos>> DEBUG_TARGET = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Integer> SELECTED_PATTERN = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> WALL_WIDTH = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> WALL_LENGTH = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> BUILDING_STARTED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> LAMP_ON = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> STRIPPED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
     private int attackCooldown = 0;
-    private static final TrackedData<ItemStack> SELECTED_BUY_ITEM = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.ITEM_STACK);
-    private static final TrackedData<String> SCHEMATIC_NAME = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
-    private static final TrackedData<Integer> MINING_DIRECTION = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Boolean> SMELTING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> JUKEBOX_PLAYING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> JUKEBOX_SHUFFLE = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> JUKEBOX_REPEAT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final EntityDataAccessor<ItemStack> SELECTED_BUY_ITEM = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.ITEM_STACK);
+    private static final EntityDataAccessor<String> SCHEMATIC_NAME = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> MINING_DIRECTION = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> SMELTING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_PLAYING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_SHUFFLE = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_REPEAT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
 
     // Animation state syncing (server -> client)
-    private static final TrackedData<Integer> ANIMATION_ID = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> ANIMATION_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> ANIMATION_START_TICKS = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Boolean> REDSTONE_PROGRAM_STARTED = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Integer> DELETED_ITEMS_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> GOLD_TRADE_COUNT = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<String> OWNER_UUID_STRING = DataTracker.registerData(UtilityGolem.class, TrackedDataHandlerRegistry.STRING);
+    private static final EntityDataAccessor<Integer> ANIMATION_ID = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ANIMATION_TICKS = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ANIMATION_START_TICKS = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> REDSTONE_PROGRAM_STARTED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DELETED_ITEMS_COUNT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> GOLD_TRADE_COUNT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> OWNER_UUID_STRING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
 
     public record RedstoneInteraction(BlockPos pos, int interval) {}
     private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
@@ -145,11 +150,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public boolean isRedstoneProgramStarted() {
-        return this.dataTracker.get(REDSTONE_PROGRAM_STARTED);
+        return this.entityData.get(REDSTONE_PROGRAM_STARTED);
     }
 
     public void setRedstoneProgramStarted(boolean started) {
-        this.dataTracker.set(REDSTONE_PROGRAM_STARTED, started);
+        this.entityData.set(REDSTONE_PROGRAM_STARTED, started);
         if (started) {
             this.redstoneTickCounter = 0;
         }
@@ -172,11 +177,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public int getDeletedItemsCount() {
-        return this.dataTracker.get(DELETED_ITEMS_COUNT);
+        return this.entityData.get(DELETED_ITEMS_COUNT);
     }
 
     public void setDeletedItemsCount(int count) {
-        this.dataTracker.set(DELETED_ITEMS_COUNT, count);
+        this.entityData.set(DELETED_ITEMS_COUNT, count);
     }
 
     public void incrementDeletedItemsCount(int amount) {
@@ -184,15 +189,15 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public int getGoldTradeCount() {
-        return this.dataTracker.get(GOLD_TRADE_COUNT);
+        return this.entityData.get(GOLD_TRADE_COUNT);
     }
 
     public void setGoldTradeCount(int count) {
-        this.dataTracker.set(GOLD_TRADE_COUNT, count);
+        this.entityData.set(GOLD_TRADE_COUNT, count);
     }
 
     public Optional<UUID> getOwnerUuid() {
-        String uuidStr = this.dataTracker.get(OWNER_UUID_STRING);
+        String uuidStr = this.entityData.get(OWNER_UUID_STRING);
         if (uuidStr == null || uuidStr.isEmpty()) {
             return Optional.empty();
         }
@@ -204,7 +209,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public void setOwnerUuid(@Nullable UUID uuid) {
-        this.dataTracker.set(OWNER_UUID_STRING, uuid == null ? "" : uuid.toString());
+        this.entityData.set(OWNER_UUID_STRING, uuid == null ? "" : uuid.toString());
     }
 
     public void incrementGoldTradeCount() {
@@ -212,11 +217,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public int getXpScore() {
-        return this.dataTracker.get(XP_SCORE);
+        return this.entityData.get(XP_SCORE);
     }
 
     public void setXpScore(int score) {
-        this.dataTracker.set(XP_SCORE, score);
+        this.entityData.set(XP_SCORE, score);
     }
 
     public void incrementXpScore(int amount) {
@@ -228,65 +233,65 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        super.initDataTracker(builder);
-        builder.add(XP_SCORE, 0);
-        builder.add(FISHING_TARGET, Optional.empty());
-        builder.add(DEBUG_TARGET, Optional.empty());
-        builder.add(SELECTED_PATTERN, 0);
-        builder.add(WALL_WIDTH, 3);
-        builder.add(WALL_LENGTH, 3);
-        builder.add(BUILDING_STARTED, false);
-        builder.add(LAMP_ON, false);
-        builder.add(STRIPPED, false);
-        builder.add(SELECTED_BUY_ITEM, ItemStack.EMPTY);
-        builder.add(SCHEMATIC_NAME, "");
-        builder.add(MINING_DIRECTION, -1);
-        builder.add(SMELTING, false);
-        builder.add(JUKEBOX_PLAYING, false);
-        builder.add(JUKEBOX_SHUFFLE, false);
-        builder.add(JUKEBOX_REPEAT, false);
-        builder.add(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
-        builder.add(ANIMATION_TICKS, 0);
-        builder.add(ANIMATION_START_TICKS, 0);
-        builder.add(REDSTONE_PROGRAM_STARTED, false);
-        builder.add(DELETED_ITEMS_COUNT, 0);
-        builder.add(GOLD_TRADE_COUNT, 0);
-        builder.add(OWNER_UUID_STRING, "");
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(XP_SCORE, 0);
+        builder.define(FISHING_TARGET, Optional.empty());
+        builder.define(DEBUG_TARGET, Optional.empty());
+        builder.define(SELECTED_PATTERN, 0);
+        builder.define(WALL_WIDTH, 3);
+        builder.define(WALL_LENGTH, 3);
+        builder.define(BUILDING_STARTED, false);
+        builder.define(LAMP_ON, false);
+        builder.define(STRIPPED, false);
+        builder.define(SELECTED_BUY_ITEM, ItemStack.EMPTY);
+        builder.define(SCHEMATIC_NAME, "");
+        builder.define(MINING_DIRECTION, -1);
+        builder.define(SMELTING, false);
+        builder.define(JUKEBOX_PLAYING, false);
+        builder.define(JUKEBOX_SHUFFLE, false);
+        builder.define(JUKEBOX_REPEAT, false);
+        builder.define(ANIMATION_ID, GolemAnimation.IDLE.ordinal());
+        builder.define(ANIMATION_TICKS, 0);
+        builder.define(ANIMATION_START_TICKS, 0);
+        builder.define(REDSTONE_PROGRAM_STARTED, false);
+        builder.define(DELETED_ITEMS_COUNT, 0);
+        builder.define(GOLD_TRADE_COUNT, 0);
+        builder.define(OWNER_UUID_STRING, "");
     }
 
     public GolemAnimation getAnimation() {
-        int id = this.dataTracker.get(ANIMATION_ID);
+        int id = this.entityData.get(ANIMATION_ID);
         if (id < 0 || id >= GolemAnimation.values().length) return GolemAnimation.IDLE;
         return GolemAnimation.values()[id];
     }
 
     public void setAnimation(GolemAnimation animation, int durationTicks) {
-        this.dataTracker.set(ANIMATION_ID, animation == null ? GolemAnimation.IDLE.ordinal() : animation.ordinal());
-        this.dataTracker.set(ANIMATION_TICKS, Math.max(0, durationTicks));
-        this.dataTracker.set(ANIMATION_START_TICKS, Math.max(1, durationTicks));
+        this.entityData.set(ANIMATION_ID, animation == null ? GolemAnimation.IDLE.ordinal() : animation.ordinal());
+        this.entityData.set(ANIMATION_TICKS, Math.max(0, durationTicks));
+        this.entityData.set(ANIMATION_START_TICKS, Math.max(1, durationTicks));
 
-        // Sync with CopperGolemEntity states for built-in animations
+        // Sync with UtilityGolemEntity states for built-in animations
         if (animation == GolemAnimation.SPINNING_HEAD) {
-            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+            this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.IDLE);
             // Trigger the spin head animation by setting the age to match the timer
             // Since we can't set the private field, we just let it happen naturally if possible,
             // or we might need a mixin if we really want to force it.
-            // But wait, CopperGolemEntity's clientTick handles it.
+            // But wait, UtilityGolemEntity's clientTick handles it.
         } else if (animation == GolemAnimation.DEPOSITING) {
-            this.setState(net.minecraft.entity.passive.CopperGolemState.DROPPING_ITEM);
+            this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.DROPPING_ITEM);
         } else if (animation == GolemAnimation.WITHDRAWING) {
-            this.setState(net.minecraft.entity.passive.CopperGolemState.GETTING_ITEM);
+            this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.GETTING_ITEM);
         } else if (animation == GolemAnimation.PRESSING_BUTTON) {
             // No longer mapping to DROPPING_ITEM to allow custom rendering
-            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+            this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.IDLE);
         } else if (animation == GolemAnimation.IDLE) {
-            this.setState(net.minecraft.entity.passive.CopperGolemState.IDLE);
+            this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.IDLE);
         }
     }
 
     public int getAnimationTicks() {
-        return this.dataTracker.get(ANIMATION_TICKS);
+        return this.entityData.get(ANIMATION_TICKS);
     }
 
     public float getAnimationProgress(float tickDelta) {
@@ -297,23 +302,23 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         if (anim == GolemAnimation.DIGGING || anim == GolemAnimation.CHOPPING || anim == GolemAnimation.FARMING || 
             anim == GolemAnimation.FISHING || anim == GolemAnimation.PLAYING_MUSIC) {
             // Loop every 20 ticks
-            return ((this.getEntityWorld().getTime() % 20) + tickDelta) / 20.0f;
+            return ((this.level().getGameTime() % 20) + tickDelta) / 20.0f;
         }
 
         // Normalize into [0..1], counting down
-        int startTicks = this.dataTracker.get(ANIMATION_START_TICKS);
+        int startTicks = this.entityData.get(ANIMATION_START_TICKS);
         return Math.max(0f, Math.min(1f, 1f - (ticks - tickDelta) / Math.max(1f, (float)startTicks)));
     }
 
     public void debugLog(String message) {
         if (this.hasCustomName()) {
-            Text customName = this.getCustomName();
+            Component customName = this.getCustomName();
             if (customName != null && customName.getString().toUpperCase().contains("DEBUG")) {
-                World world = this.getEntityWorld();
-                if (!world.isClient()) {
-                    List<PlayerEntity> players = world.getEntitiesByClass(PlayerEntity.class, this.getBoundingBox().expand(16.0D), player -> true);
-                    for (PlayerEntity player : players) {
-                        player.sendMessage(Text.literal("[DEBUG] " + message), false);
+                Level world = this.level();
+                if (!world.isClientSide()) {
+                    List<Player> players = world.getEntitiesOfClass(Player.class, this.getBoundingBox().inflate(16.0D), player -> true);
+                    for (Player player : players) {
+                        player.displayClientMessage(Component.literal("[DEBUG] " + message), false);
                     }
                 }
             }
@@ -321,108 +326,108 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public void setBuildingStarted(boolean started) {
-        this.dataTracker.set(BUILDING_STARTED, started);
+        this.entityData.set(BUILDING_STARTED, started);
     }
 
     public boolean isBuildingStarted() {
-        return this.dataTracker.get(BUILDING_STARTED);
+        return this.entityData.get(BUILDING_STARTED);
     }
 
     public void setLampOn(boolean on) {
-        this.dataTracker.set(LAMP_ON, on);
+        this.entityData.set(LAMP_ON, on);
     }
 
     public boolean isLampOn() {
-        return this.dataTracker.get(LAMP_ON);
+        return this.entityData.get(LAMP_ON);
     }
 
     public void setStripped(boolean stripped) {
-        this.dataTracker.set(STRIPPED, stripped);
+        this.entityData.set(STRIPPED, stripped);
     }
 
     public boolean isStripped() {
-        return this.dataTracker.get(STRIPPED);
+        return this.entityData.get(STRIPPED);
     }
     
     public boolean isSmelting() {
-        return this.dataTracker.get(SMELTING);
+        return this.entityData.get(SMELTING);
     }
 
     public boolean isJukeboxPlaying() {
-        return this.dataTracker.get(JUKEBOX_PLAYING);
+        return this.entityData.get(JUKEBOX_PLAYING);
     }
 
     public void setJukeboxPlaying(boolean playing) {
-        this.dataTracker.set(JUKEBOX_PLAYING, playing);
+        this.entityData.set(JUKEBOX_PLAYING, playing);
     }
 
     public boolean isJukeboxShuffle() {
-        return this.dataTracker.get(JUKEBOX_SHUFFLE);
+        return this.entityData.get(JUKEBOX_SHUFFLE);
     }
 
     public void setJukeboxShuffle(boolean shuffle) {
-        this.dataTracker.set(JUKEBOX_SHUFFLE, shuffle);
+        this.entityData.set(JUKEBOX_SHUFFLE, shuffle);
     }
 
     public boolean isJukeboxRepeat() {
-        return this.dataTracker.get(JUKEBOX_REPEAT);
+        return this.entityData.get(JUKEBOX_REPEAT);
     }
 
     public void setJukeboxRepeat(boolean repeat) {
-        this.dataTracker.set(JUKEBOX_REPEAT, repeat);
+        this.entityData.set(JUKEBOX_REPEAT, repeat);
     }
 
-    public SimpleInventory getJukeboxInventory() {
+    public SimpleContainer getJukeboxInventory() {
         return jukeboxInventory;
     }
 
     public void setBuildPattern(BuildPattern pattern) {
-        this.dataTracker.set(SELECTED_PATTERN, pattern.ordinal());
+        this.entityData.set(SELECTED_PATTERN, pattern.ordinal());
     }
 
     public BuildPattern getBuildPattern() {
-        return BuildPattern.values()[this.dataTracker.get(SELECTED_PATTERN)];
+        return BuildPattern.values()[this.entityData.get(SELECTED_PATTERN)];
     }
 
     public void setWallWidth(int width) {
-        this.dataTracker.set(WALL_WIDTH, width);
+        this.entityData.set(WALL_WIDTH, width);
     }
 
     public int getWallWidth() {
-        return this.dataTracker.get(WALL_WIDTH);
+        return this.entityData.get(WALL_WIDTH);
     }
 
     public void setWallLength(int length) {
-        this.dataTracker.set(WALL_LENGTH, length);
+        this.entityData.set(WALL_LENGTH, length);
     }
 
     public int getWallLength() {
-        return this.dataTracker.get(WALL_LENGTH);
+        return this.entityData.get(WALL_LENGTH);
     }
 
     public void setSelectedBuyItem(ItemStack stack) {
-        this.dataTracker.set(SELECTED_BUY_ITEM, stack);
+        this.entityData.set(SELECTED_BUY_ITEM, stack);
     }
 
     public ItemStack getSelectedBuyItem() {
-        return this.dataTracker.get(SELECTED_BUY_ITEM);
+        return this.entityData.get(SELECTED_BUY_ITEM);
     }
 
     public void setSchematicName(String name) {
-        this.dataTracker.set(SCHEMATIC_NAME, name == null ? "" : name);
+        this.entityData.set(SCHEMATIC_NAME, name == null ? "" : name);
     }
 
     public String getSchematicName() {
-        return this.dataTracker.get(SCHEMATIC_NAME);
+        return this.entityData.get(SCHEMATIC_NAME);
     }
 
-    public void setMiningDirection(@Nullable net.minecraft.util.math.Direction direction) {
-        this.dataTracker.set(MINING_DIRECTION, direction == null ? -1 : direction.ordinal());
+    public void setMiningDirection(@Nullable net.minecraft.core.Direction direction) {
+        this.entityData.set(MINING_DIRECTION, direction == null ? -1 : direction.ordinal());
     }
 
     @Nullable
-    public net.minecraft.util.math.Direction getMiningDirection() {
-        int ordinal = this.dataTracker.get(MINING_DIRECTION);
+    public net.minecraft.core.Direction getMiningDirection() {
+        int ordinal = this.entityData.get(MINING_DIRECTION);
         return ordinal == -1 ? null : net.minecraft.util.math.Direction.values()[ordinal];
     }
 
@@ -443,7 +448,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public void syncDiscoveredTrades() {
-        if (this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld) {
+        if (this.getEntityWorld() instanceof net.minecraft.server.level.ServerLevel) {
             UGInit.syncDiscoveredTrades(this);
         }
     }
@@ -482,7 +487,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return lastLightPos;
     }
 
-    public UtilityGolem(EntityType<? extends UtilityGolem> type, World world, GolemType golemType) {
+    public UtilityGolem(EntityType<? extends UtilityGolem> type, Level world, GolemType golemType) {
         super(type, world);
         this.golemType = golemType;
         initGolemsGoals();
@@ -490,7 +495,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public void onDeath(net.minecraft.entity.damage.DamageSource source) {
+    public void die(net.minecraft.world.damagesource.DamageSource source) {
         super.onDeath(source);
         if (!this.getEntityWorld().isClient()) {
             removeLight();
@@ -520,25 +525,25 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 this.jukeboxStartPos = null;
             }
 
-            // CopperGolemEntity already drops what is in its POPPY_SLOT, but our golem
+            // UtilityGolemEntity already drops what is in its POPPY_SLOT, but our golem
             // uses HELD_ITEM_SLOT (MAINHAND). We must drop it manually.
             ItemStack heldItem = this.getHeldItem();
             if (!heldItem.isEmpty()) {
-                net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), heldItem.copy());
+                net.minecraft.world.level.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), heldItem.copy());
                 this.setHeldItem(ItemStack.EMPTY);
             }
             
             for (int i = 0; i < this.inventory.size(); i++) {
                 ItemStack stack = this.inventory.getStack(i);
                 if (!stack.isEmpty()) {
-                    net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
+                    net.minecraft.world.level.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
                     this.inventory.setStack(i, ItemStack.EMPTY);
                 }
             }
             for (int i = 0; i < this.furnaceInventory.size(); i++) {
                 ItemStack stack = this.furnaceInventory.getStack(i);
                 if (!stack.isEmpty()) {
-                    net.minecraft.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
+                    net.minecraft.world.level.block.Block.dropStack(this.getEntityWorld(), this.getBlockPos(), stack.copy());
                     this.furnaceInventory.setStack(i, ItemStack.EMPTY);
                 }
             }
@@ -546,35 +551,35 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    protected void mobTick(net.minecraft.server.world.ServerWorld world) {
-        // Skip CopperGolemEntity.mobTick which triggers brain.tick and CopperGolemBrain.updateActivity
+    protected void customServerAiStep(net.minecraft.server.level.ServerLevel world) {
+        // Skip UtilityGolemEntity.mobTick which triggers brain.tick and UtilityGolemBrain.updateActivity
         // but call super.mobTick in MobEntity to ensure target management and other base behaviors work correctly.
         super.mobTick(world);
         
         // Proactively clear target if dead or removed, as super.mobTick might be slow or skip it in some conditions.
-        net.minecraft.entity.LivingEntity target = this.getTarget();
+        net.minecraft.world.entity.LivingEntity target = this.getTarget();
         if (target != null && (target.isDead() || target.isRemoved())) {
             this.setTarget(null);
         }
 
-        // Proactively prevent any vanilla CopperGolem container targeting each tick
+        // Proactively prevent any vanilla UtilityGolem container targeting each tick
         this.resetTargetContainerPos();
     }
 
     @Override
-    protected net.minecraft.entity.ai.brain.Brain.Profile<net.minecraft.entity.passive.CopperGolemEntity> createBrainProfile() {
+    protected net.minecraft.world.entity.ai.Brain.Profile<rehdpanda.utilitygolems.UtilityGolem> brainProvider() {
         // Return an empty brain profile to ensure the copper golem brain is never initialized
-        return net.minecraft.entity.ai.brain.Brain.createProfile(java.util.Collections.emptyList(), java.util.Collections.emptyList());
+        return net.minecraft.world.entity.ai.Brain.createProfile(java.util.Collections.emptyList(), java.util.Collections.emptyList());
     }
 
     @Override
-    protected net.minecraft.entity.ai.brain.Brain<?> deserializeBrain(com.mojang.serialization.Dynamic<?> dynamic) {
-        // Return an empty brain to bypass any brain-based AI from CopperGolemEntity
+    protected net.minecraft.world.entity.ai.Brain<?> makeBrain(com.mojang.serialization.Dynamic<?> dynamic) {
+        // Return an empty brain to bypass any brain-based AI from UtilityGolemEntity
         return this.createBrainProfile().deserialize(dynamic);
     }
 
     @Override
-    public net.minecraft.entity.ai.brain.Brain<net.minecraft.entity.passive.CopperGolemEntity> getBrain() {
+    public net.minecraft.world.entity.ai.Brain<rehdpanda.utilitygolems.UtilityGolem> getBrain() {
         return super.getBrain();
     }
 
@@ -589,23 +594,23 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 if (soulSpeedLevel > 0) {
                     BlockState standingOn = this.getEntityWorld().getBlockState(this.getBlockPos().down());
                     if (standingOn.isOf(Blocks.SOUL_SAND) || standingOn.isOf(Blocks.SOUL_SOIL)) {
-                        this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).addTemporaryModifier(new net.minecraft.entity.attribute.EntityAttributeModifier(Identifier.of("utility-golems", "soul_speed_boost"), 0.05D + 0.01D * (double)soulSpeedLevel, net.minecraft.entity.attribute.EntityAttributeModifier.Operation.ADD_VALUE));
+                        this.getAttributeInstance(Attributes.MOVEMENT_SPEED).addTemporaryModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(ResourceLocation.fromNamespaceAndPath("utility-golems", "soul_speed_boost"), 0.05D + 0.01D * (double)soulSpeedLevel, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
                     } else {
-                        this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+                        this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(ResourceLocation.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
                     }
                 } else {
-                    this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+                    this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(ResourceLocation.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
                 }
             } else {
-                this.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).removeModifier(Identifier.of("utility-golems", "soul_speed_boost"));
+                this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(ResourceLocation.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
             }
         }
 
         if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
-            // Suppression of CopperGolemEntity behaviors is handled by disabling POPPY_SLOT 
+            // Suppression of UtilityGolemEntity behaviors is handled by disabling POPPY_SLOT 
             // and clearing goals in initGoals.
         }
-        // Proactively prevent any vanilla CopperGolem container targeting each tick (server-side)
+        // Proactively prevent any vanilla UtilityGolem container targeting each tick (server-side)
         if (!this.getEntityWorld().isClient()) {
             this.resetTargetContainerPos();
         }
@@ -617,7 +622,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (!this.getEntityWorld().isClient()) {
-            Text customName = this.getCustomName();
+            Component customName = this.getCustomName();
             boolean isDebug = this.hasCustomName() && customName != null && customName.getString().equalsIgnoreCase("debug");
             if (this.isGlowing() != isDebug) {
                 this.setGlowing(isDebug);
@@ -640,11 +645,11 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     }
 
                     if (this.golemType == GolemType.JUKEBOX) {
-                        PlayerEntity player = this.getEntityWorld().getClosestPlayer(this, 10.0D);
+                        Player player = this.getEntityWorld().getClosestPlayer(this, 10.0D);
                         if (player != null) {
                             player.dropItem(this.currentlyPlayingStack.copy(), false);
                         } else {
-                            this.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), this.currentlyPlayingStack.copy()));
+                            this.getEntityWorld().spawnEntity(new net.minecraft.world.entity.item.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), this.currentlyPlayingStack.copy()));
                         }
                         this.setHeldItem(ItemStack.EMPTY);
                         this.setSearching(false);
@@ -654,7 +659,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 }
             }
             if (!this.getEntityWorld().isClient() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
-                ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.random.nextInt(24) / 24.0D);
+                ((net.minecraft.server.level.ServerLevel)this.getEntityWorld()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.random.nextInt(24) / 24.0D);
             }
         }
         if (!this.getEntityWorld().isClient()) {
@@ -728,14 +733,14 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     private void removeLight() {
         if (lastLightPos != null) {
             if (this.getEntityWorld().getBlockState(lastLightPos).isOf(UGBlocks.LIGHT_BLOCK)) {
-                this.getEntityWorld().setBlockState(lastLightPos, net.minecraft.block.Blocks.AIR.getDefaultState());
+                this.getEntityWorld().setBlockState(lastLightPos, net.minecraft.world.level.block.Blocks.AIR.getDefaultState());
             }
             lastLightPos = null;
         }
     }
 
     @Override
-    public void remove(net.minecraft.entity.Entity.RemovalReason reason) {
+    public void remove(net.minecraft.world.entity.Entity.Entity.Entity.RemovalReason reason) {
         if (!this.getEntityWorld().isClient()) {
             removeLight();
         }
@@ -744,7 +749,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
 
     @Override
-    public boolean isClimbing() {
+    public boolean onClimbable() {
         return super.isClimbing() || this.getEntityWorld().getBlockState(this.getBlockPos()).isIn(net.minecraft.registry.tag.BlockTags.CLIMBABLE);
     }
 
@@ -960,9 +965,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     public void stopMusicSound() {
-        if (!this.getEntityWorld().isClient() && this.getEntityWorld() instanceof net.minecraft.server.world.ServerWorld) {
+        if (!this.getEntityWorld().isClient() && this.getEntityWorld() instanceof net.minecraft.server.level.ServerLevel) {
             StopSoundS2CPacket stopPacket = new StopSoundS2CPacket(null, SoundCategory.RECORDS);
-            for (ServerPlayerEntity player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
+            for (ServerPlayer player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
                 player.networkHandler.sendPacket(stopPacket);
             }
         }
@@ -1074,7 +1079,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
     private void tickGold() {
         if (this.age % 20 == 0) {
-            SimpleInventory inv = this.getInventory();
+            SimpleContainer inv = this.getInventory();
             int nuggetCount = 0;
             for (int i = 0; i < inv.size(); i++) {
                 ItemStack stack = inv.getStack(i);
@@ -1097,7 +1102,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 ItemStack ingot = new ItemStack(Items.GOLD_INGOT);
                 ItemStack remaining = inv.addStack(ingot);
                 if (!remaining.isEmpty()) {
-                    this.getEntityWorld().spawnEntity(new net.minecraft.entity.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), remaining));
+                    this.getEntityWorld().spawnEntity(new net.minecraft.world.entity.item.ItemEntity(this.getEntityWorld(), this.getX(), this.getY(), this.getZ(), remaining));
                 }
             }
         }
@@ -1117,20 +1122,20 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public SimpleInventory getInventory() {
+    public SimpleContainer getInventory() {
         return this.inventory;
     }
 
     @Override
-    public Text getDisplayName() {
+    public Component getDisplayName() {
         if (this.hasCustomName()) {
             return super.getDisplayName();
         }
-        return Text.literal(this.golemType.getFriendlyName());
+        return Component.literal(this.golemType.getFriendlyName());
     }
 
     @Override
-    public ActionResult interactMob(PlayerEntity player, Hand hand) {
+    public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack playerStack = player.getStackInHand(hand);
 
         // SHIFT+RIGHT CLICK to take item back or toggle lamp
@@ -1140,7 +1145,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     this.setLampOn(!this.isLampOn());
                     this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
 
             if (this.golemType == GolemType.MEDIC) {
@@ -1159,7 +1164,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
                         this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
                     }
-                    return ActionResult.SUCCESS;
+                    return InteractionResult.SUCCESS;
                 }
             }
 
@@ -1172,7 +1177,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     this.setHeldItem(ItemStack.EMPTY);
                     this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
 
@@ -1182,9 +1187,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             JukeboxPlayableComponent playableCheck = playerStack.get(DataComponentTypes.JUKEBOX_PLAYABLE);
             if (playableCheck != null) {
                 if (!player.getEntityWorld().isClient()) {
-                    player.sendMessage(Text.literal("This golem can't play records."), true);
+                    player.sendMessage(Component.literal("This golem can't play records."), true);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
 
@@ -1205,7 +1210,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 this.getEntityWorld().playSound(null, pos, SoundEvents.ENTITY_COPPER_GOLEM_BECOME_STATUE, SoundCategory.BLOCKS, 1.0F, 1.0F);
                 this.discard();
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
@@ -1216,56 +1221,56 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                     playerStack.damage(1, player, hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                 }
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.LAPIS && isPickaxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if ((this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) && (isSword(playerStack) || isAxe(playerStack) || isSpear(playerStack) || isTrident(playerStack) || isMace(playerStack))) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.DEEPSLATE && isAxe(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.DEEPSLATE && isShears(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.BAMBOO && isTool(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.SPONGE && isFishingRod(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.LAMP && isTorch(playerStack)) {
             if (!player.getEntityWorld().isClient()) {
                 swapTool(player, playerStack);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.MEDIC && playerStack.isOf(UGItems.WRENCH_ITEM)) {
@@ -1278,12 +1283,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         playerStack.decrement(1);
                     }
                     this.equipStack(EquipmentSlot.MAINHAND, disc);
-                    player.sendMessage(Text.literal("Gave wrench to Medic Golem"), true);
+                    player.sendMessage(Component.literal("Gave wrench to Medic Golem"), true);
                 } else {
-                    player.sendMessage(Text.literal("Medic Golem's inventory is full"), true);
+                    player.sendMessage(Component.literal("Medic Golem's inventory is full"), true);
                 }
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (playerStack.isOf(UGItems.WRENCH_ITEM)) {
@@ -1308,16 +1313,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         double d = this.random.nextGaussian() * 0.02;
                         double e = this.random.nextGaussian() * 0.02;
                         double f = this.random.nextGaussian() * 0.02;
-                        ((net.minecraft.server.world.ServerWorld)this.getEntityWorld()).spawnParticles(ParticleTypes.HEART, this.getParticleX(1.0), this.getRandomBodyY() + 0.5, this.getParticleZ(1.0), 1, d, e, f, 0.0);
+                        ((net.minecraft.server.level.ServerLevel)this.getEntityWorld()).spawnParticles(ParticleTypes.HEART, this.getParticleX(1.0), this.getRandomBodyY() + 0.5, this.getParticleZ(1.0), 1, d, e, f, 0.0);
                     }
-                    player.sendMessage(Text.literal(this.golemType.getFriendlyName() + " Health: " + (int)this.getHealth() + "/" + (int)maxHealth), true);
+                    player.sendMessage(Component.literal(this.golemType.getFriendlyName() + " Health: " + (int)this.getHealth() + "/" + (int)maxHealth), true);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             } else {
                 if (!player.getEntityWorld().isClient()) {
-                    player.sendMessage(Text.literal(this.golemType.getFriendlyName() + " is already at full health (" + (int)maxHealth + "/" + (int)maxHealth + ")"), true);
+                    player.sendMessage(Component.literal(this.golemType.getFriendlyName() + " is already at full health (" + (int)maxHealth + "/" + (int)maxHealth + ")"), true);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
 
@@ -1328,7 +1333,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         this.getDisplayName()
                 ));
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         } else if (this.golemType == GolemType.LAMP) {
             // Already handled in Shift+Right Click logic
         }
@@ -1344,83 +1349,83 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         if (!player.getAbilities().creativeMode) {
                             playerStack.decrement(1);
                         }
-                        player.sendMessage(Text.literal("Added to playlist"), true);
+                        player.sendMessage(Component.literal("Added to playlist"), true);
                     } else {
-                        player.sendMessage(Text.literal("Playlist is full"), true);
+                        player.sendMessage(Component.literal("Playlist is full"), true);
                     }
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
 
             // Always open the Jukebox UI for Jukebox Golems
             if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
                     @Override
-                    public Integer getScreenOpeningData(ServerPlayerEntity player) {
+                    public Integer getScreenOpeningData(ServerPlayer player) {
                         return UtilityGolem.this.getId();
                     }
 
                     @Override
-                    public Text getDisplayName() {
+                    public Component getDisplayName() {
                         return UtilityGolem.this.getDisplayName();
                     }
 
                     @Override
-                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, Player player) {
                         return new GolemJukeboxScreenHandler(syncId, playerInventory, UtilityGolem.this.jukeboxInventory, UtilityGolem.this);
                     }
                 });
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         if (this.golemType == GolemType.REDSTONE) {
             if (!player.getEntityWorld().isClient()) {
                 player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
                     @Override
-                    public Integer getScreenOpeningData(ServerPlayerEntity player) {
+                    public Integer getScreenOpeningData(ServerPlayer player) {
                         return UtilityGolem.this.getId();
                     }
 
                     @Override
-                    public Text getDisplayName() {
+                    public Component getDisplayName() {
                         return UtilityGolem.this.getDisplayName();
                     }
 
                     @Override
-                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                    public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, Player player) {
                         return new RedstoneGolemScreenHandler(syncId, playerInventory, UtilityGolem.this);
                     }
                 });
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
 
         player.openHandledScreen(new ExtendedScreenHandlerFactory<Integer>() {
             @Override
-            public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayerEntity player) {
+            public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayer player) {
                 return UtilityGolem.this.getId();
             }
 
             @Override
-            public Text getDisplayName() {
+            public Component getDisplayName() {
                 return UtilityGolem.this.getDisplayName();
             }
 
             @Override
-            public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+            public net.minecraft.screen.ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, Player player) {
                 return new GolemInventoryScreenHandler(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
             }
         });
-        return ActionResult.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
-    private void swapTool(PlayerEntity player, ItemStack playerStack) {
+    private void swapTool(Player player, ItemStack playerStack) {
         ItemStack golemStack = this.getHeldItem();
         ItemStack newStack = playerStack.copy();
         newStack.setCount(1);
         this.setHeldItem(newStack);
-        // Do NOT equip CopperGolemEntity.POPPY_SLOT for any golem — it triggers vanilla copper golem behaviors we don't want
+        // Do NOT equip UtilityGolemEntity.POPPY_SLOT for any golem — it triggers vanilla copper golem behaviors we don't want
         // This ensures tool-using golems never inherit copper golem item-interaction logic
         // (rendering should rely on HELD_ITEM_SLOT / setHeldItem instead)
         // Intentionally left blank to avoid POPPY_SLOT usage.
@@ -1546,7 +1551,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public void writeCustomData(net.minecraft.storage.WriteView writeView) {
+    public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag writeView) {
         super.writeCustomData(writeView);
         writeView.putInt("BuildPattern", this.getBuildPattern().ordinal());
         writeView.putInt("WallWidth", this.getWallWidth());
@@ -1592,7 +1597,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public void readCustomData(net.minecraft.storage.ReadView readView) {
+    public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag readView) {
         super.readCustomData(readView);
         this.setBuildPattern(BuildPattern.values()[readView.getInt("BuildPattern", 0)]);
         this.setWallWidth(readView.getInt("WallWidth", 3));
@@ -1601,9 +1606,9 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         this.setXpScore(readView.getInt("XpScore", 0));
         this.setLampOn(readView.getBoolean("LampOn", false));
         this.setStripped(readView.getBoolean("Stripped", false));
-        net.minecraft.inventory.Inventories.readData(readView.getReadView("Inventory"), this.inventory.getHeldStacks());
-        net.minecraft.inventory.Inventories.readData(readView.getReadView("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
-        net.minecraft.inventory.Inventories.readData(readView.getReadView("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
+        net.minecraft.inventory.Inventories.readData(readView.getCompoundTag("Inventory"), this.inventory.getHeldStacks());
+        net.minecraft.inventory.Inventories.readData(readView.getCompoundTag("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
+        net.minecraft.inventory.Inventories.readData(readView.getCompoundTag("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);
         this.jukeboxCooldown = readView.getInt("JukeboxCooldown", 0);
         this.currentJukeboxSlot = readView.getInt("CurrentJukeboxSlot", -1);
@@ -1705,7 +1710,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                         if (this.isBlacklisted(p)) continue;
                         BlockEntity be = this.getEntityWorld().getBlockEntity(p);
                         BlockState bs = this.getEntityWorld().getBlockState(p);
-                        if (be instanceof Inventory && (bs.getBlock() == net.minecraft.block.Blocks.CHEST || bs.getBlock() == net.minecraft.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.block.Blocks.BARREL)) {
+                        if (be instanceof Inventory && (bs.getBlock() == net.minecraft.world.level.block.Blocks.CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.BARREL)) {
                             this.setChestPos(p);
                             return p;
                         }
@@ -1723,8 +1728,8 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
-        EntityData data = super.initialize(world, difficulty, spawnReason, entityData);
+    public SynchedEntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, MobSpawnType spawnReason, @Nullable SynchedEntityData entityData) {
+        SynchedEntityData data = super.initialize(world, difficulty, spawnReason, entityData);
 
         // Equip items based on type
         ItemStack item = ItemStack.EMPTY;
@@ -1736,7 +1741,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
         if (!item.isEmpty()) {
             this.equipStack(HELD_ITEM_SLOT, item);
-            // Never equip the CopperGolemEntity.POPPY_SLOT to avoid vanilla copper golem behaviors being triggered
+            // Never equip the UtilityGolemEntity.POPPY_SLOT to avoid vanilla copper golem behaviors being triggered
             // Rendering/usage will rely solely on HELD_ITEM_SLOT
             // Intentionally no POPPY_SLOT assignment here.
             updateAttackDamage();
@@ -1750,35 +1755,35 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    protected EntityNavigation createNavigation(World world) {
+    protected PathNavigation createNavigation(Level world) {
         return new MobNavigation(this, world);
     }
 
     @Override
-    protected void initGoals() {
+    protected void registerGoals() {
         // Clear any goals inherited from parent to avoid unintended behaviors (e.g., random chest checks)
         this.goalSelector.getGoals().clear();
         this.targetSelector.getGoals().clear();
 
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new SwimGoal(this)));
-        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.entity.ai.goal.LongDoorInteractGoal(this, true)));
+        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.LongDoorInteractGoal(this, true)));
         this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
 
         initGolemsGoals();
         
-        // Remove any remaining goals that might have been added by CopperGolemEntity after our clear
+        // Remove any remaining goals that might have been added by UtilityGolemEntity after our clear
         // specifically targeting anything that looks like chest sorting or putting away items if we could identify them.
-        // Since we already cleared them, we are mostly safe unless CopperGolemEntity adds them in a way we don't expect.
+        // Since we already cleared them, we are mostly safe unless UtilityGolemEntity adds them in a way we don't expect.
     }
 
-    // ===== Override CopperGolemEntity container interaction hooks to fully disable vanilla chest use =====
+    // ===== Override UtilityGolemEntity container interaction hooks to fully disable vanilla chest use =====
     @Override
-    public void setTargetContainerPos(BlockPos pos) {
+    public void setOpenedChestPos(BlockPos pos) {
         // Intentionally ignore container targeting to prevent any vanilla copper golem item transport
     }
 
     @Override
-    public boolean isViewingContainerAt(net.minecraft.block.entity.ViewerCountManager viewerCountManager, BlockPos pos) {
+    public boolean hasContainerOpen(net.minecraft.world.level.block.entity.ContainerOpenersCounter viewerCountManager, BlockPos pos) {
         // Never considered as viewing any container
         return false;
     }
@@ -1791,7 +1796,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
 
 
     @Override
-    public boolean tryAttack(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target) {
+    public boolean doHurtTarget(net.minecraft.server.level.ServerLevel world, net.minecraft.world.entity.Entity target) {
         if (this.attackCooldown > 0) {
             return false;
         }
@@ -1850,7 +1855,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
                 livingTarget.setAttacker(null); // Clear mob attacker to ensure player takes precedence for XP
                 // In 1.21.1, we can't easily set lastAttackedByPlayerTime directly as it's private.
                 // However, we can use a damage source that is attributed to a player if we have the player entity.
-                PlayerEntity owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                Player owner = world.getPlayerByUuid(this.getOwnerUuid().get());
                 if (owner != null) {
                     livingTarget.damage(world, this.getDamageSources().playerAttack(owner), 0.0f);
                 }
@@ -1863,7 +1868,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         }
 
         if (success) {
-            if (target instanceof net.minecraft.entity.LivingEntity livingTarget) {
+            if (target instanceof net.minecraft.world.entity.LivingEntity livingTarget) {
                 // Apply knockback enchantment
                 int knockbackLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
                 if (knockbackLevel > 0) {
@@ -1890,24 +1895,24 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
         return success;
     }
 
-    private void spawnSweepingAttackParticles(net.minecraft.server.world.ServerWorld world) {
+    private void spawnSweepingAttackParticles(net.minecraft.server.level.ServerLevel world) {
         double d = -Math.sin(this.getYaw() * (Math.PI / 180.0));
         double e = Math.cos(this.getYaw() * (Math.PI / 180.0));
         world.spawnParticles(net.minecraft.particle.ParticleTypes.SWEEP_ATTACK, this.getX() + d, this.getBodyY(0.5), this.getZ() + e, 0, d, 0.0, e, 0.0);
     }
 
-    private void applySweepingDamage(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.Entity target, ItemStack heldItem) {
-        float damage = (float)this.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
+    private void applySweepingDamage(net.minecraft.server.level.ServerLevel world, net.minecraft.world.entity.Entity target, ItemStack heldItem) {
+        float damage = (float)this.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
         int sweepingLevel = EnchantmentHelper.getLevel(world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), heldItem);
         float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
-        for (net.minecraft.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
+        for (net.minecraft.world.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.world.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
             return entity != this && entity != target && !this.isTeammate(entity) && this.canTarget(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
         })) {
             livingEntity.takeKnockback(0.4000000059604645, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
             DamageSource source = this.getDamageSources().mobAttack(this);
             if (this.getOwnerUuid().isPresent()) {
-                PlayerEntity owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                Player owner = world.getPlayerByUuid(this.getOwnerUuid().get());
                 if (owner != null) {
                     source = this.getDamageSources().playerAttack(owner);
                 }
@@ -1919,12 +1924,12 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public void setTarget(@Nullable net.minecraft.entity.LivingEntity target) {
+    public void setTarget(@Nullable net.minecraft.world.entity.LivingEntity target) {
         if (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) {
             if (target != null) {
                 this.debugLog("Targeting " + target.getType().getName().getString() + " at " + target.getBlockPos().toShortString() + " (HP: " + (int)target.getHealth() + "/" + (int)target.getMaxHealth() + ")");
             } else if (this.getTarget() != null) {
-                net.minecraft.entity.LivingEntity oldTarget = this.getTarget();
+                net.minecraft.world.entity.LivingEntity oldTarget = this.getTarget();
                 this.debugLog("Target cleared (null). Was " + oldTarget.getType().getName().getString() + " (Dead: " + oldTarget.isDead() + ", Removed: " + oldTarget.isRemoved() + ")");
             }
         }
@@ -1938,7 +1943,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public boolean canTarget(net.minecraft.entity.LivingEntity target) {
+    public boolean canAttack(net.minecraft.world.entity.LivingEntity target) {
         if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
         if (target.isDead() || target.isRemoved()) return false;
         
@@ -1951,7 +1956,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    public boolean canHaveStatusEffect(net.minecraft.entity.effect.StatusEffectInstance effect) {
+    public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect) {
         return super.canHaveStatusEffect(effect);
     }
 
@@ -1961,16 +1966,16 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
     }
 
     @Override
-    protected void pushAway(net.minecraft.entity.Entity entity) {
+    protected void doPush(net.minecraft.world.entity.Entity entity) {
         if (entity instanceof net.minecraft.entity.passive.AllayEntity) return;
         super.pushAway(entity);
     }
 
-    public net.minecraft.entity.ai.goal.GoalSelector getGoalSelector() {
+    public net.minecraft.world.entity.ai.goal.GoalSelector getGoalSelector() {
         return this.goalSelector;
     }
 
-    public net.minecraft.entity.ai.goal.GoalSelector getTargetSelector() {
+    public net.minecraft.world.entity.ai.goal.GoalSelector getTargetSelector() {
         return this.targetSelector;
     }
 
@@ -2011,7 +2016,7 @@ public class UtilityGolem extends CopperGolemEntity implements InventoryOwner {
             else baseDamage += 6.0f;
         }
         
-        var instance = this.getAttributeInstance(EntityAttributes.ATTACK_DAMAGE);
+        var instance = this.getAttributeInstance(Attributes.ATTACK_DAMAGE);
         if (instance != null) {
             instance.setBaseValue(baseDamage);
         }

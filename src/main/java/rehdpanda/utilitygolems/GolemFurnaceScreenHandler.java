@@ -1,34 +1,34 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.screen.FurnaceScreenHandler;
-import net.minecraft.screen.PropertyDelegate;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.ContainerData;
 
-public class GolemFurnaceScreenHandler extends FurnaceScreenHandler {
+public class GolemFurnaceScreenHandler extends FurnaceMenu {
 
     private final UtilityGolem golem;
 
-    public GolemFurnaceScreenHandler(int syncId, PlayerInventory playerInventory) {
+    public GolemFurnaceScreenHandler(int syncId, Inventory playerInventory) {
         super(syncId, playerInventory);
         this.golem = null;
     }
 
     public GolemFurnaceScreenHandler(
             int syncId,
-            PlayerInventory playerInventory,
-            Inventory inventory,
-            PropertyDelegate properties,
+            Inventory playerInventory,
+            Container inventory,
+            ContainerData properties,
             UtilityGolem golem
     ) {
         super(syncId, playerInventory, inventory, properties);
         this.golem = golem;
-        checkSize(inventory, 3);
+        checkContainerSize(inventory, 3);
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
+    public boolean stillValid(Player player) {
         return golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F);
     }
 }

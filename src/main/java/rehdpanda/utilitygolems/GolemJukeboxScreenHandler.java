@@ -1,36 +1,36 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.component.DataComponentTypes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.core.component.DataComponents;
 
-public class GolemJukeboxScreenHandler extends ScreenHandler {
-    private final Inventory inventory;
+public class GolemJukeboxScreenHandler extends AbstractContainerMenu {
+    private final Container inventory;
     private final UtilityGolem golem;
 
-    public GolemJukeboxScreenHandler(int syncId, PlayerInventory playerInventory) {
-        this(syncId, playerInventory, new SimpleInventory(9), null);
+    public GolemJukeboxScreenHandler(int syncId, Inventory playerInventory) {
+        this(syncId, playerInventory, new SimpleContainer(9), null);
     }
 
-    public GolemJukeboxScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory, UtilityGolem golem) {
+    public GolemJukeboxScreenHandler(int syncId, Inventory playerInventory, Container inventory, UtilityGolem golem) {
         super(UGInit.GOLEM_JUKEBOX_HANDLER, syncId);
-        checkSize(inventory, 9);
+        checkContainerSize(inventory, 9);
         this.inventory = inventory;
         this.golem = golem;
 
-        inventory.onOpen(playerInventory.player);
+        inventory.startOpen(playerInventory.player);
 
         // Jukebox Playlist (1x9)
         for (int i = 0; i < 9; ++i) {
             this.addSlot(new Slot(inventory, i, 8 + i * 18, 18) {
                 @Override
-                public boolean canInsert(ItemStack stack) {
-                    return stack.contains(DataComponentTypes.JUKEBOX_PLAYABLE);
+                public boolean mayPlace(ItemStack stack) {
+                    return stack.has(DataComponents.JUKEBOX_PLAYABLE);
                 }
             });
         }
@@ -53,42 +53,42 @@ public class GolemJukeboxScreenHandler extends ScreenHandler {
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
-        return this.inventory.canPlayerUse(player) && (golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F));
+    public boolean stillValid(Player player) {
+        return this.inventory.stillValid(player) && (golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F));
     }
 
     @Override
-    public ItemStack quickMove(PlayerEntity player, int index) {
+    public ItemStack quickMoveStack(Player player, int index) {
         ItemStack result = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
-        if (slot != null && slot.hasStack()) {
-            ItemStack stack = slot.getStack();
+        if (slot != null && slot.hasItem()) {
+            ItemStack stack = slot.getItem();
             result = stack.copy();
             if (index < 9) {
-                if (!this.insertItem(stack, 9, 45, true)) {
+                if (!this.moveItemStackTo(stack, 9, 45, true)) {
                     return ItemStack.EMPTY;
                 }
             } else {
-                if (!stack.contains(DataComponentTypes.JUKEBOX_PLAYABLE)) {
+                if (!stack.has(DataComponents.JUKEBOX_PLAYABLE)) {
                     return ItemStack.EMPTY;
                 }
-                if (!this.insertItem(stack, 0, 9, false)) {
+                if (!this.moveItemStackTo(stack, 0, 9, false)) {
                     return ItemStack.EMPTY;
                 }
             }
 
             if (stack.isEmpty()) {
-                slot.setStack(ItemStack.EMPTY);
+                slot.setByPlayer(ItemStack.EMPTY);
             } else {
-                slot.markDirty();
+                slot.setChanged();
             }
         }
         return result;
     }
 
     @Override
-    public void onClosed(PlayerEntity player) {
-        super.onClosed(player);
-        this.inventory.onClose(player);
+    public void removed(Player player) {
+        super.removed(player);
+        this.inventory.stopOpen(player);
     }
 }
