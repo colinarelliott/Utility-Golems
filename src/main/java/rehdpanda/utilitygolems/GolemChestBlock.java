@@ -3,6 +3,7 @@ package rehdpanda.utilitygolems;
 
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;

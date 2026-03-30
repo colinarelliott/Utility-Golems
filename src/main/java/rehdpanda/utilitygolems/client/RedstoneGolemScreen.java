@@ -105,7 +105,7 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
             final int index = i;
             UtilityGolem.RedstoneInteraction inter = program.get(index);
             BlockState state = golem.level().getBlockState(inter.pos());
-            String blockName = state.getBlock().getName().getString();
+            String blockName = state.getBlock().getDescriptionId();
             String label = blockName + " (" + inter.interval() + "t)";
             
             this.addRenderableWidget(Button.builder(Component.literal("X"), button -> {
@@ -125,7 +125,7 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
         for (int i = 0; i < 5 && (i + scrollOffset) < nearbyInteractables.getContainerSize(); i++) {
             final BlockPos p = nearbyInteractables.get(i + scrollOffset);
             BlockState state = golem.level().getBlockState(p);
-            String blockName = state.getBlock().getName().getString();
+            String blockName = state.getBlock().getDescriptionId();
             
             this.addRenderableWidget(Button.builder(Component.literal("+"), button -> {
                 int interval = 20;

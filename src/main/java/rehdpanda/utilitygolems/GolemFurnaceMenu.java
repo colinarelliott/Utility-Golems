@@ -4,24 +4,28 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class GolemFurnaceMenu extends AbstractContainerMenu {
+    private final net.minecraft.world.inventory.ContainerData propertyDelegate;
     private final Container inventory;
     private final UtilityGolem golem;
 
     public GolemFurnaceMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(3), null);
+        this(syncId, playerInventory, new SimpleContainer(3), new net.minecraft.world.inventory.SimpleContainerData(4), null);
     }
 
-    public GolemFurnaceMenu(int syncId, Inventory playerInventory, Container inventory, UtilityGolem golem) {
-        super(UGInit.GOLEM_FURNACE_SCREEN_HANDLER, syncId);
+    public GolemFurnaceMenu(int syncId, Inventory playerInventory, Container inventory, net.minecraft.world.inventory.ContainerData propertyDelegate, UtilityGolem golem) {
+        super(UGInit.GOLEM_FURNACE_HANDLER, syncId);
         this.inventory = inventory;
+        this.propertyDelegate = propertyDelegate;
         this.golem = golem;
         checkContainerSize(inventory, 3);
         inventory.startOpen(playerInventory.player);
+        this.addDataSlots(propertyDelegate);
 
         this.addSlot(new Slot(inventory, 0, 56, 17)); // Input
         this.addSlot(new Slot(inventory, 1, 56, 53)); // Fuel

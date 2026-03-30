@@ -18,6 +18,7 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
@@ -184,7 +185,7 @@ public class UGInit implements ModInitializer {
         }
     }
 
-    public static final MenuType<GolemChestMenu> GOLEM_CHEST_SCREEN_HANDLER =
+    public static final MenuType<GolemChestMenu> GOLEM_CHEST_HANDLER =
             Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(MOD_ID, "golem_chest"), new MenuType<>((syncId, playerInventory) -> {
                 return new GolemChestMenu(syncId, playerInventory);
             }, FeatureFlags.VANILLA_SET));

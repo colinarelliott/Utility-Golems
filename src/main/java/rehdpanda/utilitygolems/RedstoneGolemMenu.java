@@ -4,6 +4,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -16,8 +17,12 @@ public class RedstoneGolemMenu extends AbstractContainerMenu {
         this(syncId, playerInventory, new SimpleContainer(18), null);
     }
 
+    public RedstoneGolemMenu(int syncId, Inventory playerInventory, UtilityGolem golem) {
+        this(syncId, playerInventory, golem.getInventory(), golem);
+    }
+
     public RedstoneGolemMenu(int syncId, Inventory playerInventory, Container inventory, UtilityGolem golem) {
-        super(UGInit.REDSTONE_GOLEM_SCREEN_HANDLER, syncId);
+        super(UGInit.REDSTONE_GOLEM_HANDLER, syncId);
         this.inventory = inventory;
         this.golem = golem;
         checkContainerSize(inventory, 18);

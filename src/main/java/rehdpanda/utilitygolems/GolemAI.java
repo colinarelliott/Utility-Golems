@@ -1,10 +1,34 @@
 // TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package rehdpanda.utilitygolems;
 
-import net.minecraft.world.level.block.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.Container;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.Goal.Flag;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
@@ -12,13 +36,35 @@ import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.chicken.Chicken;
+import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.animal.sheep.Sheep;
+import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.Donkey;
+import net.minecraft.world.entity.animal.equine.Horse;
 import net.minecraft.world.entity.animal.equine.Llama;
 import net.minecraft.world.entity.animal.feline.Cat;
 import net.minecraft.world.entity.animal.panda.Panda;
 import net.minecraft.world.entity.animal.wolf.Wolf;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.JukeboxPlayable;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.item.trading.MerchantOffers;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ButtonBlock;
@@ -27,38 +73,49 @@ import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.world.level.block.PressurePlateBlock;
 import net.minecraft.world.level.block.TntBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.JukeboxPlayable;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.goal.*;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.animal.*;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.item.trading.MerchantOffer;
-import net.minecraft.world.item.trading.MerchantOffers;
-import net.minecraft.world.item.trading.ItemCost;
+
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.entity.animal.goat.Goat;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.Donkey;
+import net.minecraft.world.entity.animal.equine.Horse;
+import net.minecraft.world.entity.animal.equine.Llama;
+import net.minecraft.world.entity.animal.camel.Camel;
+import net.minecraft.world.entity.animal.sniffer.Sniffer;
+import net.minecraft.world.entity.animal.frog.Frog;
+import net.minecraft.world.entity.animal.armadillo.Armadillo;
+import net.minecraft.world.entity.animal.allay.Allay;
+import net.minecraft.world.entity.animal.chicken.Chicken;
+import net.minecraft.world.entity.animal.cow.Cow;
+import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.animal.sheep.Sheep;
+import net.minecraft.world.entity.animal.feline.Cat;
+import net.minecraft.world.entity.animal.wolf.Wolf;
+import net.minecraft.world.entity.animal.panda.Panda;
+import net.minecraft.world.entity.animal.fish.Pufferfish;
+import net.minecraft.world.entity.animal.fish.Salmon;
+import net.minecraft.world.entity.animal.fish.TropicalFish;
+import net.minecraft.world.entity.animal.fish.Cod;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import java.util.*;
+import java.util.function.Predicate;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.core.Holder;
@@ -77,64 +134,64 @@ public class GolemAI {
 
     // BOOLEAN FUNCTIONS
     public static boolean isIngredient(ItemStack stack) {
-        return stack.is(Items.NETHER_WART) || stack.is(Items.GLOWSTONE_DUST) || stack.is(Items.REDSTONE)
-                || stack.is(Items.FERMENTED_SPIDER_EYE) || stack.is(Items.MAGMA_CREAM) || stack.is(Items.SUGAR)
-                || stack.is(Items.RABBIT_FOOT) || stack.is(Items.GLISTERING_MELON_SLICE) || stack.is(Items.SPIDER_EYE)
-                || stack.is(Items.PUFFERFISH) || stack.is(Items.GOLDEN_CARROT) || stack.is(Items.TURTLE_HELMET)
-                || stack.is(Items.PHANTOM_MEMBRANE) || stack.is(Items.DRAGON_BREATH) || stack.is(Items.GUNPOWDER);
+        return stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.GLOWSTONE_DUST) || stack.is(net.minecraft.world.item.Items.REDSTONE)
+                || stack.is(net.minecraft.world.item.Items.FERMENTED_SPIDER_EYE) || stack.is(net.minecraft.world.item.Items.MAGMA_CREAM) || stack.is(net.minecraft.world.item.Items.SUGAR)
+                || stack.is(net.minecraft.world.item.Items.RABBIT_FOOT) || stack.is(net.minecraft.world.item.Items.GLISTERING_MELON_SLICE) || stack.is(net.minecraft.world.item.Items.SPIDER_EYE)
+                || stack.is(net.minecraft.world.item.Items.PUFFERFISH) || stack.is(net.minecraft.world.item.Items.GOLDEN_CARROT) || stack.is(net.minecraft.world.item.Items.TURTLE_HELMET)
+                || stack.is(net.minecraft.world.item.Items.PHANTOM_MEMBRANE) || stack.is(net.minecraft.world.item.Items.DRAGON_BREATH) || stack.is(net.minecraft.world.item.Items.GUNPOWDER);
     }
     public static boolean isSecondaryIngredient(ItemStack stack) {
-        return stack.is(Items.GUNPOWDER) || stack.is(Items.GLOWSTONE_DUST) || stack.is(Items.REDSTONE) || stack.is(Items.DRAGON_BREATH);
+        return stack.is(net.minecraft.world.item.Items.GUNPOWDER) || stack.is(net.minecraft.world.item.Items.GLOWSTONE_DUST) || stack.is(net.minecraft.world.item.Items.REDSTONE) || stack.is(net.minecraft.world.item.Items.DRAGON_BREATH);
     }
     public static boolean isPrimaryIngredient(ItemStack stack) {
         return isIngredient(stack) && !isSecondaryIngredient(stack);
     }
 
     public static boolean isValidBreedingItem(ItemStack stack) {
-        return stack.is(Items.WHEAT)
-                || stack.is(Items.CARROT)
-                || stack.is(Items.POTATO)
-                || stack.is(Items.BEETROOT)
-                || stack.is(Items.WHEAT_SEEDS)
-                || stack.is(Items.PUMPKIN_SEEDS)
-                || stack.is(Items.MELON_SEEDS)
-                || stack.is(Items.GOLDEN_CARROT)
-                || stack.is(Items.GOLDEN_APPLE)
-                || stack.is(Items.ENCHANTED_GOLDEN_APPLE)
-                || stack.is(Items.DANDELION)
-                || stack.is(Items.GLOW_BERRIES)
-                || stack.is(Items.SWEET_BERRIES)
-                || stack.is(Items.BEEF)
-                || stack.is(Items.CHICKEN)
-                || stack.is(Items.PORKCHOP)
-                || stack.is(Items.RABBIT)
-                || stack.is(Items.MUTTON)
-                || stack.is(Items.ROTTEN_FLESH)
-                || stack.is(Items.COOKED_BEEF)
-                || stack.is(Items.COOKED_CHICKEN)
-                || stack.is(Items.COOKED_PORKCHOP)
-                || stack.is(Items.COOKED_RABBIT)
-                || stack.is(Items.COOKED_MUTTON)
-                || stack.is(Items.COD)
-                || stack.is(Items.SALMON)
-                || stack.is(Items.TROPICAL_FISH_BUCKET)
-                || stack.is(Items.HAY_BLOCK)
-                || stack.is(Items.SEAGRASS)
-                || stack.is(Items.BAMBOO)
+        return stack.is(net.minecraft.world.item.Items.WHEAT)
+                || stack.is(net.minecraft.world.item.Items.CARROT)
+                || stack.is(net.minecraft.world.item.Items.POTATO)
+                || stack.is(net.minecraft.world.item.Items.BEETROOT)
+                || stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS)
+                || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS)
+                || stack.is(net.minecraft.world.item.Items.MELON_SEEDS)
+                || stack.is(net.minecraft.world.item.Items.GOLDEN_CARROT)
+                || stack.is(net.minecraft.world.item.Items.GOLDEN_APPLE)
+                || stack.is(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE)
+                || stack.is(net.minecraft.world.item.Items.DANDELION)
+                || stack.is(net.minecraft.world.item.Items.GLOW_BERRIES)
+                || stack.is(net.minecraft.world.item.Items.SWEET_BERRIES)
+                || stack.is(net.minecraft.world.item.Items.BEEF)
+                || stack.is(net.minecraft.world.item.Items.CHICKEN)
+                || stack.is(net.minecraft.world.item.Items.PORKCHOP)
+                || stack.is(net.minecraft.world.item.Items.RABBIT)
+                || stack.is(net.minecraft.world.item.Items.MUTTON)
+                || stack.is(net.minecraft.world.item.Items.ROTTEN_FLESH)
+                || stack.is(net.minecraft.world.item.Items.COOKED_BEEF)
+                || stack.is(net.minecraft.world.item.Items.COOKED_CHICKEN)
+                || stack.is(net.minecraft.world.item.Items.COOKED_PORKCHOP)
+                || stack.is(net.minecraft.world.item.Items.COOKED_RABBIT)
+                || stack.is(net.minecraft.world.item.Items.COOKED_MUTTON)
+                || stack.is(net.minecraft.world.item.Items.COD)
+                || stack.is(net.minecraft.world.item.Items.SALMON)
+                || stack.is(net.minecraft.world.item.Items.TROPICAL_FISH_BUCKET)
+                || stack.is(net.minecraft.world.item.Items.HAY_BLOCK)
+                || stack.is(net.minecraft.world.item.Items.SEAGRASS)
+                || stack.is(net.minecraft.world.item.Items.BAMBOO)
                 || stack.is(net.minecraft.tags.ItemTags.FLOWERS)
-                || stack.is(Items.WARPED_FUNGUS)
-                || stack.is(Items.CRIMSON_FUNGUS)
-                || stack.is(Items.SLIME_BALL)
-                || stack.is(Items.CACTUS)
-                || stack.is(Items.TORCHFLOWER_SEEDS)
-                || stack.is(Items.SPIDER_EYE);
+                || stack.is(net.minecraft.world.item.Items.WARPED_FUNGUS)
+                || stack.is(net.minecraft.world.item.Items.CRIMSON_FUNGUS)
+                || stack.is(net.minecraft.world.item.Items.SLIME_BALL)
+                || stack.is(net.minecraft.world.item.Items.CACTUS)
+                || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS)
+                || stack.is(net.minecraft.world.item.Items.SPIDER_EYE);
     }
 
     // INITIALIZE GOALS
     public static void initLapisGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.IRON_PICKAXE, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE, Items.GOLDEN_PICKAXE, Items.NETHERITE_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE,
-                Items.IRON_SHOVEL, Items.DIAMOND_SHOVEL, Items.NETHERITE_SHOVEL, Items.GOLDEN_SHOVEL, Items.STONE_SHOVEL, Items.WOODEN_SHOVEL, Items.COPPER_SHOVEL
+                net.minecraft.world.item.Items.IRON_PICKAXE, net.minecraft.world.item.Items.DIAMOND_PICKAXE, net.minecraft.world.item.Items.NETHERITE_PICKAXE, net.minecraft.world.item.Items.GOLDEN_PICKAXE, net.minecraft.world.item.Items.NETHERITE_PICKAXE, net.minecraft.world.item.Items.STONE_PICKAXE, net.minecraft.world.item.Items.WOODEN_PICKAXE, net.minecraft.world.item.Items.COPPER_PICKAXE,
+                net.minecraft.world.item.Items.IRON_SHOVEL, net.minecraft.world.item.Items.DIAMOND_SHOVEL, net.minecraft.world.item.Items.NETHERITE_SHOVEL, net.minecraft.world.item.Items.GOLDEN_SHOVEL, net.minecraft.world.item.Items.STONE_SHOVEL, net.minecraft.world.item.Items.WOODEN_SHOVEL, net.minecraft.world.item.Items.COPPER_SHOVEL
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new DigBlockGoal(golem)));
@@ -142,14 +199,14 @@ public class GolemAI {
         golem.getGoalSelector().addGoal(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initRedstoneGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.REDSTONE, Items.REPEATER), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.REDSTONE, net.minecraft.world.item.Items.REPEATER), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new ConnectRedstoneGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new TriggerRedstoneGoal(golem)));
         golem.getGoalSelector().addGoal(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initEmeraldGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.EMERALD), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.EMERALD), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new TradeWithVillagerGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -158,7 +215,7 @@ public class GolemAI {
         golem.getGoalSelector().addGoal(7, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initGoldGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.GOLD_INGOT, Items.GOLD_NUGGET), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.GOLD_INGOT, net.minecraft.world.item.Items.GOLD_NUGGET), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new TradeWithPiglinGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -166,7 +223,7 @@ public class GolemAI {
         golem.getGoalSelector().addGoal(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initAmethystGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.WHEAT_SEEDS, Items.GOLDEN_APPLE, Items.GOLDEN_CARROT), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.WHEAT, net.minecraft.world.item.Items.CARROT, net.minecraft.world.item.Items.POTATO, net.minecraft.world.item.Items.BEETROOT, net.minecraft.world.item.Items.WHEAT_SEEDS, net.minecraft.world.item.Items.GOLDEN_APPLE, net.minecraft.world.item.Items.GOLDEN_CARROT), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -175,14 +232,14 @@ public class GolemAI {
     public static void initNetheriteGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new MeleeAttackGoal(golem, 1.2D, false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD, Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD, Items.COPPER_SWORD,
-                Items.NETHERITE_AXE, Items.DIAMOND_AXE, Items.IRON_AXE, Items.GOLDEN_AXE, Items.STONE_AXE, Items.WOODEN_AXE, Items.COPPER_AXE,
-                Items.NETHERITE_PICKAXE, Items.DIAMOND_PICKAXE, Items.IRON_PICKAXE, Items.GOLDEN_PICKAXE, Items.STONE_PICKAXE, Items.WOODEN_PICKAXE, Items.COPPER_PICKAXE,
-                Items.NETHERITE_SHOVEL, Items.DIAMOND_SHOVEL, Items.IRON_SHOVEL, Items.GOLDEN_SHOVEL, Items.STONE_SHOVEL, Items.WOODEN_SHOVEL, Items.COPPER_SHOVEL,
-                Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
-                Items.BOW, Items.CROSSBOW, Items.TRIDENT, Items.SHIELD, Items.MACE,
-                Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD, Items.DIAMOND_SWORD, Items.NETHERITE_SWORD, Items.GOLDEN_SWORD,
-                Items.WOODEN_AXE, Items.STONE_AXE, Items.IRON_AXE, Items.DIAMOND_AXE, Items.NETHERITE_AXE, Items.GOLDEN_AXE
+                net.minecraft.world.item.Items.NETHERITE_SWORD, net.minecraft.world.item.Items.DIAMOND_SWORD, net.minecraft.world.item.Items.IRON_SWORD, net.minecraft.world.item.Items.GOLDEN_SWORD, net.minecraft.world.item.Items.STONE_SWORD, net.minecraft.world.item.Items.WOODEN_SWORD, net.minecraft.world.item.Items.COPPER_SWORD,
+                net.minecraft.world.item.Items.NETHERITE_AXE, net.minecraft.world.item.Items.DIAMOND_AXE, net.minecraft.world.item.Items.IRON_AXE, net.minecraft.world.item.Items.GOLDEN_AXE, net.minecraft.world.item.Items.STONE_AXE, net.minecraft.world.item.Items.WOODEN_AXE, net.minecraft.world.item.Items.COPPER_AXE,
+                net.minecraft.world.item.Items.NETHERITE_PICKAXE, net.minecraft.world.item.Items.DIAMOND_PICKAXE, net.minecraft.world.item.Items.IRON_PICKAXE, net.minecraft.world.item.Items.GOLDEN_PICKAXE, net.minecraft.world.item.Items.STONE_PICKAXE, net.minecraft.world.item.Items.WOODEN_PICKAXE, net.minecraft.world.item.Items.COPPER_PICKAXE,
+                net.minecraft.world.item.Items.NETHERITE_SHOVEL, net.minecraft.world.item.Items.DIAMOND_SHOVEL, net.minecraft.world.item.Items.IRON_SHOVEL, net.minecraft.world.item.Items.GOLDEN_SHOVEL, net.minecraft.world.item.Items.STONE_SHOVEL, net.minecraft.world.item.Items.WOODEN_SHOVEL, net.minecraft.world.item.Items.COPPER_SHOVEL,
+                net.minecraft.world.item.Items.NETHERITE_HOE, net.minecraft.world.item.Items.DIAMOND_HOE, net.minecraft.world.item.Items.IRON_HOE, net.minecraft.world.item.Items.GOLDEN_HOE, net.minecraft.world.item.Items.STONE_HOE, net.minecraft.world.item.Items.WOODEN_HOE, net.minecraft.world.item.Items.COPPER_HOE,
+                net.minecraft.world.item.Items.BOW, net.minecraft.world.item.Items.CROSSBOW, net.minecraft.world.item.Items.TRIDENT, net.minecraft.world.item.Items.SHIELD, net.minecraft.world.item.Items.MACE,
+                net.minecraft.world.item.Items.WOODEN_SWORD, net.minecraft.world.item.Items.STONE_SWORD, net.minecraft.world.item.Items.IRON_SWORD, net.minecraft.world.item.Items.DIAMOND_SWORD, net.minecraft.world.item.Items.NETHERITE_SWORD, net.minecraft.world.item.Items.GOLDEN_SWORD,
+                net.minecraft.world.item.Items.WOODEN_AXE, net.minecraft.world.item.Items.STONE_AXE, net.minecraft.world.item.Items.IRON_AXE, net.minecraft.world.item.Items.DIAMOND_AXE, net.minecraft.world.item.Items.NETHERITE_AXE, net.minecraft.world.item.Items.GOLDEN_AXE
         ), false)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -196,27 +253,27 @@ public class GolemAI {
         initNetheriteGoals(golem);
     }
     public static void initFurnaceGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.COAL, net.minecraft.world.item.Items.CHARCOAL, net.minecraft.world.item.Items.BLAZE_ROD, net.minecraft.world.item.Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initSmokerGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.COAL, net.minecraft.world.item.Items.CHARCOAL, net.minecraft.world.item.Items.BLAZE_ROD, net.minecraft.world.item.Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initBlastFurnaceGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.COAL, Items.CHARCOAL, Items.BLAZE_ROD, Items.LAVA_BUCKET), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.COAL, net.minecraft.world.item.Items.CHARCOAL, net.minecraft.world.item.Items.BLAZE_ROD, net.minecraft.world.item.Items.LAVA_BUCKET), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initBambooGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.NETHERITE_HOE, Items.DIAMOND_HOE, Items.IRON_HOE, Items.GOLDEN_HOE, Items.STONE_HOE, Items.WOODEN_HOE, Items.COPPER_HOE,
-                Items.WHEAT_SEEDS, Items.CARROT, Items.POTATO, Items.BEETROOT_SEEDS, Items.WATER_BUCKET, Items.BUCKET
+                net.minecraft.world.item.Items.NETHERITE_HOE, net.minecraft.world.item.Items.DIAMOND_HOE, net.minecraft.world.item.Items.IRON_HOE, net.minecraft.world.item.Items.GOLDEN_HOE, net.minecraft.world.item.Items.STONE_HOE, net.minecraft.world.item.Items.WOODEN_HOE, net.minecraft.world.item.Items.COPPER_HOE,
+                net.minecraft.world.item.Items.WHEAT_SEEDS, net.minecraft.world.item.Items.CARROT, net.minecraft.world.item.Items.POTATO, net.minecraft.world.item.Items.BEETROOT_SEEDS, net.minecraft.world.item.Items.WATER_BUCKET, net.minecraft.world.item.Items.BUCKET
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new FarmGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
@@ -226,7 +283,7 @@ public class GolemAI {
         golem.getGoalSelector().addGoal(7, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initDiamondGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.DIAMOND), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.DIAMOND), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new PlaceBlockGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
@@ -234,7 +291,7 @@ public class GolemAI {
         golem.getGoalSelector().addGoal(6, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
     public static void initSpongeGoals(UtilityGolem golem) {
-        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(Items.FISHING_ROD), false)));
+        golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.FISHING_ROD), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new FishGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new DepositItemsGoal(golem)));
@@ -242,7 +299,7 @@ public class GolemAI {
     }
     public static void initDeepslateGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.NETHERITE_AXE, Items.DIAMOND_AXE, Items.IRON_AXE, Items.GOLDEN_AXE, Items.STONE_AXE, Items.WOODEN_AXE, Items.COPPER_AXE, Items.SHEARS
+                net.minecraft.world.item.Items.NETHERITE_AXE, net.minecraft.world.item.Items.DIAMOND_AXE, net.minecraft.world.item.Items.IRON_AXE, net.minecraft.world.item.Items.GOLDEN_AXE, net.minecraft.world.item.Items.STONE_AXE, net.minecraft.world.item.Items.WOODEN_AXE, net.minecraft.world.item.Items.COPPER_AXE, net.minecraft.world.item.Items.SHEARS
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new ChopTreeGoal(golem)));
@@ -253,10 +310,10 @@ public class GolemAI {
     }
     public static void initJukeboxGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_BLOCKS, Items.MUSIC_DISC_CHIRP, Items.MUSIC_DISC_FAR,
-                Items.MUSIC_DISC_MALL, Items.MUSIC_DISC_MELLOHI, Items.MUSIC_DISC_STAL, Items.MUSIC_DISC_STRAD, Items.MUSIC_DISC_WARD,
-                Items.MUSIC_DISC_11, Items.MUSIC_DISC_WAIT, Items.MUSIC_DISC_OTHERSIDE, Items.MUSIC_DISC_5, Items.MUSIC_DISC_PIGSTEP,
-                Items.MUSIC_DISC_CREATOR_MUSIC_BOX, Items.MUSIC_DISC_CREATOR, Items.MUSIC_DISC_PRECIPICE
+                net.minecraft.world.item.Items.MUSIC_DISC_13, net.minecraft.world.item.Items.MUSIC_DISC_CAT, net.minecraft.world.item.Items.MUSIC_DISC_BLOCKS, net.minecraft.world.item.Items.MUSIC_DISC_CHIRP, net.minecraft.world.item.Items.MUSIC_DISC_FAR,
+                net.minecraft.world.item.Items.MUSIC_DISC_MALL, net.minecraft.world.item.Items.MUSIC_DISC_MELLOHI, net.minecraft.world.item.Items.MUSIC_DISC_STAL, net.minecraft.world.item.Items.MUSIC_DISC_STRAD, net.minecraft.world.item.Items.MUSIC_DISC_WARD,
+                net.minecraft.world.item.Items.MUSIC_DISC_11, net.minecraft.world.item.Items.MUSIC_DISC_WAIT, net.minecraft.world.item.Items.MUSIC_DISC_OTHERSIDE, net.minecraft.world.item.Items.MUSIC_DISC_5, net.minecraft.world.item.Items.MUSIC_DISC_PIGSTEP,
+                net.minecraft.world.item.Items.MUSIC_DISC_CREATOR_MUSIC_BOX, net.minecraft.world.item.Items.MUSIC_DISC_CREATOR, net.minecraft.world.item.Items.MUSIC_DISC_PRECIPICE
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
@@ -267,7 +324,7 @@ public class GolemAI {
     public static void initLampGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new FollowGolemGoal(golem, GolemType.LAPIS, 1.2D, 3.0F, 16.0F)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.TORCH, Items.SOUL_TORCH, Items.REDSTONE_TORCH, Items.COPPER_TORCH, Items.LANTERN, Items.SOUL_LANTERN
+                net.minecraft.world.item.Items.TORCH, net.minecraft.world.item.Items.SOUL_TORCH, net.minecraft.world.item.Items.REDSTONE_TORCH, net.minecraft.world.item.Items.COPPER_TORCH, net.minecraft.world.item.Items.LANTERN, net.minecraft.world.item.Items.SOUL_LANTERN
         ), false)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new PlaceTorchGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new FollowPlayerGoal(golem, 1.1D, 3.0F, 16.0F)));
@@ -276,7 +333,7 @@ public class GolemAI {
     }
     public static void initNetherWartGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.GLASS_BOTTLE, Items.NETHER_WART
+                net.minecraft.world.item.Items.GLASS_BOTTLE, net.minecraft.world.item.Items.NETHER_WART
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new PlaceBrewingStandGoal(golem)));
@@ -306,7 +363,7 @@ public class GolemAI {
 
     public static void initHoneycombGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.GLASS_BOTTLE, Items.SHEARS
+                net.minecraft.world.item.Items.GLASS_BOTTLE, net.minecraft.world.item.Items.SHEARS
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new HoneyBabysitterGoal(golem)));
@@ -327,7 +384,7 @@ public class GolemAI {
 
     public static void initTintedGlassGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(
-                Items.GLASS_BOTTLE
+                net.minecraft.world.item.Items.GLASS_BOTTLE
         ), false)));
         golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new CollectXPGoal(golem, 1.2D, 12)));
         golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new BottleXPGoal(golem)));
@@ -370,7 +427,7 @@ public class GolemAI {
         private void updateHeldItem() {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                 ItemStack stack = golem.getInventory().getItem(i);
-                if (stack.is(Items.GLASS_BOTTLE)) {
+                if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) {
                     golem.setHeldItem(stack.copyWithCount(1));
                     return;
                 }
@@ -432,7 +489,7 @@ public class GolemAI {
 
         private boolean hasGlassBottle() {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
-                if (golem.getInventory().getItem(i).is(Items.GLASS_BOTTLE)) return true;
+                if (golem.getInventory().getItem(i).is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;
             }
             return false;
         }
@@ -450,9 +507,9 @@ public class GolemAI {
             if (golem.getXpScore() >= 7) {
                 for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                     ItemStack stack = golem.getInventory().getItem(i);
-                    if (stack.is(Items.GLASS_BOTTLE)) {
+                    if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) {
                         stack.shrink(1);
-                        ItemStack bottleOEnchanting = new ItemStack(Items.EXPERIENCE_BOTTLE);
+                        ItemStack bottleOEnchanting = new ItemStack(net.minecraft.world.item.Items.EXPERIENCE_BOTTLE);
                         if (!golem.getInventory().addItem(bottleOEnchanting).isEmpty()) {
                             net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), bottleOEnchanting);
                         }
@@ -460,7 +517,7 @@ public class GolemAI {
                         golem.setAnimation(GolemAnimation.BREWING, 40);
                         golem.setHeldItem(bottleOEnchanting.copyWithCount(1));
                         bottleCooldown = 40;
-                        golem.level().playSound(null, golem.blockPosition(), SoundEvents.BREWING_STAND_BREW, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        golem.level().playSound(null, golem.blockPosition(), net.minecraft.sounds.SoundEvents.BREWING_STAND_BREW, SoundSource.NEUTRAL, 1.0F, 1.0F);
                         break;
                     }
                 }
@@ -573,7 +630,7 @@ public class GolemAI {
 
         private boolean canSee(BlockPos pos) {
             Vec3 start = golem.getEyePosition();
-            Vec3 end = Vec3.atCenterOf(pos);
+            Vec3 end = net.minecraft.world.phys.Vec3.atCenterOf(pos);
             net.minecraft.world.level.ClipContext context = new net.minecraft.world.level.ClipContext(
                     start, end,
                     net.minecraft.world.level.ClipContext.Block.VISUAL,
@@ -842,7 +899,7 @@ public class GolemAI {
 
         private boolean canSee(BlockPos pos) {
             Vec3 start = golem.getEyePosition();
-            Vec3 end = Vec3.atCenterOf(pos);
+            Vec3 end = net.minecraft.world.phys.Vec3.atCenterOf(pos);
             net.minecraft.world.level.ClipContext context = new net.minecraft.world.level.ClipContext(
                     start, end,
                     net.minecraft.world.level.ClipContext.Block.VISUAL,
@@ -1005,7 +1062,7 @@ public class GolemAI {
             this.golem = golem;
             this.speed = speed;
             this.range = range;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1128,13 +1185,13 @@ public class GolemAI {
                 }
                 if (changed) {
                     inv.setChanged();
-                    golem.level().playSound(null, pos, SoundEvents.CHORUS_FLOWER_DEATH, SoundSource.BLOCKS, 1.0f, 1.0f);
+                    golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.CHORUS_FLOWER_DEATH, SoundSource.BLOCKS, 1.0f, 1.0f);
                     golem.setAnimation(GolemAnimation.ATTACKING, 10);
 
                     // Add some cactus/smoke particles
                     if (golem.level() instanceof ServerLevel serverLevel) {
                         serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 5, 0.2, 0.2, 0.2, 0.05);
-                        serverLevel.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK, Blocks.CACTUS.defaultBlockState()), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.3, 0.3, 0.3, 0.1);
+                        serverLevel.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.CACTUS.defaultBlockState()), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.3, 0.3, 0.3, 0.1);
                     }
                 }
             }
@@ -1151,7 +1208,7 @@ public class GolemAI {
             this.golem = golem;
             this.speed = speed;
             this.maxDistance = maxDistance;
-            this.setFlags(EnumSet.of(Flag.MOVE));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
         }
 
         @Override
@@ -1218,7 +1275,7 @@ public class GolemAI {
 
         public PlaceTorchGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1247,7 +1304,7 @@ public class GolemAI {
         }
 
         private boolean isTorch(ItemStack stack) {
-            return stack.is(Items.TORCH) || stack.is(Items.SOUL_TORCH) || stack.is(Items.REDSTONE_TORCH) || stack.is(Items.COPPER_TORCH);
+            return stack.is(net.minecraft.world.item.Items.TORCH) || stack.is(net.minecraft.world.item.Items.SOUL_TORCH) || stack.is(net.minecraft.world.item.Items.REDSTONE_TORCH) || stack.is(net.minecraft.world.item.Items.COPPER_TORCH);
         }
 
         private BlockPos findDarkSpot() {
@@ -1324,14 +1381,14 @@ public class GolemAI {
                     Direction miningDir = g.getMiningDirection();
                     if (chestPos != null && miningDir != null) {
                         // Check if pos is on the mining line
-                        boolean onLine = (miningDir.getAxis() == Direction.Axis.Z) ? pos.getX() == chestPos.getX() : pos.getZ() == chestPos.getZ();
+                        boolean onLine = (miningDir.getAxis() == net.minecraft.core.Direction.Axis.Z) ? pos.getX() == chestPos.getX() : pos.getZ() == chestPos.getZ();
                         if (onLine) return false;
                     }
                 }
             }
 
             BlockState below = world.getBlockState(pos.below());
-            return below.isFaceSturdy(world, pos.below(), Direction.UP) || below.is(BlockTags.FENCES);
+            return below.isFaceSturdy(world, pos.below(), Direction.UP) || below.is(net.minecraft.tags.BlockTags.FENCES);
         }
 
         @Override
@@ -1397,14 +1454,14 @@ public class GolemAI {
             if (!torchStack.isEmpty()) {
                 golem.debugLog("PlaceTorchGoal: Placing torch (" + torchStack.getHoverName().getString() + ") at " + targetPos.getX() + ", " + targetPos.getY() + ", " + targetPos.getZ());
                 Level world = golem.level();
-                Block torchBlock = Blocks.TORCH;
-                if (torchStack.is(Items.SOUL_TORCH)) torchBlock = Blocks.SOUL_TORCH;
-                else if (torchStack.is(Items.REDSTONE_TORCH)) torchBlock = Blocks.REDSTONE_TORCH;
-                else if (torchStack.is(Items.COPPER_TORCH)) torchBlock = Blocks.COPPER_TORCH;
+                Block torchBlock = net.minecraft.world.level.block.Blocks.TORCH;
+                if (torchStack.is(net.minecraft.world.item.Items.SOUL_TORCH)) torchBlock = net.minecraft.world.level.block.Blocks.SOUL_TORCH;
+                else if (torchStack.is(net.minecraft.world.item.Items.REDSTONE_TORCH)) torchBlock = net.minecraft.world.level.block.Blocks.REDSTONE_TORCH;
+                else if (torchStack.is(net.minecraft.world.item.Items.COPPER_TORCH)) torchBlock = net.minecraft.world.level.block.Blocks.COPPER_TORCH;
 
                 if (world.getBlockState(targetPos).canBeReplaced()) {
-                    world.setBlockAndUpdate(targetPos, torchBlock.defaultBlockState());
-                    world.playSound(null, targetPos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+                    world.setBlock(targetPos, torchBlock.defaultBlockState(), 3);
+                    world.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
                     torchStack.shrink(1);
                     if (torchStack.isEmpty() && slot != -1) {
                         golem.getInventory().setItem(slot, ItemStack.EMPTY);
@@ -1420,7 +1477,7 @@ public class GolemAI {
 
         public ClimbLadderGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
         }
 
         @Override
@@ -1429,7 +1486,7 @@ public class GolemAI {
             if (ladderPos == null) return false;
 
             // If we are already on a ladder, we can start/continue
-            if (golem.level().getBlockState(golem.blockPosition()).is(BlockTags.CLIMBABLE)) {
+            if (golem.level().getBlockState(golem.blockPosition()).is(net.minecraft.tags.BlockTags.CLIMBABLE)) {
                 return true;
             }
 
@@ -1457,7 +1514,7 @@ public class GolemAI {
             BlockPos pos = golem.blockPosition();
             // Check current block and immediate neighbors
             for (BlockPos p : BlockPos.betweenClosed(pos.offset(-1, 0, -1), pos.offset(1, 1, 1))) {
-                if (golem.level().getBlockState(p).is(BlockTags.CLIMBABLE)) {
+                if (golem.level().getBlockState(p).is(net.minecraft.tags.BlockTags.CLIMBABLE)) {
                     return p.immutable();
                 }
             }
@@ -1472,7 +1529,7 @@ public class GolemAI {
             boolean onClimbable = false;
             BlockPos pos = golem.blockPosition();
             for (BlockPos p : BlockPos.betweenClosed(pos.offset(-1, 0, -1), pos.offset(1, 1, 1))) {
-                if (golem.level().getBlockState(p).is(BlockTags.CLIMBABLE)) {
+                if (golem.level().getBlockState(p).is(net.minecraft.tags.BlockTags.CLIMBABLE)) {
                     onClimbable = true;
                     ladderPos = p.immutable();
                     break;
@@ -1524,8 +1581,8 @@ public class GolemAI {
                 if (target == null || target.getY() > golem.getY()) {
                     // Only apply upward velocity if there is a climbable block at our feet or slightly above
                     BlockPos currentPos = golem.blockPosition();
-                    if (golem.level().getBlockState(currentPos).is(BlockTags.CLIMBABLE) ||
-                            golem.level().getBlockState(currentPos.above()).is(BlockTags.CLIMBABLE)) {
+                    if (golem.level().getBlockState(currentPos).is(net.minecraft.tags.BlockTags.CLIMBABLE) ||
+                            golem.level().getBlockState(currentPos.above()).is(net.minecraft.tags.BlockTags.CLIMBABLE)) {
                         golem.setDeltaMovement(golem.getDeltaMovement().x, 0.2, golem.getDeltaMovement().z);
                     } else {
                         // We are at the top or no longer on a ladder
@@ -1549,7 +1606,7 @@ public class GolemAI {
             this.speed = speed;
             this.minDistance = minDistance;
             this.maxDistance = maxDistance;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1559,7 +1616,7 @@ public class GolemAI {
 
             // Find closest golem of target type
             targetGolem = golems.stream()
-                    .min(Comparator.comparingDouble(g -> g.distanceToSqr(golem)))
+                    .min(Comparator.comparingDouble(g -> g.distanceToSqr(golem.position())))
                     .orElse(null);
 
             return targetGolem != null && golem.distanceToSqr(targetGolem) > (double)(minDistance * minDistance);
@@ -1616,7 +1673,7 @@ public class GolemAI {
 
         private boolean isSafe(BlockPos pos) {
             Level world = golem.level();
-            return world.getBlockState(pos).is(Blocks.AIR) && world.getBlockState(pos.above()).is(Blocks.AIR) && !world.getBlockState(pos.below()).is(Blocks.AIR);
+            return world.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.AIR) && world.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.AIR) && !world.getBlockState(pos.below()).is(net.minecraft.world.level.block.Blocks.AIR);
         }
     }
 
@@ -1632,7 +1689,7 @@ public class GolemAI {
             this.speed = speed;
             this.minDistance = minDistance;
             this.maxDistance = maxDistance;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1661,7 +1718,7 @@ public class GolemAI {
             
             // Find closest player
             targetPlayer = players.stream()
-                .min(Comparator.comparingDouble(p -> p.distanceToSqr(golem)))
+                .min(Comparator.comparingDouble(p -> p.distanceToSqr(golem.position())))
                 .orElse(null);
                 
             return targetPlayer != null && golem.distanceToSqr(targetPlayer) > (double)(minDistance * minDistance);
@@ -1678,7 +1735,7 @@ public class GolemAI {
                     return false;
                 }
                 
-                return targetPlayer != null && targetPlayer.isAlive() && targetPlayer.level == golem.level();
+                return targetPlayer != null && targetPlayer.isAlive() && targetPlayer.level() == golem.level();
             }
             return targetPlayer != null && targetPlayer.isAlive() && golem.distanceToSqr(targetPlayer) < (double)(maxDistance * maxDistance * 2);
         }
@@ -1712,7 +1769,7 @@ public class GolemAI {
 
         public TradeWithVillagerGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1731,7 +1788,7 @@ public class GolemAI {
                 MerchantOffers offers = villager.getOffers();
                 for (MerchantOffer offer : offers) {
                     if (offer.isOutOfStock()) continue;
-                    if (!offer.getResult().is(Items.EMERALD)) {
+                    if (!offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                         golem.addDiscoveredTrade(offer.getResult());
                     }
                 }
@@ -1757,7 +1814,7 @@ public class GolemAI {
                 if (offer.isOutOfStock()) continue;
                 
                 // Existing selling logic
-                if (offer.getResult().is(Items.EMERALD)) {
+                if (offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                     ItemCost buyItem1 = offer.getItemCostA();
                     Optional<ItemCost> buyItem2 = offer.getItemCostB();
 
@@ -1857,7 +1914,7 @@ public class GolemAI {
 
             // First, record all available trades from this villager
             for (MerchantOffer offer : offers) {
-                if (!offer.isOutOfStock() && !offer.getResult().is(Items.EMERALD)) {
+                if (!offer.isOutOfStock() && !offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                     golem.addDiscoveredTrade(offer.getResult());
                 }
             }
@@ -1865,7 +1922,7 @@ public class GolemAI {
             for (MerchantOffer offer : offers) {
                 if (offer.isOutOfStock()) continue;
 
-                boolean isSellingToVillager = offer.getResult().is(Items.EMERALD);
+                boolean isSellingToVillager = offer.getResult().is(net.minecraft.world.item.Items.EMERALD);
                 boolean isBuyingFromVillager = !selectedBuy.isEmpty() && ItemStack.isSameItemSameComponents(offer.getResult(), selectedBuy);
 
                 if (isSellingToVillager || isBuyingFromVillager) {
@@ -1923,7 +1980,7 @@ public class GolemAI {
 
         public FishGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -1978,20 +2035,20 @@ public class GolemAI {
                         if (occupiedWater.contains(p)) continue;
 
                         BlockState state = world.getBlockState(p);
-                        if (!state.is(Blocks.WATER)) continue;
-                        if (!world.getBlockState(p.above()).is(Blocks.AIR)) continue;
+                        if (!state.is(net.minecraft.world.level.block.Blocks.WATER)) continue;
+                        if (!world.getBlockState(p.above()).is(net.minecraft.world.level.block.Blocks.AIR)) continue;
                         // compute score
                         double dx = p.getX() - center.getX();
                         double dz = p.getZ() - center.getZ();
                         double horizDistSq = dx * dx + dz * dz;
                         int minLandDist = 99;
-                        boolean shallow = !world.getBlockState(p.below()).is(Blocks.WATER);
+                        boolean shallow = !world.getBlockState(p.below()).is(net.minecraft.world.level.block.Blocks.WATER);
                         for (int lx = -4; lx <= 4; lx++) {
                             for (int lz = -4; lz <= 4; lz++) {
                                 if (lx == 0 && lz == 0) continue;
                                 BlockPos landPos = p.offset(lx, 0, lz);
                                 BlockState ls = world.getBlockState(landPos);
-                                if (ls.getFluidState().isEmpty() && !ls.is(Blocks.AIR)) {
+                                if (ls.getFluidState().isEmpty() && !ls.is(net.minecraft.world.level.block.Blocks.AIR)) {
                                     int dist = Math.max(Math.abs(lx), Math.abs(lz));
                                     if (dist < minLandDist) {
                                         minLandDist = dist;
@@ -2012,14 +2069,14 @@ public class GolemAI {
                 double dx = best.getX() - center.getX();
                 double dz = best.getZ() - center.getZ();
                 double horizDistSq = dx * dx + dz * dz;
-                boolean shallow = !world.getBlockState(best.below()).is(Blocks.WATER);
+                boolean shallow = !world.getBlockState(best.below()).is(net.minecraft.world.level.block.Blocks.WATER);
                 int minLandDist = 99;
                 for (int lx = -4; lx <= 4; lx++) {
                     for (int lz = -4; lz <= 4; lz++) {
                         if (lx == 0 && lz == 0) continue;
                         BlockPos landPos = best.offset(lx, 0, lz);
                         BlockState ls = world.getBlockState(landPos);
-                        if (ls.getFluidState().isEmpty() && !ls.is(Blocks.AIR)) {
+                        if (ls.getFluidState().isEmpty() && !ls.is(net.minecraft.world.level.block.Blocks.AIR)) {
                             int dist = Math.max(Math.abs(lx), Math.abs(lz));
                             if (dist < minLandDist) {
                                 minLandDist = dist;
@@ -2049,7 +2106,7 @@ public class GolemAI {
             BlockState chestState = chestPos != null ? golem.level().getBlockState(chestPos) : null;
             
             // Basic validity checks
-            if (waterPos == null || !golem.level().getBlockState(waterPos).is(Blocks.WATER) ||
+            if (waterPos == null || !golem.level().getBlockState(waterPos).is(net.minecraft.world.level.block.Blocks.WATER) ||
                 rod.isEmpty() || !UtilityGolem.isFishingRod(rod) ||
                 isInventoryFull()) {
                 return false;
@@ -2146,17 +2203,17 @@ public class GolemAI {
             if (chance < 85) {
                 int fishType = golem.getRandom().nextInt(4);
                 loot = switch (fishType) {
-                    case 1 -> new ItemStack(Items.SALMON);
-                    case 2 -> new ItemStack(Items.TROPICAL_FISH);
-                    case 3 -> new ItemStack(Items.PUFFERFISH);
-                    default -> new ItemStack(Items.COD);
+                    case 1 -> new ItemStack(net.minecraft.world.item.Items.SALMON);
+                    case 2 -> new ItemStack(net.minecraft.world.item.Items.TROPICAL_FISH);
+                    case 3 -> new ItemStack(net.minecraft.world.item.Items.PUFFERFISH);
+                    default -> new ItemStack(net.minecraft.world.item.Items.COD);
                 };
                 golem.setAnimation(GolemAnimation.CATCHING_FISH, 20);
             } else if (chance < 95) {
-                loot = new ItemStack(Items.SADDLE); // Simplified junk/treasure for now
+                loot = new ItemStack(net.minecraft.world.item.Items.SADDLE); // Simplified junk/treasure for now
                 golem.setAnimation(GolemAnimation.CATCHING_FISH, 20);
             } else {
-                loot = Items.ENCHANTED_BOOK.getDefaultInstance();
+                loot = net.minecraft.world.item.Items.ENCHANTED_BOOK.getDefaultInstance();
                 if (serverLevel.registryAccess() != null) {
                     var enchantmentRegistry = serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
                     var optionalEnchantment = enchantmentRegistry.getRandom(golem.getRandom());
@@ -2168,7 +2225,7 @@ public class GolemAI {
             }
 
             ItemStack remaining = golem.getInventory().addItem(loot);
-            golem.debugLog("FishGoal: Caught " + loot.getItem().getName().getString() + "!");
+            golem.debugLog("FishGoal: Caught " + loot.getItem().getDescriptionId() + "!");
             if (!remaining.isEmpty()) {
                 Block.popResource(serverLevel, golem.blockPosition(), remaining);
             }
@@ -2179,8 +2236,8 @@ public class GolemAI {
                 // Apply Lure and Luck of the Sea if possible
                 if (serverLevel.registryAccess() != null) {
                     var registry = serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-                    int lureLevel = EnchantmentHelper.getItemEnchantmentLevel(registry.value(Enchantments.LURE), rod);
-                    int luckLevel = EnchantmentHelper.getItemEnchantmentLevel(registry.value(Enchantments.LUCK_OF_THE_SEA), rod);
+                    int lureLevel = EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.LURE), rod);
+                    int luckLevel = EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.LUCK_OF_THE_SEA), rod);
                     
                     // Lure reduces wait time by 5 seconds (100 ticks) per level
                     maxFishingTime = Math.max(20, maxFishingTime - (lureLevel * 100));
@@ -2189,7 +2246,7 @@ public class GolemAI {
                     if (luckLevel > 0 && chance >= 85) {
                         // If we already rolled junk/treasure, make it even better
                         if (golem.getRandom().nextInt(10) < luckLevel) {
-                            loot = Items.ENCHANTED_BOOK.getDefaultInstance();
+                            loot = net.minecraft.world.item.Items.ENCHANTED_BOOK.getDefaultInstance();
                             var enchantmentRegistry = serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
                             var optionalEnchantment = enchantmentRegistry.getRandom(golem.getRandom());
                             if (optionalEnchantment.isPresent()) {
@@ -2215,7 +2272,7 @@ public class GolemAI {
 
         public PlaceBrewingStandGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -2237,7 +2294,7 @@ public class GolemAI {
 
         private int findBrewingStand() {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
-                if (golem.getInventory().getItem(i).is(Items.BREWING_STAND)) return i;
+                if (golem.getInventory().getItem(i).is(net.minecraft.world.item.Items.BREWING_STAND)) return i;
             }
             return -1;
         }
@@ -2249,7 +2306,7 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.offset(x, y, z);
-                        if (golem.level().getBlockState(p).is(Blocks.BREWING_STAND)) {
+                        if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.BREWING_STAND)) {
                             return p;
                         }
                     }
@@ -2285,7 +2342,7 @@ public class GolemAI {
         private BlockPos findPlacePos(BlockPos chestPos) {
             for (Direction dir : Direction.Plane.HORIZONTAL) {
                 BlockPos p = chestPos.relative(dir);
-                if (golem.level().getBlockState(p).is(Blocks.AIR) && golem.level().getBlockState(p.below()).isRedstoneConductor(golem.level(), p.below())) {
+                if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.AIR) && golem.level().getBlockState(p.below()).isRedstoneConductor(golem.level(), p.below())) {
                     return p;
                 }
             }
@@ -2296,10 +2353,10 @@ public class GolemAI {
             int slot = findBrewingStand();
             if (slot != -1) {
                 ItemStack stack = golem.getInventory().getItem(slot);
-                golem.level().setBlockAndUpdate(pos, Blocks.BREWING_STAND.defaultBlockState());
+                golem.level().setBlock(pos, net.minecraft.world.level.block.Blocks.BREWING_STAND.defaultBlockState(), 3);
                 stack.shrink(1);
                 golem.getInventory().setChanged();
-                golem.playSound(SoundEvents.BREWING_STAND_BREW, 1.0F, 1.0F);
+                golem.playSound(net.minecraft.sounds.SoundEvents.BREWING_STAND_BREW, 1.0F, 1.0F);
                 cooldown = 100;
             }
         }
@@ -2319,7 +2376,7 @@ public class GolemAI {
 
         public BrewingGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -2328,7 +2385,7 @@ public class GolemAI {
                 searchCooldown--;
                 return false;
             }
-            if (golem.getInventory().isEmpty() && !golem.getHeldItem().is(Items.BLAZE_POWDER)) return false;
+            if (golem.getInventory().isEmpty() && !golem.getHeldItem().is(net.minecraft.world.item.Items.BLAZE_POWDER)) return false;
             
             targetPos = findBrewingStand();
             if (targetPos == null) {
@@ -2363,7 +2420,7 @@ public class GolemAI {
 
                 // 2. Can refill fuel?
                 ItemStack fuelStack = stand.getItem(4);
-                if ((fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxStackSize()) && findItemInInventory(Items.BLAZE_POWDER) != -1) {
+                if ((fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxStackSize()) && findItemInInventory(net.minecraft.world.item.Items.BLAZE_POWDER) != -1) {
                     return true;
                 }
 
@@ -2399,7 +2456,7 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.offset(x, y, z);
-                        if (golem.level().getBlockState(p).is(Blocks.BREWING_STAND)) {
+                        if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.BREWING_STAND)) {
                             // Check if any other golem is already targeting this brewing stand
                             boolean alreadyTargeted = false;
                             for (UtilityGolem other : golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(32.0D), g -> g != golem)) {
@@ -2452,7 +2509,7 @@ public class GolemAI {
                 // 1. Fuel
                 ItemStack fuelStack = stand.getItem(4);
                 if (fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxStackSize()) {
-                    int slot = findItemInInventory(Items.BLAZE_POWDER);
+                    int slot = findItemInInventory(net.minecraft.world.item.Items.BLAZE_POWDER);
                     if (slot != -1) {
                         golem.setHeldItem(golem.getInventory().getItem(slot).copyWithCount(1));
                         return;
@@ -2492,7 +2549,7 @@ public class GolemAI {
             // }
 
             // Only search for brewing stand if the current target is no longer a brewing stand
-            if (golem.getRandom().nextInt(40) == 0 && !golem.level().getBlockState(targetPos).is(Blocks.BREWING_STAND)) {
+            if (golem.getRandom().nextInt(40) == 0 && !golem.level().getBlockState(targetPos).is(net.minecraft.world.level.block.Blocks.BREWING_STAND)) {
                 targetPos = findBrewingStand();
                 if (targetPos == null) return;
             }
@@ -2559,10 +2616,10 @@ public class GolemAI {
                 // 2. Refill Blaze Powder fuel (slot 4)
                 ItemStack fuelStack = brewingStand.getItem(4);
                 if (fuelStack.isEmpty() || fuelStack.getCount() < fuelStack.getMaxStackSize()) {
-                    int slot = findItemInInventory(Items.BLAZE_POWDER);
+                    int slot = findItemInInventory(net.minecraft.world.item.Items.BLAZE_POWDER);
                     if (slot != -1) {
                         ItemStack powder = golem.getInventory().getItem(slot);
-                        int amountToTransfer = Math.min(powder.getCount(), Items.BLAZE_POWDER.getDefaultMaxStackSize() - fuelStack.getCount());
+                        int amountToTransfer = Math.min(powder.getCount(), net.minecraft.world.item.Items.BLAZE_POWDER.getDefaultMaxStackSize() - fuelStack.getCount());
                         ItemStack toTransfer = golem.getInventory().removeItem(slot, amountToTransfer);
                         if (fuelStack.isEmpty()) {
                             brewingStand.setItem(4, toTransfer);
@@ -2625,7 +2682,7 @@ public class GolemAI {
             // Priority 1: If there are water bottles, we NEED Nether Wart first.
             // But only if there aren't already Awkward potions in the stand.
             if (hasWaterBottle && !hasAwkwardPotion) {
-                int nw = findItemInInventory(Items.NETHER_WART);
+                int nw = findItemInInventory(net.minecraft.world.item.Items.NETHER_WART);
                 if (nw != -1) return nw;
             }
 
@@ -2633,7 +2690,7 @@ public class GolemAI {
             if (hasAwkwardPotion) {
                 for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                     ItemStack stack = golem.getInventory().getItem(i);
-                    if (isPrimaryIngredient(stack) && !stack.is(Items.NETHER_WART)) {
+                    if (isPrimaryIngredient(stack) && !stack.is(net.minecraft.world.item.Items.NETHER_WART)) {
                         return i;
                     }
                 }
@@ -2641,14 +2698,14 @@ public class GolemAI {
 
             // Priority 1.5: If we STILL have water bottles and no better options, then use nether wart
             if (hasWaterBottle) {
-                int nw = findItemInInventory(Items.NETHER_WART);
+                int nw = findItemInInventory(net.minecraft.world.item.Items.NETHER_WART);
                 if (nw != -1) return nw;
             }
 
             // Priority 3: If we have regular potions, use secondary ingredients (Gunpowder, etc.)
             if (hasRegularPotion) {
                 // Check for fermented spider eye specifically for recipes like Night Vision -> Invisibility
-                int fse = findItemInInventory(Items.FERMENTED_SPIDER_EYE);
+                int fse = findItemInInventory(net.minecraft.world.item.Items.FERMENTED_SPIDER_EYE);
                 if (fse != -1) return fse;
 
                 for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
@@ -2665,7 +2722,7 @@ public class GolemAI {
         }
 
         private boolean isWaterBottle(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.WATER);
             }
@@ -2673,7 +2730,7 @@ public class GolemAI {
         }
 
         private boolean isAwkwardPotion(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.AWKWARD);
             }
@@ -2681,7 +2738,7 @@ public class GolemAI {
         }
 
         private boolean isRegularPotion(ItemStack stack) {
-            if (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 if (potion == null || !potion.potion().isPresent()) return false;
                 Holder<net.minecraft.world.item.alchemy.Potion> p = potion.potion().get();
@@ -2736,8 +2793,8 @@ public class GolemAI {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                 if (isSecondaryIngredient(golem.getInventory().getItem(i))) {
                     // But only if it's not already splash/lingering (unless it's dragon breath)
-                    if (stack.is(Items.POTION)) return false; // Can still add gunpowder/redstone/glowstone
-                    if (stack.is(Items.SPLASH_POTION) && findItemInInventoryStatic(golem, Items.DRAGON_BREATH) != -1) return false;
+                    if (stack.is(net.minecraft.world.item.Items.POTION)) return false; // Can still add gunpowder/redstone/glowstone
+                    if (stack.is(net.minecraft.world.item.Items.SPLASH_POTION) && findItemInInventoryStatic(golem, net.minecraft.world.item.Items.DRAGON_BREATH) != -1) return false;
                 }
             }
             
@@ -2745,7 +2802,7 @@ public class GolemAI {
         }
 
         public static boolean isRegularPotionStatic(ItemStack stack) {
-            if (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 if (potion == null || !potion.potion().isPresent()) return false;
                 Holder<net.minecraft.world.item.alchemy.Potion> p = potion.potion().get();
@@ -2755,7 +2812,7 @@ public class GolemAI {
         }
 
         public static boolean isWaterBottleStatic(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.WATER);
             }
@@ -2763,7 +2820,7 @@ public class GolemAI {
         }
 
         public static boolean isAwkwardPotionStatic(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.AWKWARD);
             }
@@ -2779,7 +2836,7 @@ public class GolemAI {
 
         private boolean isFinishedPotion(ItemStack stack) {
             // Keep for compatibility if used elsewhere, but we updated interactWithBrewingStand to use isFullyFinished
-            if (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && !potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.WATER);
             }
@@ -2796,7 +2853,7 @@ public class GolemAI {
         private int findWaterBottleInInventory() {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                 ItemStack stack = golem.getInventory().getItem(i);
-                if (stack.is(Items.POTION)) {
+                if (stack.is(net.minecraft.world.item.Items.POTION)) {
                     net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                     if (potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.WATER)) {
                         return i;
@@ -2817,7 +2874,7 @@ public class GolemAI {
 
         @Override
         public boolean canContinueToUse() {
-            return targetPos != null && golem.level().getBlockState(targetPos).is(Blocks.BREWING_STAND) && hasWorkAtStand();
+            return targetPos != null && golem.level().getBlockState(targetPos).is(net.minecraft.world.level.block.Blocks.BREWING_STAND) && hasWorkAtStand();
         }
 
         private boolean isInventoryFull() {
@@ -2836,7 +2893,7 @@ public class GolemAI {
 
         public FillBottleGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -2850,7 +2907,7 @@ public class GolemAI {
                 return false;
             }
             if (isInventoryFull()) return false;
-            if (findItemInInventory(Items.GLASS_BOTTLE) == -1) return false;
+            if (findItemInInventory(net.minecraft.world.item.Items.GLASS_BOTTLE) == -1) return false;
             
             // Priority: Don't fill more water bottles if we already have 3 or more (water + finished potions)
             // Leave space for ingredients!
@@ -2914,7 +2971,7 @@ public class GolemAI {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -range; z <= range; z++) {
                         BlockPos p = pos.offset(x, y, z);
-                        if (golem.level().getBlockState(p).is(Blocks.BREWING_STAND)) {
+                        if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.BREWING_STAND)) {
                             golem.debugLog("FillBottleGoal: Found brewing stand at " + p.toShortString());
                             return p;
                         }
@@ -2953,7 +3010,7 @@ public class GolemAI {
             int count = 0;
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                 ItemStack stack = golem.getInventory().getItem(i);
-                if (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)) {
+                if (stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION)) {
                     if (!isWaterBottle(stack)) count++;
                 }
             }
@@ -2998,7 +3055,7 @@ public class GolemAI {
         }
 
         private boolean isWaterBottle(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.WATER);
             }
@@ -3006,7 +3063,7 @@ public class GolemAI {
         }
 
         private boolean isAwkwardPotion(ItemStack stack) {
-            if (stack.is(Items.POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 return potion != null && potion.potion().isPresent() && potion.potion().get().is(net.minecraft.world.item.alchemy.Potions.AWKWARD);
             }
@@ -3014,7 +3071,7 @@ public class GolemAI {
         }
 
         private boolean isRegularPotion(ItemStack stack) {
-            if (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)) {
+            if (stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION)) {
                 net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                 if (potion == null || !potion.potion().isPresent()) return false;
                 Holder<net.minecraft.world.item.alchemy.Potion> p = potion.potion().get();
@@ -3034,7 +3091,7 @@ public class GolemAI {
                             return p;
                         }
                         BlockState state = golem.level().getBlockState(p);
-                        if (state.is(Blocks.WATER_CAULDRON) || state.is(Blocks.CAULDRON)) {
+                        if (state.is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON) || state.is(net.minecraft.world.level.block.Blocks.CAULDRON)) {
                             return p;
                         }
                     }
@@ -3047,7 +3104,7 @@ public class GolemAI {
         public void start() {
             actionTimer = 0;
             golem.setDebugTarget(waterPos);
-            golem.setHeldItem(new ItemStack(Items.GLASS_BOTTLE));
+            golem.setHeldItem(new ItemStack(net.minecraft.world.item.Items.GLASS_BOTTLE));
         }
 
         @Override
@@ -3066,7 +3123,7 @@ public class GolemAI {
             if (golem.getRandom().nextInt(40) == 0) {
                 BlockState state = golem.level().getBlockState(waterPos);
                 boolean isWater = golem.level().getFluidState(waterPos).is(net.minecraft.tags.FluidTags.WATER) ||
-                                 state.is(Blocks.WATER_CAULDRON) || state.is(Blocks.CAULDRON);
+                                 state.is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON) || state.is(net.minecraft.world.level.block.Blocks.CAULDRON);
                 if (!isWater) {
                     waterPos = findNearbyWater();
                     if (waterPos == null) return;
@@ -3087,27 +3144,27 @@ public class GolemAI {
                     if (isInventoryFull()) {
                         waterPos = null;
                         golem.setHeldItem(ItemStack.EMPTY);
-                    } else if (findItemInInventory(Items.GLASS_BOTTLE) != -1) {
-                        golem.setHeldItem(new ItemStack(Items.GLASS_BOTTLE));
+                    } else if (findItemInInventory(net.minecraft.world.item.Items.GLASS_BOTTLE) != -1) {
+                        golem.setHeldItem(new ItemStack(net.minecraft.world.item.Items.GLASS_BOTTLE));
                     }
                 }
             }
         }
 
         private void fillBottle() {
-            int slot = findItemInInventory(Items.GLASS_BOTTLE);
+            int slot = findItemInInventory(net.minecraft.world.item.Items.GLASS_BOTTLE);
             if (slot != -1) {
                 BlockState state = golem.level().getBlockState(waterPos);
                 boolean canFill = false;
                 if (golem.level().getFluidState(waterPos).is(net.minecraft.tags.FluidTags.WATER)) {
                     canFill = true;
-                } else if (state.is(Blocks.WATER_CAULDRON)) {
+                } else if (state.is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)) {
                     int level = state.getValue(net.minecraft.world.level.block.LayeredCauldronBlock.LEVEL);
                     if (level > 0) {
                         if (level == 1) {
-                            golem.level().setBlockAndUpdate(waterPos, Blocks.CAULDRON.defaultBlockState());
+                            golem.level().setBlock(waterPos, net.minecraft.world.level.block.Blocks.CAULDRON.defaultBlockState(), 3);
                         } else {
-                            golem.level().setBlockAndUpdate(waterPos, state.setValue(net.minecraft.world.level.block.LayeredCauldronBlock.LEVEL, level - 1));
+                            golem.level().setBlock(waterPos, state.setValue(net.minecraft.world.level.block.LayeredCauldronBlock.LEVEL, level - 1), 3);
                         }
                         canFill = true;
                     }
@@ -3116,7 +3173,7 @@ public class GolemAI {
                 if (!canFill) return;
 
                 golem.getInventory().removeItem(slot, 1);
-                ItemStack waterBottle = new ItemStack(Items.POTION);
+                ItemStack waterBottle = new ItemStack(net.minecraft.world.item.Items.POTION);
                 waterBottle.set(DataComponents.POTION_CONTENTS, new net.minecraft.world.item.alchemy.PotionContents(net.minecraft.world.item.alchemy.Potions.WATER));
                 
                 golem.setHeldItem(waterBottle.copy());
@@ -3140,7 +3197,7 @@ public class GolemAI {
                         Block.popResource(golem.level(), golem.blockPosition(), remaining);
                     }
                 }
-                golem.level().playSound(null, golem.blockPosition(), SoundEvents.BOTTLE_FILL, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                golem.level().playSound(null, golem.blockPosition(), net.minecraft.sounds.SoundEvents.BOTTLE_FILL, SoundSource.NEUTRAL, 1.0F, 1.0F);
             }
         }
 
@@ -3153,7 +3210,7 @@ public class GolemAI {
 
         @Override
         public boolean canContinueToUse() {
-            return waterPos != null && findItemInInventory(Items.GLASS_BOTTLE) != -1 && !isInventoryFull();
+            return waterPos != null && findItemInInventory(net.minecraft.world.item.Items.GLASS_BOTTLE) != -1 && !isInventoryFull();
         }
 
         private boolean isInventoryFull() {
@@ -3175,7 +3232,7 @@ public class GolemAI {
 
         public DepositItemsGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         public boolean hasItemsToDeposit() {
@@ -3199,7 +3256,7 @@ public class GolemAI {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
-                if (stack.is(Items.GLASS_BOTTLE)) continue;
+                if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) continue;
                 return true;
             }
             return false;
@@ -3233,10 +3290,10 @@ public class GolemAI {
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
-                if (stack.is(Items.GLASS_BOTTLE)) continue;
+                if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) continue;
                 if (isIngredient(stack)) continue;
-                if (stack.is(Items.BLAZE_POWDER)) continue;
-                if (stack.is(Items.POTION)) {
+                if (stack.is(net.minecraft.world.item.Items.BLAZE_POWDER)) continue;
+                if (stack.is(net.minecraft.world.item.Items.POTION)) {
                     net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                     if (potion != null && potion.potion().isPresent()) {
                          Holder<net.minecraft.world.item.alchemy.Potion> p = potion.potion().get();
@@ -3255,7 +3312,7 @@ public class GolemAI {
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
-                if (stack.is(Items.EMERALD)) return true;
+                if (stack.is(net.minecraft.world.item.Items.EMERALD)) return true;
                 
                 // If it's a sellable item, we should deposit it if we don't have a villager nearby who wants it.
                 // This handles the case where we switched villagers.
@@ -3263,7 +3320,7 @@ public class GolemAI {
                 boolean isWantedNearby = false;
                 for (Villager villager : villagers) {
                     for (MerchantOffer offer : villager.getOffers()) {
-                        if (!offer.isOutOfStock() && offer.getResult().is(Items.EMERALD)) {
+                        if (!offer.isOutOfStock() && offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                             if (offer.getItemCostA().test(stack) || (offer.getItemCostB().isPresent() && offer.getItemCostB().get().test(stack))) {
                                 isWantedNearby = true;
                                 break;
@@ -3346,7 +3403,7 @@ public class GolemAI {
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
-                if (!stack.is(Items.GOLD_INGOT) && !stack.is(Items.GOLD_NUGGET)) return true;
+                if (!stack.is(net.minecraft.world.item.Items.GOLD_INGOT) && !stack.is(net.minecraft.world.item.Items.GOLD_NUGGET)) return true;
             }
             return false;
         }
@@ -3358,12 +3415,12 @@ public class GolemAI {
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue; // Common check in depositItems
                 
-                if (stack.is(Items.CHORUS_FRUIT)) return true; // Always deposit fruit
+                if (stack.is(net.minecraft.world.item.Items.CHORUS_FRUIT)) return true; // Always deposit fruit
                 if (isSapling(stack)) {
                     if (getSaplingCount(stack.getItem()) > 8) return true;
                     continue;
                 }
-                if (stack.is(Items.STICK)) return true; // Always deposit sticks
+                if (stack.is(net.minecraft.world.item.Items.STICK)) return true; // Always deposit sticks
                 return true; // Anything else should be deposited
             }
             return false;
@@ -3406,8 +3463,8 @@ public class GolemAI {
                 if (stack.isEmpty()) continue;
                 if (isCrop(stack)) {
                     if (golem.getGolemType() == GolemType.BAMBOO) {
-                        if (stack.is(Items.MELON_SLICE)) return true; // Always deposit melon slices
-                        if (isSeed(stack) || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.CARROT) || stack.is(Items.POTATO)) {
+                        if (stack.is(net.minecraft.world.item.Items.MELON_SLICE)) return true; // Always deposit melon slices
+                        if (isSeed(stack) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO)) {
                             // Only deposit seeds/carrots/potatoes if we have more than 16 (keep some for planting)
                             // However, if the golem.getInventory() is full, we should still deposit them to make room.
                             if (getSeedCount(stack.getItem()) > 16 || isInventoryFull()) return true;
@@ -3423,7 +3480,7 @@ public class GolemAI {
                 for (int i = 0; i < inv.getContainerSize(); i++) {
                     ItemStack stack = inv.getItem(i);
                     if (stack.isEmpty()) continue;
-                    if (stack.is(Items.WATER_BUCKET) || stack.is(Items.BUCKET) || UtilityGolem.isTool(stack)) {
+                    if (stack.is(net.minecraft.world.item.Items.WATER_BUCKET) || stack.is(net.minecraft.world.item.Items.BUCKET) || UtilityGolem.isTool(stack)) {
                         continue;
                     }
                     return true;
@@ -3446,11 +3503,11 @@ public class GolemAI {
         }
 
         private boolean isCrop(ItemStack stack) {
-            return stack.is(Items.WHEAT) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT)
-                    || stack.is(Items.WHEAT_SEEDS) || stack.is(Items.BEETROOT_SEEDS)
-                    || stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS)
-                    || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS)
-                    || stack.is(Items.PUMPKIN) || stack.is(Items.MELON) || stack.is(Items.MELON_SLICE);
+            return stack.is(net.minecraft.world.item.Items.WHEAT) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT)
+                    || stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)
+                    || stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS)
+                    || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS)
+                    || stack.is(net.minecraft.world.item.Items.PUMPKIN) || stack.is(net.minecraft.world.item.Items.MELON) || stack.is(net.minecraft.world.item.Items.MELON_SLICE);
         }
 
         private boolean hasFullStack() {
@@ -3494,10 +3551,10 @@ public class GolemAI {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
-                if (stack.is(Items.GLASS_BOTTLE)) continue;
+                if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) continue;
                 if (isIngredient(stack)) continue;
-                if (stack.is(Items.BLAZE_POWDER)) continue;
-                if (stack.is(Items.POTION)) {
+                if (stack.is(net.minecraft.world.item.Items.BLAZE_POWDER)) continue;
+                if (stack.is(net.minecraft.world.item.Items.POTION)) {
                     net.minecraft.world.item.alchemy.PotionContents potion = stack.get(DataComponents.POTION_CONTENTS);
                     if (potion != null && potion.potion().isPresent()) {
                          Holder<net.minecraft.world.item.alchemy.Potion> p = potion.potion().get();
@@ -3519,20 +3576,20 @@ public class GolemAI {
 
         private boolean isSeed(ItemStack stack) {
             if (stack.isEmpty()) return false;
-            return stack.is(Items.WHEAT_SEEDS) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT_SEEDS)
-                    || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS)
-                    || stack.is(Items.PITCHER_POD) || stack.is(Items.TORCHFLOWER_SEEDS);
+            return stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)
+                    || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS)
+                    || stack.is(net.minecraft.world.item.Items.PITCHER_POD) || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS);
         }
 
         private boolean isSapling(ItemStack stack) {
             if (golem.getGolemType() == GolemType.DEEPSLATE) {
-                return stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER);
+                return stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER);
             }
             return stack.is(net.minecraft.tags.ItemTags.SAPLINGS);
         }
 
         private boolean isApple(ItemStack stack) {
-            return stack.is(Items.APPLE);
+            return stack.is(net.minecraft.world.item.Items.APPLE);
         }
 
         private int getSaplingCount() {
@@ -3563,7 +3620,7 @@ public class GolemAI {
         }
 
         private int stuckTicks = 0;
-        private Vec3 lastPos = Vec3.ZERO;
+        private Vec3 lastPos = net.minecraft.world.phys.Vec3.ZERO;
 
         @Override
         public void tick() {
@@ -3641,7 +3698,7 @@ public class GolemAI {
             Level world = golem.level();
             for (Direction dir : Direction.Plane.HORIZONTAL) {
                 BlockPos p = pos.relative(dir);
-                if (world.getBlockState(p).is(Blocks.AIR) && world.getBlockState(p.above()).is(Blocks.AIR) && !world.getBlockState(p.below()).is(Blocks.AIR)) {
+                if (world.getBlockState(p).is(net.minecraft.world.level.block.Blocks.AIR) && world.getBlockState(p.above()).is(net.minecraft.world.level.block.Blocks.AIR) && !world.getBlockState(p.below()).is(net.minecraft.world.level.block.Blocks.AIR)) {
                     return p;
                 }
             }
@@ -3665,7 +3722,7 @@ public class GolemAI {
                             List<Villager> villagers = golem.level().getEntitiesOfClass(Villager.class, golem.getBoundingBox().inflate(16.0), v -> true);
                             for (Villager villager : villagers) {
                                 for (MerchantOffer offer : villager.getOffers()) {
-                                    if (!offer.isOutOfStock() && offer.getResult().is(Items.EMERALD)) {
+                                    if (!offer.isOutOfStock() && offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                                         if (offer.getItemCostA().test(stack) || (offer.getItemCostB().isPresent() && offer.getItemCostB().get().test(stack))) {
                                             isWantedNearby = true;
                                             break;
@@ -3675,7 +3732,7 @@ public class GolemAI {
                                 if (isWantedNearby) break;
                             }
 
-                            if (stack.is(Items.EMERALD)) {
+                            if (stack.is(net.minecraft.world.item.Items.EMERALD)) {
                                 ItemStack remaining_stack = transferStack(stack, container);
                                 golemInv.setItem(i, remaining_stack);
                                 continue;
@@ -3700,15 +3757,15 @@ public class GolemAI {
                             }
                         }
             if (golem.getGolemType() == GolemType.BAMBOO) {
-                if (stack.is(Items.WATER_BUCKET) || stack.is(Items.BUCKET) || UtilityGolem.isTool(stack)) {
+                if (stack.is(net.minecraft.world.item.Items.WATER_BUCKET) || stack.is(net.minecraft.world.item.Items.BUCKET) || UtilityGolem.isTool(stack)) {
                     continue;
                 }
-                if (stack.is(Items.MELON_SLICE) || stack.is(Items.PUMPKIN) || stack.is(Items.MELON) || stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS)) {
+                if (stack.is(net.minecraft.world.item.Items.MELON_SLICE) || stack.is(net.minecraft.world.item.Items.PUMPKIN) || stack.is(net.minecraft.world.item.Items.MELON) || stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS)) {
                     ItemStack remaining_stack = transferStack(stack, container);
                     golemInv.setItem(i, remaining_stack);
                     continue;
                 }
-                if (isSeed(stack) || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.CARROT) || stack.is(Items.POTATO)) {
+                if (isSeed(stack) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO)) {
                                 int seedCount = getSeedCount(stack.getItem());
                                 if (seedCount <= 16 && !isInventoryFull()) continue;
                                 
@@ -3733,7 +3790,7 @@ public class GolemAI {
                             }
                         }
                         if (golem.getGolemType() == GolemType.DEEPSLATE) {
-                            if (stack.is(Items.CHORUS_FRUIT)) {
+                            if (stack.is(net.minecraft.world.item.Items.CHORUS_FRUIT)) {
                                 ItemStack remaining_stack = transferStack(stack, container);
                                 golemInv.setItem(i, remaining_stack);
                                 continue;
@@ -3746,7 +3803,7 @@ public class GolemAI {
                             }
                         }
                         if (golem.getGolemType() == GolemType.GOLD) {
-                            if (stack.is(Items.GOLD_INGOT) || stack.is(Items.GOLD_NUGGET)) {
+                            if (stack.is(net.minecraft.world.item.Items.GOLD_INGOT) || stack.is(net.minecraft.world.item.Items.GOLD_NUGGET)) {
                                 continue;
                             }
                             // Also don't deposit items the golem is currently "holding" for a purpose (though gold golems usually hold gold)
@@ -3782,7 +3839,7 @@ public class GolemAI {
                         }
                         if (golem.getGolemType() == GolemType.NETHER_WART) {
                             // Don't deposit glass bottles, ingredients, blaze powder, brewing stands, or water/awkward potions
-                            if (stack.is(Items.GLASS_BOTTLE) || isIngredient(stack) || stack.is(Items.BLAZE_POWDER) || stack.is(Items.BREWING_STAND)) {
+                            if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || isIngredient(stack) || stack.is(net.minecraft.world.item.Items.BLAZE_POWDER) || stack.is(net.minecraft.world.item.Items.BREWING_STAND)) {
                                 continue;
                             }
                             if (BrewingGoal.isWaterBottleStatic(stack) || BrewingGoal.isAwkwardPotionStatic(stack)) {
@@ -3797,12 +3854,12 @@ public class GolemAI {
                             }
                         }
                         if (golem.getGolemType() == GolemType.HONEYCOMB) {
-                            if (stack.is(Items.GLASS_BOTTLE) || stack.is(Items.SHEARS)) {
+                            if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || stack.is(net.minecraft.world.item.Items.SHEARS)) {
                                 continue;
                             }
                         }
                         if (golem.getGolemType() == GolemType.GOLD) {
-                            if (stack.is(Items.GOLD_INGOT) || stack.is(Items.GOLD_NUGGET)) {
+                            if (stack.is(net.minecraft.world.item.Items.GOLD_INGOT) || stack.is(net.minecraft.world.item.Items.GOLD_NUGGET)) {
                                 continue;
                             }
                         }
@@ -3851,7 +3908,7 @@ public class GolemAI {
 
         public WithdrawItemsGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -4117,13 +4174,13 @@ public class GolemAI {
             }
 
             if (golem.getGolemType() == GolemType.NETHER_WART) {
-                if (hasIngredients() && hasSecondaryIngredients() && hasGlassBottles() && hasBlazePowder() && hasItem(Items.BREWING_STAND)) {
+                if (hasIngredients() && hasSecondaryIngredients() && hasGlassBottles() && hasBlazePowder() && hasItem(net.minecraft.world.item.Items.BREWING_STAND)) {
                     // Check if we have at least 1 stack of each. 
                     // Actually, if we have them, we might still want more if we have room in our 6 reserved slots.
                     int supplySlotsUsed = 0;
                     for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                         ItemStack s = golem.getInventory().getItem(i);
-                        if (!s.isEmpty() && (isIngredient(s) || s.is(Items.GLASS_BOTTLE) || s.is(Items.BLAZE_POWDER) || s.is(Items.BREWING_STAND))) {
+                        if (!s.isEmpty() && (isIngredient(s) || s.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || s.is(net.minecraft.world.item.Items.BLAZE_POWDER) || s.is(net.minecraft.world.item.Items.BREWING_STAND))) {
                             supplySlotsUsed++;
                         }
                     }
@@ -4176,7 +4233,7 @@ public class GolemAI {
         private boolean hasGlassBottles() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.GLASS_BOTTLE)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;
             }
             return false;
         }
@@ -4184,7 +4241,7 @@ public class GolemAI {
         private boolean hasBlazePowder() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.BLAZE_POWDER)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.BLAZE_POWDER)) return true;
             }
             return false;
         }
@@ -4196,7 +4253,7 @@ public class GolemAI {
             for (MerchantOffers offers : allOffers) {
                 for (MerchantOffer offer : offers) {
                     if (offer.isOutOfStock()) continue;
-                    if (offer.getResult().is(Items.EMERALD)) {
+                    if (offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                         ItemCost buyItem1 = offer.getItemCostA();
                         Optional<ItemCost> buyItem2 = offer.getItemCostB();
                         if (hasStack(golem.getInventory(), buyItem1) && (buyItem2.isEmpty() || hasStack(golem.getInventory(), buyItem2.get()))) {
@@ -4214,7 +4271,7 @@ public class GolemAI {
             for (Villager villager : villagers) {
                 MerchantOffers offers = villager.getOffers();
                 for (MerchantOffer offer : offers) {
-                    if (!offer.isOutOfStock() && offer.getResult().is(Items.EMERALD)) {
+                    if (!offer.isOutOfStock() && offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                         allOffers.add(offers);
                         break;
                     }
@@ -4232,7 +4289,7 @@ public class GolemAI {
                 for (MerchantOffers offers : allOffers) {
                     for (MerchantOffer offer : offers) {
                         if (offer.isOutOfStock()) continue;
-                        if (offer.getResult().is(Items.EMERALD)) {
+                        if (offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                             ItemCost buyItem1 = offer.getItemCostA();
                             Optional<ItemCost> buyItem2 = offer.getItemCostB();
                             
@@ -4313,7 +4370,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER)) {
+                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER)) {
                     count += stack.getCount();
                 }
             }
@@ -4325,7 +4382,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER)) {
+                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER)) {
                     count += stack.getCount();
                 }
             }
@@ -4333,19 +4390,19 @@ public class GolemAI {
         }
 
         private boolean hasWaterBucket() {
-            if (golem.getHeldItem().is(Items.WATER_BUCKET)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.WATER_BUCKET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             }
             return false;
         }
 
         private boolean hasEmptyBucket() {
-            if (golem.getHeldItem().is(Items.BUCKET)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.BUCKET)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.BUCKET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.BUCKET)) return true;
             }
             return false;
         }
@@ -4359,9 +4416,9 @@ public class GolemAI {
         }
 
         private boolean isSeed(ItemStack stack) {
-            return stack.is(Items.WHEAT_SEEDS) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT_SEEDS)
-                    || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS)
-                    || stack.is(Items.PITCHER_POD) || stack.is(Items.TORCHFLOWER_SEEDS);
+            return stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)
+                    || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS)
+                    || stack.is(net.minecraft.world.item.Items.PITCHER_POD) || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS);
         }
 
         private boolean hasFuel() {
@@ -4373,7 +4430,7 @@ public class GolemAI {
         }
 
         private boolean isFuel(ItemStack stack) {
-            return stack.is(Items.COAL) || stack.is(Items.CHARCOAL) || stack.is(Items.BLAZE_ROD) || stack.is(Items.LAVA_BUCKET);
+            return stack.is(net.minecraft.world.item.Items.COAL) || stack.is(net.minecraft.world.item.Items.CHARCOAL) || stack.is(net.minecraft.world.item.Items.BLAZE_ROD) || stack.is(net.minecraft.world.item.Items.LAVA_BUCKET);
         }
 
         private boolean hasBlocks() {
@@ -4397,7 +4454,7 @@ public class GolemAI {
         private boolean hasEmeralds() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.EMERALD)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.EMERALD)) return true;
             }
             return false;
         }
@@ -4414,7 +4471,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(Items.GOLD_INGOT) || stack.is(Items.GOLD_NUGGET)) return true;
+                if (stack.is(net.minecraft.world.item.Items.GOLD_INGOT) || stack.is(net.minecraft.world.item.Items.GOLD_NUGGET)) return true;
             }
             return false;
         }
@@ -4424,8 +4481,8 @@ public class GolemAI {
             boolean hasDust = false;
             boolean hasRepeater = false;
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.REDSTONE)) hasDust = true;
-                if (inv.getItem(i).is(Items.REPEATER)) hasRepeater = true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.REDSTONE)) hasDust = true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.REPEATER)) hasRepeater = true;
             }
             return hasDust && hasRepeater;
         }
@@ -4433,7 +4490,7 @@ public class GolemAI {
         private boolean hasRedstoneDust() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.REDSTONE)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.REDSTONE)) return true;
             }
             return false;
         }
@@ -4441,7 +4498,7 @@ public class GolemAI {
         private boolean hasRepeater() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.REPEATER)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.REPEATER)) return true;
             }
             return false;
         }
@@ -4493,14 +4550,14 @@ public class GolemAI {
                         
                         if (!hasHoe() && UtilityGolem.isHoe(stack)) return true;
                         if (!hasAxe() && UtilityGolem.isAxe(stack)) return true;
-                        if (!hasWaterBucket() && !hasEmptyBucket() && (stack.is(Items.WATER_BUCKET) || stack.is(Items.BUCKET))) return true;
+                        if (!hasWaterBucket() && !hasEmptyBucket() && (stack.is(net.minecraft.world.item.Items.WATER_BUCKET) || stack.is(net.minecraft.world.item.Items.BUCKET))) return true;
                         if (!hasSeeds() && isSeed(stack)) return true;
                     }
                     if (golem.getGolemType() == GolemType.AMETHYST) {
                         if (isValidBreedingItem(stack)) return true;
                     }
                     if (golem.getGolemType() == GolemType.REDSTONE) {
-                        if (stack.is(Items.REDSTONE) || stack.is(Items.REPEATER)) return true;
+                        if (stack.is(net.minecraft.world.item.Items.REDSTONE) || stack.is(net.minecraft.world.item.Items.REPEATER)) return true;
                     }
                     if (golem.getGolemType() == GolemType.JUKEBOX) {
                         if (stack.get(DataComponents.JUKEBOX_PLAYABLE) != null) return true;
@@ -4512,11 +4569,11 @@ public class GolemAI {
                         if (UtilityGolem.isFishingRod(stack)) return true;
                     }
                     if (golem.getGolemType() == GolemType.GOLD) {
-                        if (stack.is(Items.GOLD_INGOT) || stack.is(Items.GOLD_NUGGET)) return true;
+                        if (stack.is(net.minecraft.world.item.Items.GOLD_INGOT) || stack.is(net.minecraft.world.item.Items.GOLD_NUGGET)) return true;
                     }
                     if (golem.getGolemType() == GolemType.EMERALD) {
                         // Only withdraw emeralds if we have a buy item selected and we don't already have emeralds
-                        if (stack.is(Items.EMERALD)) {
+                        if (stack.is(net.minecraft.world.item.Items.EMERALD)) {
                             return !golem.getSelectedBuyItem().isEmpty() && !hasEmeralds();
                         }
                         
@@ -4526,7 +4583,7 @@ public class GolemAI {
                             List<Villager> villagers = golem.level().getEntitiesOfClass(Villager.class, golem.getBoundingBox().inflate(16.0), v -> true);
                             for (Villager villager : villagers) {
                                 for (MerchantOffer offer : villager.getOffers()) {
-                                    if (!offer.isOutOfStock() && offer.getResult().is(Items.EMERALD)) {
+                                    if (!offer.isOutOfStock() && offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                                         if (offer.getItemCostA().test(stack) || (offer.getItemCostB().isPresent() && offer.getItemCostB().get().test(stack))) {
                                             return true;
                                         }
@@ -4536,14 +4593,14 @@ public class GolemAI {
                         }
                     }
                     if (golem.getGolemType() == GolemType.HONEYCOMB) {
-                        if (stack.is(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
-                        if (stack.is(Items.SHEARS) && !hasShears()) return true;
+                        if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
+                        if (stack.is(net.minecraft.world.item.Items.SHEARS) && !hasShears()) return true;
                     }
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (stack.is(Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
+                        if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) && !hasGlassBottles()) return true;
                         if (isIngredient(stack) && !hasItem(stack.getItem())) return true;
-                        if (stack.is(Items.BLAZE_POWDER) && !hasBlazePowder()) return true;
-                        if (stack.is(Items.BREWING_STAND) && !hasItem(Items.BREWING_STAND)) return true;
+                        if (stack.is(net.minecraft.world.item.Items.BLAZE_POWDER) && !hasBlazePowder()) return true;
+                        if (stack.is(net.minecraft.world.item.Items.BREWING_STAND) && !hasItem(net.minecraft.world.item.Items.BREWING_STAND)) return true;
                         if (BrewingGoal.isWaterBottleStatic(stack) || BrewingGoal.isAwkwardPotionStatic(stack)) {
                              // Only withdraw potions/water bottles if we have space in our 3 reserved water/potion slots
                              int potionSlotsUsed = 0;
@@ -4593,7 +4650,7 @@ public class GolemAI {
         private boolean hasGoldIngot() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.GOLD_INGOT)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.GOLD_INGOT)) return true;
             }
             return false;
         }
@@ -4601,7 +4658,7 @@ public class GolemAI {
         private boolean hasGoldNugget() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.GOLD_NUGGET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.GOLD_NUGGET)) return true;
             }
             return false;
         }
@@ -4628,11 +4685,11 @@ public class GolemAI {
                     if (stack.isEmpty()) continue;
                     
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (stack.is(Items.BLAZE_POWDER) && !hasBlazePowder()) {
+                        if (stack.is(net.minecraft.world.item.Items.BLAZE_POWDER) && !hasBlazePowder()) {
                             golem.setHeldItem(stack.copyWithCount(1));
                             return;
                         }
-                        if (stack.is(Items.GLASS_BOTTLE) && !hasGlassBottles()) {
+                        if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) && !hasGlassBottles()) {
                             golem.setHeldItem(stack.copyWithCount(1));
                             return;
                         }
@@ -4645,11 +4702,11 @@ public class GolemAI {
                             return;
                         }
                     } else if (golem.getGolemType() == GolemType.HONEYCOMB) {
-                        if (stack.is(Items.SHEARS) && !hasShears()) {
+                        if (stack.is(net.minecraft.world.item.Items.SHEARS) && !hasShears()) {
                              golem.setHeldItem(stack.copyWithCount(1));
                              return;
                         }
-                        if (stack.is(Items.GLASS_BOTTLE) && !hasGlassBottles()) {
+                        if (stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) && !hasGlassBottles()) {
                              golem.setHeldItem(stack.copyWithCount(1));
                              return;
                         }
@@ -4670,7 +4727,7 @@ public class GolemAI {
                 int supplySlotsUsed = 0;
                 for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                     ItemStack s = golem.getInventory().getItem(i);
-                    if (!s.isEmpty() && (isIngredient(s) || s.is(Items.GLASS_BOTTLE) || s.is(Items.BLAZE_POWDER))) {
+                    if (!s.isEmpty() && (isIngredient(s) || s.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || s.is(net.minecraft.world.item.Items.BLAZE_POWDER))) {
                         supplySlotsUsed++;
                     }
                 }
@@ -4754,7 +4811,7 @@ public class GolemAI {
         }
 
         private int stuckTicks = 0;
-        private Vec3 lastPos = Vec3.ZERO;
+        private Vec3 lastPos = net.minecraft.world.phys.Vec3.ZERO;
 
         @Override
         public void tick() {
@@ -4840,7 +4897,7 @@ public class GolemAI {
                     if (containerStack.isEmpty()) continue;
 
                     if (golem.getGolemType() == GolemType.EMERALD) {
-                        if (containerStack.is(Items.EMERALD)) {
+                        if (containerStack.is(net.minecraft.world.item.Items.EMERALD)) {
                             // Only withdraw emeralds if we have a buy item selected and we don't already have emeralds
                             if (!golem.getSelectedBuyItem().isEmpty() && !hasEmeralds()) {
                                 ItemStack toWithdraw = containerStack.split(Math.min(containerStack.getCount(), containerStack.getMaxStackSize()));
@@ -4853,7 +4910,7 @@ public class GolemAI {
                             boolean isSellable = false;
                             for (Villager villager : villagers) {
                                 for (MerchantOffer offer : villager.getOffers()) {
-                                    if (!offer.isOutOfStock() && offer.getResult().is(Items.EMERALD)) {
+                                    if (!offer.isOutOfStock() && offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                                         if (offer.getItemCostA().test(containerStack) || (offer.getItemCostB().isPresent() && offer.getItemCostB().get().test(containerStack))) {
                                             isSellable = true;
                                             break;
@@ -4897,7 +4954,7 @@ public class GolemAI {
                     }
 
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (isIngredient(containerStack) || containerStack.is(Items.GLASS_BOTTLE) || containerStack.is(Items.BLAZE_POWDER) || containerStack.is(Items.BREWING_STAND) || BrewingGoal.isWaterBottleStatic(containerStack) || BrewingGoal.isAwkwardPotionStatic(containerStack)) {
+                        if (isIngredient(containerStack) || containerStack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || containerStack.is(net.minecraft.world.item.Items.BLAZE_POWDER) || containerStack.is(net.minecraft.world.item.Items.BREWING_STAND) || BrewingGoal.isWaterBottleStatic(containerStack) || BrewingGoal.isAwkwardPotionStatic(containerStack)) {
                             // Nether Wart Golem has a slot reservation system.
                             // 6 slots for ingredients/supplies, 3 slots reserved for water/potions.
                             
@@ -4909,7 +4966,7 @@ public class GolemAI {
                             for (int j = 0; j < golemInv_count.getContainerSize(); j++) {
                                 ItemStack s = golemInv_count.getItem(j);
                                 if (!s.isEmpty()) {
-                                    if (isIngredient(s) || s.is(Items.GLASS_BOTTLE) || s.is(Items.BLAZE_POWDER) || s.is(Items.BREWING_STAND)) {
+                                    if (isIngredient(s) || s.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || s.is(net.minecraft.world.item.Items.BLAZE_POWDER) || s.is(net.minecraft.world.item.Items.BREWING_STAND)) {
                                         supplySlotsUsed++;
                                     } else if (BrewingGoal.isWaterBottleStatic(s) || BrewingGoal.isRegularPotionStatic(s) || BrewingGoal.isAwkwardPotionStatic(s)) {
                                         potionSlotsUsed++;
@@ -4937,10 +4994,10 @@ public class GolemAI {
                                 
                                 if (!alreadyHasItem) {
                                     int maxToWithdraw = 8;
-                                    if (containerStack.is(Items.BLAZE_POWDER) || containerStack.is(Items.GLASS_BOTTLE)) {
+                                    if (containerStack.is(net.minecraft.world.item.Items.BLAZE_POWDER) || containerStack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) {
                                         maxToWithdraw = 16;
                                     }
-                                    if (containerStack.is(Items.BREWING_STAND)) {
+                                    if (containerStack.is(net.minecraft.world.item.Items.BREWING_STAND)) {
                                         maxToWithdraw = 1;
                                     }
                                     
@@ -4970,7 +5027,7 @@ public class GolemAI {
                         continue;
                     }
 
-                    if (golem.getGolemType() == GolemType.REDSTONE && containerStack.is(Items.REDSTONE)) {
+                    if (golem.getGolemType() == GolemType.REDSTONE && containerStack.is(net.minecraft.world.item.Items.REDSTONE)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setItem(i, remaining);
                         withdrawnSomething = true;
@@ -4982,7 +5039,7 @@ public class GolemAI {
                         continue;
                     }
 
-                    if (golem.getGolemType() == GolemType.GOLD && containerStack.is(Items.GOLD_INGOT)) {
+                    if (golem.getGolemType() == GolemType.GOLD && containerStack.is(net.minecraft.world.item.Items.GOLD_INGOT)) {
                         ItemStack remaining = transferStack(containerStack, golemInv);
                         container.setItem(i, remaining);
                         withdrawnSomething = true;
@@ -5028,7 +5085,7 @@ public class GolemAI {
                                 container.setChanged();
                                 return true;
                             }
-                        } else if (containerStack.is(Items.BUCKET) || containerStack.is(Items.WATER_BUCKET)) {
+                        } else if (containerStack.is(net.minecraft.world.item.Items.BUCKET) || containerStack.is(net.minecraft.world.item.Items.WATER_BUCKET)) {
                             if (!hasWaterBucket() && !hasEmptyBucket()) {
                                 ItemStack bucket = containerStack.split(1);
                                 golem.getInventory().addItem(bucket);
@@ -5168,7 +5225,7 @@ public class GolemAI {
                     }
 
                     if (golem.getGolemType() == GolemType.NETHER_WART) {
-                        if (containerStack.is(Items.GLASS_BOTTLE) || isIngredient(containerStack) || containerStack.is(Items.BLAZE_POWDER) || containerStack.get(DataComponents.POTION_CONTENTS) != null) {
+                        if (containerStack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || isIngredient(containerStack) || containerStack.is(net.minecraft.world.item.Items.BLAZE_POWDER) || containerStack.get(DataComponents.POTION_CONTENTS) != null) {
                             // Only withdraw if we have room AND we need it
                             // Try to keep 3 slots for water bottles (total 9 slots in UtilityGolem golem.getInventory())
                             int filledSlots = 0;
@@ -5197,7 +5254,7 @@ public class GolemAI {
                             for (MerchantOffers offers : allOffers) {
                                 for (MerchantOffer offer : offers) {
                                     if (offer.isOutOfStock()) continue;
-                                    if (offer.getResult().is(Items.EMERALD)) {
+                                    if (offer.getResult().is(net.minecraft.world.item.Items.EMERALD)) {
                                         ItemCost buyItem1 = offer.getItemCostA();
                                         Optional<ItemCost> buyItem2 = offer.getItemCostB();
 
@@ -5307,7 +5364,7 @@ public class GolemAI {
 
         public DigBlockGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
         }
 
         @Override
@@ -5319,7 +5376,7 @@ public class GolemAI {
             targetPos = findTargetBlock();
             if (targetPos != null) {
                 BlockState state = golem.level().getBlockState(targetPos);
-                if (state.is(Blocks.AIR)) {
+                if (state.is(net.minecraft.world.level.block.Blocks.AIR)) {
                     // Only log if we are far enough to need navigation
                     double distSq = golem.distanceToSqr(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
                     if (distSq > 0.1) {
@@ -5331,14 +5388,14 @@ public class GolemAI {
                 }
                 
                 this.isAirTarget = false;
-                golem.debugLog("DigBlockGoal: Found target block " + state.getBlock().getName().getString() + " at " + targetPos.toShortString());
+                golem.debugLog("DigBlockGoal: Found target block " + state.getBlock().getDescriptionId() + " at " + targetPos.toShortString());
                 ItemStack tool = golem.getHeldItem();
                 // Ensure we have the right tool held or can swap to it
-                boolean needsPickaxe = state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.BASE_STONE_NETHER)
-                        || state.is(BlockTags.COAL_ORES) || state.is(BlockTags.IRON_ORES) || state.is(BlockTags.COPPER_ORES)
-                        || state.is(BlockTags.GOLD_ORES) || state.is(BlockTags.DIAMOND_ORES) || state.is(BlockTags.EMERALD_ORES)
-                        || state.is(BlockTags.LAPIS_ORES) || state.is(BlockTags.REDSTONE_ORES);
-                boolean needsShovel = state.is(BlockTags.MINEABLE_WITH_SHOVEL) || state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL);
+                boolean needsPickaxe = state.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD) || state.is(net.minecraft.tags.BlockTags.BASE_STONE_NETHER)
+                        || state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
+                        || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
+                        || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES);
+                boolean needsShovel = state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL) || state.is(net.minecraft.tags.BlockTags.DIRT) || state.is(net.minecraft.tags.BlockTags.SAND) || state.is(net.minecraft.world.level.block.Blocks.GRAVEL);
 
             if (needsPickaxe && !UtilityGolem.isPickaxe(tool)) {
                 // Try to swap immediately if possible
@@ -5398,7 +5455,7 @@ public class GolemAI {
                 
                 // If the tool is efficient against this block, apply efficiency enchantment
                 if (speed > 1.0f && golem.level() instanceof ServerLevel serverLevel) {
-                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).value(Enchantments.EFFICIENCY), tool);
+                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
                     if (efficiencyLevel > 0) {
                         speed += (float)(efficiencyLevel * efficiencyLevel + 1);
                     }
@@ -5472,8 +5529,8 @@ public class GolemAI {
                 if (target != null) {
                     BlockState targetState = world.getBlockState(target);
                     // If target is stone but we can't dig it, it might be too far
-                    if (!targetState.is(Blocks.AIR) && !canDig(target)) {
-                        golem.debugLog("DigBlockGoal: Lapis cannot dig staircase target " + targetState.getBlock().getName().getString() + " at " + target.toShortString() + " (missing tool?)");
+                    if (!targetState.is(net.minecraft.world.level.block.Blocks.AIR) && !canDig(target)) {
+                        golem.debugLog("DigBlockGoal: Lapis cannot dig staircase target " + targetState.getBlock().getDescriptionId() + " at " + target.toShortString() + " (missing tool?)");
                     } else {
                         golem.debugLog("DigBlockGoal: Lapis staircase/tunnel target " + target.toShortString());
                     }
@@ -5512,11 +5569,11 @@ public class GolemAI {
 
         private boolean isOre(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            if (!(state.is(BlockTags.COAL_ORES) || state.is(BlockTags.IRON_ORES) || state.is(BlockTags.COPPER_ORES)
-                    || state.is(BlockTags.GOLD_ORES) || state.is(BlockTags.DIAMOND_ORES) || state.is(BlockTags.EMERALD_ORES)
-                    || state.is(BlockTags.LAPIS_ORES) || state.is(BlockTags.REDSTONE_ORES)
-                    || state.is(Blocks.NETHER_QUARTZ_ORE)
-                    || state.is(Blocks.ANCIENT_DEBRIS))) {
+            if (!(state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
+                    || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
+                    || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES)
+                    || state.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE)
+                    || state.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS))) {
                 return false;
             }
 
@@ -5526,7 +5583,7 @@ public class GolemAI {
             for (Direction direction : Direction.values()) {
                 mutable.set(pos.relative(direction));
                 BlockState neighborState = golem.level().getBlockState(mutable);
-                if (neighborState.is(Blocks.AIR) || neighborState.is(BlockTags.REPLACEABLE) || !neighborState.isCollisionShapeFullBlock(golem.level(), mutable)) {
+                if (neighborState.is(net.minecraft.world.level.block.Blocks.AIR) || neighborState.is(net.minecraft.tags.BlockTags.REPLACEABLE) || !neighborState.isCollisionShapeFullBlock(golem.level(), mutable)) {
                     return true;
                 }
             }
@@ -5557,7 +5614,7 @@ public class GolemAI {
             }
 
             // Locked coordinate to keep it straight (the axis perpendicular to mining direction)
-            int lockedCoord = (facing.getAxis() == Direction.Axis.Z) ? chestPos.getX() : chestPos.getZ();
+            int lockedCoord = (facing.getAxis() == net.minecraft.core.Direction.Axis.Z) ? chestPos.getX() : chestPos.getZ();
 
             // The staircase starts ONE block away from the chest.
             BlockPos startPos = chestPos.relative(facing);
@@ -5573,12 +5630,12 @@ public class GolemAI {
 
             // Check if any block in our path is fluid (water/lava)
             for (int d = 0; d <= directionalDist + 2; d++) {
-                BlockPos pathMiddle = (facing.getAxis() == Direction.Axis.X)
+                BlockPos pathMiddle = (facing.getAxis() == net.minecraft.core.Direction.Axis.X)
                         ? new BlockPos(startPos.getX() + facing.getStepX() * d, chestPos.getY() - d, lockedCoord)
                         : new BlockPos(lockedCoord, chestPos.getY() - d, startPos.getZ() + facing.getStepZ() * d);
                 
                 for (int yOffset = 0; yOffset <= 2; yOffset++) {
-                    BlockPos p = pathMiddle.up(yOffset);
+                    BlockPos p = pathMiddle.above(yOffset);
                     if (p.getY() < -64) continue;
                     BlockState state = golem.level().getBlockState(p);
                     if (!state.getFluidState().isEmpty()) {
@@ -5612,20 +5669,20 @@ public class GolemAI {
             if (intendedY < targetDepthY) intendedY = targetDepthY;
 
             // Check horizontal alignment (are we on the locked line?)
-            double distToLine = (facing.getAxis() == Direction.Axis.Z)
+            double distToLine = (facing.getAxis() == net.minecraft.core.Direction.Axis.Z)
                     ? Math.abs(golem.getX() - (lockedCoord + 0.5))
                     : Math.abs(golem.getZ() - (lockedCoord + 0.5));
 
             // Only align horizontally to the locked line; do NOT dig straight down to match intendedY.
             if (distToLine > 0.4) {
-                BlockPos targetOnLine = (facing.getAxis() == Direction.Axis.Z)
+                BlockPos targetOnLine = (facing.getAxis() == net.minecraft.core.Direction.Axis.Z)
                         ? new BlockPos(lockedCoord, pos.getY(), pos.getZ())
                         : new BlockPos(pos.getX(), pos.getY(), lockedCoord);
 
                 for (int yOffset = 2; yOffset >= 0; yOffset--) {
-                    BlockPos p = targetOnLine.up(yOffset);
+                    BlockPos p = targetOnLine.above(yOffset);
                     BlockState state = golem.level().getBlockState(p);
-                    if (canDig(p) && !state.is(Blocks.AIR)) {
+                    if (canDig(p) && !state.is(net.minecraft.world.level.block.Blocks.AIR)) {
                         if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                             continue;
                         }
@@ -5650,9 +5707,9 @@ public class GolemAI {
             if (pos.getY() <= targetDepthY) {
                 BlockPos ahead = pos.relative(facing);
                 for (int yOffset = 2; yOffset >= 0; yOffset--) {
-                    BlockPos p = ahead.up(yOffset);
+                    BlockPos p = ahead.above(yOffset);
                     BlockState state = golem.level().getBlockState(p);
-                    if (canDig(p) && !state.is(Blocks.AIR)) {
+                    if (canDig(p) && !state.is(net.minecraft.world.level.block.Blocks.AIR)) {
                         if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                             continue;
                         }
@@ -5690,14 +5747,14 @@ public class GolemAI {
                         
                         // Check if the staircase exists at this distance (at least 2 blocks high air/replaceable)
                         BlockPos pIntended = p.atY(intendedYForD);
-                        if (golem.level().getBlockState(pIntended).is(Blocks.AIR) && 
-                            golem.level().getBlockState(pIntended.above()).is(Blocks.AIR)) {
+                        if (golem.level().getBlockState(pIntended).is(net.minecraft.world.level.block.Blocks.AIR) && 
+                            golem.level().getBlockState(pIntended.above()).is(net.minecraft.world.level.block.Blocks.AIR)) {
                             golem.debugLog("Lapis: Found existing staircase entrance at distance " + d + ", moving to " + pIntended.toShortString());
                             return pIntended;
                         }
                         
                         // If we hit a solid block where the staircase should be, stop searching
-                        if (!golem.level().getBlockState(pIntended).is(Blocks.AIR) && d > directionalDist) {
+                        if (!golem.level().getBlockState(pIntended).is(net.minecraft.world.level.block.Blocks.AIR) && d > directionalDist) {
                            break;
                         }
                     }
@@ -5718,7 +5775,7 @@ public class GolemAI {
             }
 
             int nextY = Math.max(targetDepthY, chestPos.getY() - nextDist);
-            BlockPos nextStepMiddle = (facing.getAxis() == Direction.Axis.X)
+            BlockPos nextStepMiddle = (facing.getAxis() == net.minecraft.core.Direction.Axis.X)
                     ? new BlockPos(startPos.getX() + facing.getStepX() * nextDist, nextY, lockedCoord)
                     : new BlockPos(lockedCoord, nextY, startPos.getZ() + facing.getStepZ() * nextDist);
 
@@ -5726,16 +5783,16 @@ public class GolemAI {
             // that shouldn't be here. This ensures pathfinding works.
             BlockPos floorPos = nextStepMiddle.below();
             BlockState floorState = golem.level().getBlockState(floorPos);
-            if (!floorState.is(Blocks.AIR) && !floorState.canBeReplaced() && !floorState.isCollisionShapeFullBlock(golem.level(), floorPos)) {
+            if (!floorState.is(net.minecraft.world.level.block.Blocks.AIR) && !floorState.canBeReplaced() && !floorState.isCollisionShapeFullBlock(golem.level(), floorPos)) {
                 // If there's something like a slab or stair, we should replace it with a full block
                 golem.debugLog("Lapis: Non-full block at floor " + floorPos.toShortString() + ", clearing it to reconstruct");
                 return floorPos;
             }
 
-            if (floorState.is(Blocks.AIR) || floorState.canBeReplaced()) {
+            if (floorState.is(net.minecraft.world.level.block.Blocks.AIR) || floorState.canBeReplaced()) {
                  // Prioritize clearing the space above it first, but if it's already clear enough to see the floor...
-                 if (golem.level().getBlockState(nextStepMiddle).is(Blocks.AIR) && 
-                     golem.level().getBlockState(nextStepMiddle.above()).is(Blocks.AIR)) {
+                 if (golem.level().getBlockState(nextStepMiddle).is(net.minecraft.world.level.block.Blocks.AIR) && 
+                     golem.level().getBlockState(nextStepMiddle.above()).is(net.minecraft.world.level.block.Blocks.AIR)) {
                      golem.debugLog("Lapis: Staircase floor broken at " + floorPos.toShortString() + ", attempting to reconstruct");
                      this.isAirTarget = true;
                      return floorPos;
@@ -5744,9 +5801,9 @@ public class GolemAI {
 
             // Clear the 3-high path for the next step.
             for (int yOffset = 2; yOffset >= 0; yOffset--) {
-                BlockPos p = nextStepMiddle.up(yOffset);
+                BlockPos p = nextStepMiddle.above(yOffset);
                 BlockState state = golem.level().getBlockState(p);
-                if (canDig(p) && !state.is(Blocks.AIR)) {
+                if (canDig(p) && !state.is(net.minecraft.world.level.block.Blocks.AIR)) {
                     // Skip light sources
                     if (golem.getGolemType() == GolemType.LAPIS && UtilityGolem.isLightSource(state)) {
                         continue;
@@ -5790,7 +5847,7 @@ public class GolemAI {
                 for (Direction dir : Direction.values()) {
                     BlockPos p = pos.relative(dir);
                     BlockState s = world.getBlockState(p);
-                    if (!s.is(Blocks.AIR) && !s.is(net.minecraft.tags.BlockTags.REPLACEABLE) && s.isCollisionShapeFullBlock(world, p)) {
+                    if (!s.is(net.minecraft.world.level.block.Blocks.AIR) && !s.is(net.minecraft.tags.BlockTags.REPLACEABLE) && s.isCollisionShapeFullBlock(world, p)) {
                         blockedSides++;
                     }
                 }
@@ -5798,8 +5855,8 @@ public class GolemAI {
                 // If at least 2 sides are blocked, and the space above us is clear, we can try to tower up
                 if (blockedSides >= 2) {
                     BlockState state = world.getBlockState(pos);
-                    BlockState stateUp = world.getBlockState(pos.up(2)); // Head space (assuming 2 blocks high)
-                    if ((state.is(Blocks.AIR) || state.canBeReplaced()) && (stateUp.is(Blocks.AIR) || stateUp.canBeReplaced())) {
+                    BlockState stateUp = world.getBlockState(pos.above(2)); // Head space (assuming 2 blocks high)
+                    if ((state.is(net.minecraft.world.level.block.Blocks.AIR) || state.canBeReplaced()) && (stateUp.is(net.minecraft.world.level.block.Blocks.AIR) || stateUp.canBeReplaced())) {
                         golem.debugLog("Lapis: In a confined space (" + blockedSides + " sides blocked), towering up at " + pos.toShortString());
                         return placeBlockFromInventory(pos);
                     }
@@ -5812,8 +5869,8 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.LAPIS) {
                 BlockPos under = pos.below();
                 BlockState underState = world.getBlockState(under);
-                if (underState.is(Blocks.AIR) || underState.canBeReplaced() || !underState.isCollisionShapeFullBlock(world, under)) {
-                    golem.debugLog("Lapis: Staircase broken below feet (" + underState.getBlock().getName().getString() + "), attempting to reconstruct at " + under.toShortString());
+                if (underState.is(net.minecraft.world.level.block.Blocks.AIR) || underState.canBeReplaced() || !underState.isCollisionShapeFullBlock(world, under)) {
+                    golem.debugLog("Lapis: Staircase broken below feet (" + underState.getBlock().getDescriptionId() + "), attempting to reconstruct at " + under.toShortString());
                     return placeBlockFromInventory(under);
                 }
                 
@@ -5823,7 +5880,7 @@ public class GolemAI {
                     BlockPos ahead = pos.relative(facing);
                     BlockPos aheadUnder = ahead.below();
                     BlockState aheadUnderState = world.getBlockState(aheadUnder);
-                    if (aheadUnderState.is(Blocks.AIR) || aheadUnderState.canBeReplaced()) {
+                    if (aheadUnderState.is(net.minecraft.world.level.block.Blocks.AIR) || aheadUnderState.canBeReplaced()) {
                         golem.debugLog("Lapis: Gap detected ahead (" + aheadUnder.toShortString() + "), attempting to fill");
                         return placeBlockFromInventory(aheadUnder);
                     }
@@ -5840,14 +5897,14 @@ public class GolemAI {
                 if (!stack.isEmpty() && stack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem) {
                     Block block = blockItem.getBlock();
                     // Prefer dirt or cobblestone-like blocks
-                    if (stack.is(net.minecraft.tags.ItemTags.DIRT) || stack.is(Items.COBBLESTONE) || stack.is(Items.COBBLED_DEEPSLATE) || stack.is(Items.STONE) || stack.is(Items.DEEPSLATE)) {
+                    if (stack.is(net.minecraft.tags.ItemTags.DIRT) || stack.is(net.minecraft.world.item.Items.COBBLESTONE) || stack.is(net.minecraft.world.item.Items.COBBLED_DEEPSLATE) || stack.is(net.minecraft.world.item.Items.STONE) || stack.is(net.minecraft.world.item.Items.DEEPSLATE)) {
                         
                         // Hold the block before placing
                         ItemStack currentHeld = golem.getHeldItem();
                         ItemStack toHold = inv.removeItem(i, 1);
                         golem.setHeldItem(toHold);
 
-                        if (golem.level().setBlockAndUpdate(pos, block.defaultBlockState())) {
+                        if (golem.level().setBlock(pos, block.defaultBlockState(), 3)) {
                             golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                             golem.level().playSound(null, pos, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
                             
@@ -5891,12 +5948,12 @@ public class GolemAI {
 
             if (golem.getGolemType() == GolemType.LAPIS) {
                 if (UtilityGolem.isLightSource(state)) return false;
-                if (state.is(Blocks.AIR) || state.is(BlockTags.REPLACEABLE)) return true;
+                if (state.is(net.minecraft.world.level.block.Blocks.AIR) || state.is(net.minecraft.tags.BlockTags.REPLACEABLE)) return true;
                 
                 // Lapis golems can dig common blocks even without tools, but it's slower
-                if (state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.BASE_STONE_NETHER)
-                        || state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL)
-                        || state.is(Blocks.NETHERRACK) || state.is(Blocks.SOUL_SAND) || state.is(Blocks.SOUL_SOIL)) {
+                if (state.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD) || state.is(net.minecraft.tags.BlockTags.BASE_STONE_NETHER)
+                        || state.is(net.minecraft.tags.BlockTags.DIRT) || state.is(net.minecraft.tags.BlockTags.SAND) || state.is(net.minecraft.world.level.block.Blocks.GRAVEL)
+                        || state.is(net.minecraft.world.level.block.Blocks.NETHERRACK) || state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND) || state.is(net.minecraft.world.level.block.Blocks.SOUL_SOIL)) {
                     return true;
                 }
                 
@@ -5905,13 +5962,13 @@ public class GolemAI {
                     return hasSufficientPickaxe(state);
                 }
             }
-            if (state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.BASE_STONE_NETHER)
+            if (state.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD) || state.is(net.minecraft.tags.BlockTags.BASE_STONE_NETHER)
                     || isOre
-                    || state.is(Blocks.NETHER_QUARTZ_ORE)
-                    || state.is(Blocks.ANCIENT_DEBRIS)) {
+                    || state.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE)
+                    || state.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS)) {
                 return hasSufficientPickaxe(state);
             }
-            if (state.is(BlockTags.MINEABLE_WITH_SHOVEL) || state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL)) {
+            if (state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL) || state.is(net.minecraft.tags.BlockTags.DIRT) || state.is(net.minecraft.tags.BlockTags.SAND) || state.is(net.minecraft.world.level.block.Blocks.GRAVEL)) {
                 return hasShovel();
             }
             // Add general check for very soft blocks like grass
@@ -5922,12 +5979,12 @@ public class GolemAI {
 
         private boolean hasSufficientPickaxe(BlockState state) {
             ItemStack held = golem.getHeldItem();
-            if (UtilityGolem.isPickaxe(held) && held.isSuitableFor(state)) return true;
+            if (UtilityGolem.isPickaxe(held) && held.isCorrectToolForDrops(state)) return true;
             
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (UtilityGolem.isPickaxe(stack) && stack.isSuitableFor(state)) return true;
+                if (UtilityGolem.isPickaxe(stack) && stack.isCorrectToolForDrops(state)) return true;
             }
             return false;
         }
@@ -5972,7 +6029,7 @@ public class GolemAI {
         @Override
         public boolean canContinueToUse() {
             return targetPos != null && canDig(targetPos) &&
-                    breakingTime < maxBreakingTime && golem.blockPosition().distSqr(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 400;
+                    breakingTime < maxBreakingTime && golem.blockPosition().distSqr(targetPos) < 400;
         }
 
         @Override
@@ -5986,7 +6043,7 @@ public class GolemAI {
 
         private int stuckTicks = 0;
         private int loopCounter = 0;
-        private Vec3 lastPos = Vec3.ZERO;
+        private Vec3 lastPos = net.minecraft.world.phys.Vec3.ZERO;
         private BlockPos lastTargetPos = null;
 
         private BlockPos findSafePosAround(BlockPos chestPos) {
@@ -5996,7 +6053,7 @@ public class GolemAI {
                 int y = chestPos.getY();
                 int z = chestPos.getZ() + golem.getRandom().nextInt(5) - 2;
                 BlockPos p = new BlockPos(x, y, z);
-                if (world.getBlockState(p).is(Blocks.AIR) && world.getBlockState(p.above()).is(Blocks.AIR)) {
+                if (world.getBlockState(p).is(net.minecraft.world.level.block.Blocks.AIR) && world.getBlockState(p.above()).is(net.minecraft.world.level.block.Blocks.AIR)) {
                     return p;
                 }
             }
@@ -6079,10 +6136,10 @@ public class GolemAI {
                     }
                     
                     // Try to dig our way out if stuck in a cave
-                    BlockPos above = golem.blockPosition().up(2);
+                    BlockPos above = golem.blockPosition().above(2);
                     if (canDig(above)) {
                         BlockState state = golem.level().getBlockState(above);
-                        if (!state.is(Blocks.AIR) && !UtilityGolem.isLightSource(state)) {
+                        if (!state.is(net.minecraft.world.level.block.Blocks.AIR) && !UtilityGolem.isLightSource(state)) {
                             golem.debugLog("Lapis: Stuck in cave? Digging out at " + above.toShortString());
                             targetPos = above;
                             maxBreakingTime = calculateBreakingTime(golem.getHeldItem(), targetPos);
@@ -6103,8 +6160,8 @@ public class GolemAI {
 
             // Auto-switch tool
             ItemStack currentHeld = golem.getHeldItem();
-            boolean needsPickaxe = targetState.is(BlockTags.MINEABLE_WITH_PICKAXE);
-            boolean needsShovel = targetState.is(BlockTags.MINEABLE_WITH_SHOVEL);
+            boolean needsPickaxe = targetState.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_PICKAXE);
+            boolean needsShovel = targetState.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL);
 
             if (needsPickaxe && !UtilityGolem.isPickaxe(currentHeld)) {
                 swapTool(UtilityGolem::isPickaxe);
@@ -6145,12 +6202,12 @@ public class GolemAI {
                 // If it's air and we're close, we've "reached" it
                 // For navigation targets, 0.2 is the threshold used in findTargetBlock
                 Direction facing = golem.getMiningDirection();
-                double alignmentDist = (facing != null && facing.getAxis() == Direction.Axis.X)
+                double alignmentDist = (facing != null && facing.getAxis() == net.minecraft.core.Direction.Axis.X)
                         ? Math.abs(golem.getZ() - (targetPos.getZ() + 0.5))
                         : Math.abs(golem.getX() - (targetPos.getX() + 0.5));
                 
                 double directionalDist = (facing != null)
-                        ? (facing.getAxis() == Direction.Axis.X)
+                        ? (facing.getAxis() == net.minecraft.core.Direction.Axis.X)
                                 ? Math.abs(golem.getX() - (targetPos.getX() + 0.5))
                                 : Math.abs(golem.getZ() - (targetPos.getZ() + 0.5))
                         : 0;
@@ -6181,7 +6238,7 @@ public class GolemAI {
                 golem.level().destroyBlockProgress(golem.getId(), targetPos, progress);
 
                 if (breakingTime >= maxBreakingTime) {
-                    if (golem.level().getBlockState(targetPos).is(Blocks.AIR)) {
+                    if (golem.level().getBlockState(targetPos).is(net.minecraft.world.level.block.Blocks.AIR)) {
                         stop();
                     } else {
                         breakBlock();
@@ -6194,38 +6251,38 @@ public class GolemAI {
             if (stack.isEmpty()) return 0;
             int score = 0;
             if (golem.level() instanceof ServerLevel serverLevel) {
-                var registry = serverLevel.registryAccess().value(net.minecraft.core.registries.Registries.ENCHANTMENT);
+                var registry = serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
                 
                 // Efficiency is always good
-                score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.EFFICIENCY), stack) * 10;
+                score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), stack) * 10;
                 
                 BlockState state = serverLevel.getBlockState(target);
-                boolean isOre = state.is(BlockTags.COAL_ORES) || state.is(BlockTags.IRON_ORES) || state.is(BlockTags.COPPER_ORES)
-                        || state.is(BlockTags.GOLD_ORES) || state.is(BlockTags.DIAMOND_ORES) || state.is(BlockTags.EMERALD_ORES)
-                        || state.is(BlockTags.LAPIS_ORES) || state.is(BlockTags.REDSTONE_ORES)
-                        || state.is(Blocks.NETHER_QUARTZ_ORE) || state.is(Blocks.ANCIENT_DEBRIS);
+                boolean isOre = state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
+                        || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
+                        || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES)
+                        || state.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE) || state.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
                 
                 if (isOre) {
                     // Fortune is great for ores
-                    score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.FORTUNE), stack) * 50;
+                    score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.FORTUNE), stack) * 50;
                     // Silk Touch is also good for some ores (e.g. coal, diamond if you want the block)
-                    score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.SILK_TOUCH), stack) * 30;
+                    score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH), stack) * 30;
                 } else {
                     // For stone/dirt, Silk Touch might be preferred (e.g. Grass block)
-                    if (state.is(Blocks.GRASS_BLOCK)) {
-                        score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.SILK_TOUCH), stack) * 50;
+                    if (state.is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK)) {
+                        score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH), stack) * 50;
                     }
                 }
             }
             
             // Material score
-            if (stack.is(Items.NETHERITE_PICKAXE) || stack.is(Items.NETHERITE_SHOVEL)) score += 500;
-            else if (stack.is(Items.DIAMOND_PICKAXE) || stack.is(Items.DIAMOND_SHOVEL)) score += 400;
-            else if (stack.is(Items.IRON_PICKAXE) || stack.is(Items.IRON_SHOVEL)) score += 300;
-            else if (stack.is(Items.GOLDEN_PICKAXE) || stack.is(Items.GOLDEN_SHOVEL)) score += 600; // Gold is fast
-            else if (stack.is(Items.STONE_PICKAXE) || stack.is(Items.STONE_SHOVEL)) score += 200;
-            else if (stack.is(Items.WOODEN_PICKAXE) || stack.is(Items.WOODEN_SHOVEL)) score += 100;
-            else if (stack.is(Items.COPPER_PICKAXE) || stack.is(Items.COPPER_SHOVEL)) score += 250;
+            if (stack.is(net.minecraft.world.item.Items.NETHERITE_PICKAXE) || stack.is(net.minecraft.world.item.Items.NETHERITE_SHOVEL)) score += 500;
+            else if (stack.is(net.minecraft.world.item.Items.DIAMOND_PICKAXE) || stack.is(net.minecraft.world.item.Items.DIAMOND_SHOVEL)) score += 400;
+            else if (stack.is(net.minecraft.world.item.Items.IRON_PICKAXE) || stack.is(net.minecraft.world.item.Items.IRON_SHOVEL)) score += 300;
+            else if (stack.is(net.minecraft.world.item.Items.GOLDEN_PICKAXE) || stack.is(net.minecraft.world.item.Items.GOLDEN_SHOVEL)) score += 600; // Gold is fast
+            else if (stack.is(net.minecraft.world.item.Items.STONE_PICKAXE) || stack.is(net.minecraft.world.item.Items.STONE_SHOVEL)) score += 200;
+            else if (stack.is(net.minecraft.world.item.Items.WOODEN_PICKAXE) || stack.is(net.minecraft.world.item.Items.WOODEN_SHOVEL)) score += 100;
+            else if (stack.is(net.minecraft.world.item.Items.COPPER_PICKAXE) || stack.is(net.minecraft.world.item.Items.COPPER_SHOVEL)) score += 250;
             
             return score;
         }
@@ -6254,11 +6311,11 @@ public class GolemAI {
             BlockState targetState = golem.level().getBlockState(targetPos);
             
             int bestSlot = -1;
-            int bestScore = (toolPredicate.test(currentHeld) && currentHeld.isSuitableFor(targetState)) ? getToolScore(currentHeld, targetPos) : -1;
+            int bestScore = (toolPredicate.test(currentHeld) && currentHeld.isCorrectToolForDrops(targetState)) ? getToolScore(currentHeld, targetPos) : -1;
             
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (toolPredicate.test(stack) && stack.isSuitableFor(targetState)) {
+                if (toolPredicate.test(stack) && stack.isCorrectToolForDrops(targetState)) {
                     int score = getToolScore(stack, targetPos);
                     if (score > bestScore) {
                         bestScore = score;
@@ -6288,14 +6345,14 @@ public class GolemAI {
             if (canDig(targetPos)) {
                 ItemStack tool = golem.getHeldItem();
                 
-                LootLevelContext.Builder builder = new LootLevelContext.Builder(serverLevel)
-                        .add(LootContextParameters.ORIGIN, Vec3.atCenterOf(targetPos))
-                        .add(LootContextParameters.TOOL, tool)
-                        .addOptional(LootContextParameters.THIS_ENTITY, golem);
+                net.minecraft.world.level.storage.loot.LootParams.Builder builder = new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
+                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(targetPos))
+                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, tool)
+                        .withOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, golem);
 
-                serverLevel.breakBlock(targetPos, false, golem);
+                serverLevel.destroyBlock(targetPos, false, golem, 512);
 
-                List<ItemStack> drops = state.getDroppedStacks(builder);
+                List<ItemStack> drops = net.minecraft.world.level.block.Block.getDrops(state, serverLevel, targetPos, null, golem, tool);
                 for (ItemStack drop : drops) {
                     ItemStack remaining = golem.getInventory().addItem(drop);
                     if (!remaining.isEmpty()) {
@@ -6307,7 +6364,7 @@ public class GolemAI {
 
                 if (!tool.isEmpty()) {
                     if (UtilityGolem.isPickaxe(tool) || UtilityGolem.isShovel(tool)) {
-                        tool.damage(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                        tool.hurtAndBreak(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                     }
                 }
             }
@@ -6322,7 +6379,7 @@ public class GolemAI {
 
         public FarmGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -6347,14 +6404,14 @@ public class GolemAI {
 
         private boolean canSee(BlockPos pos) {
             Vec3 start = golem.getEyePosition();
-            Vec3 end = Vec3.atCenterOf(pos);
+            Vec3 end = net.minecraft.world.phys.Vec3.atCenterOf(pos);
             net.minecraft.world.level.ClipContext context = new net.minecraft.world.level.ClipContext(
                     start, end,
                     net.minecraft.world.level.ClipContext.Block.VISUAL,
                     net.minecraft.world.level.ClipContext.Fluid.NONE,
                     golem
             );
-            net.minecraft.world.phys.BlockHitResult result = golem.level().raycast(context);
+            net.minecraft.world.phys.BlockHitResult result = golem.level().clip(context);
             return result.getType() == net.minecraft.world.phys.HitResult.Type.MISS || result.getBlockPos().equals(pos);
         }
 
@@ -6375,7 +6432,7 @@ public class GolemAI {
             for (int y = -3; y <= 3; y++) {
                 for (int x = -16; x <= 16; x++) {
                     for (int z = -16; z <= 16; z++) {
-                        BlockPos p = chestPos.add(x, y, z);
+                        BlockPos p = chestPos.offset(x, y, z);
                         if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
                         if (shouldHarvest(p, null)) {
                             // Check line of sight
@@ -6386,15 +6443,15 @@ public class GolemAI {
             }
 
             // Priority 2: Pick up dropped items in the field
-            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesByClass(
+            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.item.ItemEntity.class,
                     new net.minecraft.world.phys.AABB(chestPos).inflate(32.0),
-                    item -> !item.cannotPickup() && isFamiliarItem(item.getItem()) && canSee(item.blockPosition())
+                    item -> !item.hasPickUpDelay() && isFamiliarItem(item.getItem()) && canSee(item.blockPosition())
             );
             if (!items.isEmpty()) {
                 net.minecraft.world.entity.item.ItemEntity closest = items.stream()
-                        .filter(item -> item.distanceToSqr(chestPos.toCenterPos()) <= 32.0 * 32.0)
-                        .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                        .filter(item -> item.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(chestPos)) <= 32.0 * 32.0)
+                        .min(Comparator.comparingDouble(golem::distanceToSqr))
                         .orElse(null);
                 if (closest != null) {
                     return closest.blockPosition();
@@ -6402,11 +6459,11 @@ public class GolemAI {
             }
 
             // Priority 2.5: Nether Wart Farm Construction (if we have shovel, soul sand, and nether wart)
-            if (hasNetherWart() && hasItem(Items.SOUL_SAND) && hasShovel()) {
+            if (hasNetherWart() && hasItem(net.minecraft.world.item.Items.SOUL_SAND) && hasShovel()) {
                 for (int x = -4; x <= 4; x++) {
                     for (int z = -4; z <= 4; z++) {
                         for (int y = -1; y <= 1; y++) {
-                            BlockPos p = chestPos.add(x, y, z);
+                            BlockPos p = chestPos.offset(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
                             if (shouldPlant(p, null)) {
                                 if (canSee(p)) return p;
@@ -6431,7 +6488,7 @@ public class GolemAI {
                 for (int y = -1; y <= 1; y++) {
                     for (int x = -16; x <= 16; x++) {
                         for (int z = -16; z <= 16; z++) {
-                            BlockPos p = waterPos.add(x, y, z);
+                            BlockPos p = waterPos.offset(x, y, z);
                             if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
                             // Checkered pattern logic for Stripped Bamboo Golems (Pumpkin/Melon mode)
@@ -6466,7 +6523,7 @@ public class GolemAI {
                 for (int y = -3; y <= 3; y++) {
                     for (int x = -16; x <= 16; x++) {
                         for (int z = -16; z <= 16; z++) {
-                            BlockPos p = chestPos.add(x, y, z);
+                            BlockPos p = chestPos.offset(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
                             if (golem.isStripped()) {
@@ -6496,15 +6553,15 @@ public class GolemAI {
             boolean isHoe = UtilityGolem.isHoe(stack);
             boolean isAxe = UtilityGolem.isAxe(stack);
             boolean isShovel = UtilityGolem.isShovel(stack);
-            boolean isCrop = stack.is(Items.WHEAT) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT) ||
-                            stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS) || stack.is(Items.PUMPKIN) || stack.is(Items.MELON) || stack.is(Items.MELON_SLICE);
-            boolean isSeed = stack.is(Items.WHEAT_SEEDS) || stack.is(Items.BEETROOT_SEEDS) || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.TORCHFLOWER_SEEDS) || stack.is(Items.PITCHER_POD);
-            return isHoe || isAxe || isShovel || isCrop || isSeed || stack.is(Items.WATER_BUCKET) || stack.is(Items.BUCKET) || stack.is(Items.SOUL_SAND);
+            boolean isCrop = stack.is(net.minecraft.world.item.Items.WHEAT) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT) ||
+                            stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS) || stack.is(net.minecraft.world.item.Items.PUMPKIN) || stack.is(net.minecraft.world.item.Items.MELON) || stack.is(net.minecraft.world.item.Items.MELON_SLICE);
+            boolean isSeed = stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS) || stack.is(net.minecraft.world.item.Items.PITCHER_POD);
+            return isHoe || isAxe || isShovel || isCrop || isSeed || stack.is(net.minecraft.world.item.Items.WATER_BUCKET) || stack.is(net.minecraft.world.item.Items.BUCKET) || stack.is(net.minecraft.world.item.Items.SOUL_SAND);
         }
 
         private List<BlockPos> getOtherGolemsTargets() {
             List<BlockPos> targets = new ArrayList<>();
-            List<UtilityGolem> golems = golem.level().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(32.0), g -> g != golem && g.getGolemType() == GolemType.BAMBOO);
+            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(32.0), g -> g != golem && g.getGolemType() == GolemType.BAMBOO);
             for (UtilityGolem g : golems) {
                 BlockPos target = g.getFarmTarget();
                 if (target != null) {
@@ -6528,7 +6585,7 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int y = -2; y <= 2; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = chestPos.add(x, y, z);
+                        BlockPos p = chestPos.offset(x, y, z);
                         if (isWater(p)) {
                             double dist = p.distSqr(chestPos);
                             if (dist < minDist) {
@@ -6550,7 +6607,7 @@ public class GolemAI {
             for (int y = 1; y >= -1; y--) {
                 for (int x = -range; x <= range; x++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = chestPos.add(x, y, z);
+                        BlockPos p = chestPos.offset(x, y, z);
                         if (canPlaceWater(p)) {
                             return p;
                         }
@@ -6567,20 +6624,20 @@ public class GolemAI {
             if (findWaterNearby(pos, 4) != null) return false;
 
             // Target must be replaceable (like air, grass) or a dirt block we can dig out
-            if (!state.canBeReplaced() && !state.is(BlockTags.DIRT)) return false;
+            if (!state.canBeReplaced() && !state.is(net.minecraft.tags.BlockTags.DIRT)) return false;
             
             // The block ABOVE must be air or replaceable (not water, not solid)
             BlockState above = world.getBlockState(pos.above());
-            if (!above.is(Blocks.AIR) && !above.canBeReplaced()) return false;
-            if (above.is(Blocks.WATER)) return false;
+            if (!above.is(net.minecraft.world.level.block.Blocks.AIR) && !above.canBeReplaced()) return false;
+            if (above.is(net.minecraft.world.level.block.Blocks.WATER)) return false;
 
             // Check if surrounded by dirt/grass/farmland to ensure it's a good farm spot
             int dirtCount = 0;
             for (int x = -1; x <= 1; x++) {
                 for (int z = -1; z <= 1; z++) {
                     if (x == 0 && z == 0) continue;
-                    BlockState s = world.getBlockState(pos.add(x, 0, z));
-                    if (s.is(BlockTags.DIRT) || s.is(Blocks.FARMLAND) || s.is(Blocks.GRASS_BLOCK)) {
+                    BlockState s = world.getBlockState(pos.offset(x, 0, z));
+                    if (s.is(net.minecraft.tags.BlockTags.DIRT) || s.is(net.minecraft.world.level.block.Blocks.FARMLAND) || s.is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK)) {
                         dirtCount++;
                     }
                 }
@@ -6593,8 +6650,8 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int y = -1; y <= 1; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
-                        if (golem.level().getBlockState(p).is(Blocks.WATER)) {
+                        BlockPos p = pos.offset(x, y, z);
+                        if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.WATER)) {
                             return p;
                         }
                     }
@@ -6610,7 +6667,7 @@ public class GolemAI {
             
             // If stripped, ONLY harvest pumpkins and melons
             if (golem.isStripped()) {
-                if (state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) {
+                if (state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) {
                     return true;
                 }
                 return false;
@@ -6620,12 +6677,12 @@ public class GolemAI {
                 return crop.isMaxAge(state);
             }
             if (block instanceof NetherWartBlock wart) {
-                return state.get(NetherWartBlock.AGE) >= 3;
+                return state.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) >= 3;
             }
             if (block instanceof CocoaBlock cocoa) {
-                return state.get(CocoaBlock.AGE) >= 2;
+                return state.getValue(net.minecraft.world.level.block.CocoaBlock.AGE) >= 2;
             }
-            if (state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) {
+            if (state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) {
                 return true;
             }
             return false;
@@ -6636,10 +6693,10 @@ public class GolemAI {
             if (!hasHoe()) return false;
             BlockState state = golem.level().getBlockState(pos);
             // Must be tillable
-            boolean isTillable = state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.DIRT) || state.is(Blocks.DIRT_PATH);
+            boolean isTillable = state.is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK) || state.is(net.minecraft.world.level.block.Blocks.DIRT) || state.is(net.minecraft.world.level.block.Blocks.DIRT_PATH);
             BlockState aboveState = golem.level().getBlockState(pos.above());
             // Above must be air or replaceable (we will break replaceable things)
-            boolean isAboveSafe = aboveState.is(Blocks.AIR) || (aboveState.canBeReplaced() && !aboveState.is(Blocks.WATER));
+            boolean isAboveSafe = aboveState.is(net.minecraft.world.level.block.Blocks.AIR) || (aboveState.canBeReplaced() && !aboveState.is(net.minecraft.world.level.block.Blocks.WATER));
             return isTillable && isAboveSafe;
         }
 
@@ -6665,7 +6722,7 @@ public class GolemAI {
             if (waterPos != null && pos.equals(waterPos)) return false;
             BlockState state = golem.level().getBlockState(pos);
             BlockState aboveState = golem.level().getBlockState(pos.above());
-            boolean isAboveSafe = aboveState.is(Blocks.AIR) || (aboveState.canBeReplaced() && !aboveState.is(Blocks.WATER));
+            boolean isAboveSafe = aboveState.is(net.minecraft.world.level.block.Blocks.AIR) || (aboveState.canBeReplaced() && !aboveState.is(net.minecraft.world.level.block.Blocks.WATER));
             
             // Checkered pattern logic for Stripped Bamboo Golems
             if (golem.isStripped()) {
@@ -6678,26 +6735,26 @@ public class GolemAI {
             }
 
             // Standard crops
-            if (state.is(Blocks.FARMLAND) && isAboveSafe && hasSeeds()) return true;
+            if (state.is(net.minecraft.world.level.block.Blocks.FARMLAND) && isAboveSafe && hasSeeds()) return true;
 
             // Carrots and Potatoes on Farmland
-            if (state.is(Blocks.FARMLAND) && isAboveSafe && (hasItem(Items.CARROT) || hasItem(Items.POTATO))) return true;
+            if (state.is(net.minecraft.world.level.block.Blocks.FARMLAND) && isAboveSafe && (hasItem(net.minecraft.world.item.Items.CARROT) || hasItem(net.minecraft.world.item.Items.POTATO))) return true;
 
             // Nether wart
-            if (state.is(Blocks.SOUL_SAND) && isAboveSafe && hasNetherWart()) return true;
+            if (state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND) && isAboveSafe && hasNetherWart()) return true;
 
             // Cocoa beans
-            if (state.is(Blocks.AIR) && hasCocoaBeans() && findJungleLogNearby(pos) != null) return true;
+            if (state.is(net.minecraft.world.level.block.Blocks.AIR) && hasCocoaBeans() && findJungleLogNearby(pos) != null) return true;
 
             // Digging for Nether Wart farm (9x9 plot)
-            if (hasNetherWart() && hasItem(Items.SOUL_SAND) && hasShovel() && !state.is(Blocks.SOUL_SAND) && isAboveSafe) {
+            if (hasNetherWart() && hasItem(net.minecraft.world.item.Items.SOUL_SAND) && hasShovel() && !state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND) && isAboveSafe) {
                 BlockPos chestPos = golem.getChestPos();
                 if (chestPos != null) {
                     if (Math.abs(pos.getX() - chestPos.getX()) <= 4 && Math.abs(pos.getZ() - chestPos.getZ()) <= 4) {
                         // Check if it's already a planting spot for something else or if it's a water spot
                         if (waterPos != null && pos.equals(waterPos)) return false;
                         // Avoid digging up established farmland if it's already hydrated or has crops
-                        if (state.is(Blocks.FARMLAND)) return false;
+                        if (state.is(net.minecraft.world.level.block.Blocks.FARMLAND)) return false;
                         return true;
                     }
                 }
@@ -6725,19 +6782,19 @@ public class GolemAI {
         }
 
         private boolean hasNetherWart() {
-            if (golem.getHeldItem().is(Items.NETHER_WART)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.NETHER_WART)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.NETHER_WART)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.NETHER_WART)) return true;
             }
             return false;
         }
 
         private boolean hasCocoaBeans() {
-            if (golem.getHeldItem().is(Items.COCOA_BEANS)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.COCOA_BEANS)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.COCOA_BEANS)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.COCOA_BEANS)) return true;
             }
             return false;
         }
@@ -6752,9 +6809,9 @@ public class GolemAI {
         }
 
         private boolean isSeed(ItemStack stack) {
-            return stack.is(Items.WHEAT_SEEDS) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT_SEEDS)
-                    || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS)
-                    || stack.is(Items.PITCHER_POD) || stack.is(Items.TORCHFLOWER_SEEDS);
+            return stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)
+                    || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS)
+                    || stack.is(net.minecraft.world.item.Items.PITCHER_POD) || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS);
         }
 
 
@@ -6780,7 +6837,7 @@ public class GolemAI {
         }
 
         private int stuckTicks = 0;
-        private Vec3 lastPos = Vec3.ZERO;
+        private Vec3 lastPos = net.minecraft.world.phys.Vec3.ZERO;
 
         @Override
         public void tick() {
@@ -6794,7 +6851,7 @@ public class GolemAI {
             // Ensure we are holding the right tool for the job
             ensureCorrectTool();
 
-            double dist = golem.blockPosition().distSqr(targetPos.getX(), targetPos.getY(), targetPos.getZ());
+            double dist = golem.blockPosition().distSqr(targetPos);
             if (dist > 4.0) {
                 // stuck check
                 Vec3 currentPos = new Vec3(golem.getX(), golem.getY(), golem.getZ());
@@ -6859,13 +6916,13 @@ public class GolemAI {
             }
 
             if (isWaterTarget) {
-                if (!golem.getHeldItem().is(Items.WATER_BUCKET)) {
-                    swapToItem(Items.WATER_BUCKET);
+                if (!golem.getHeldItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) {
+                    swapToItem(net.minecraft.world.item.Items.WATER_BUCKET);
                 }
             } else if (shouldHarvest(targetPos, waterPos)) {
                 // If we are heading to harvest pumpkin or melon, we should hold an axe
                 BlockState state = golem.level().getBlockState(targetPos);
-                if ((state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) && hasAxe()) {
+                if ((state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) && hasAxe()) {
                     if (!UtilityGolem.isAxe(golem.getHeldItem())) {
                         swapToAxe();
                     }
@@ -6945,7 +7002,7 @@ public class GolemAI {
             
             // 0. Ensure we have the right tool if we are about to act
             if (shouldHarvest(targetPos, waterPos)) {
-                if ((state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) && hasAxe()) {
+                if ((state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) && hasAxe()) {
                     if (!UtilityGolem.isAxe(golem.getHeldItem())) {
                         swapToAxe();
                     }
@@ -6956,7 +7013,7 @@ public class GolemAI {
                 }
             } else if (shouldPlant(targetPos, waterPos)) {
                 // If we need to dig for nether wart farm
-                if (!state.is(Blocks.SOUL_SAND) && hasItem(Items.SOUL_SAND) && hasNetherWart()) {
+                if (!state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND) && hasItem(net.minecraft.world.item.Items.SOUL_SAND) && hasNetherWart()) {
                     if (!UtilityGolem.isShovel(golem.getHeldItem()) && hasShovel()) {
                         swapToShovel();
                     }
@@ -6964,7 +7021,7 @@ public class GolemAI {
             }
 
             // 1. Pickup items
-            List<ItemEntity> items = world.getEntitiesByClass(ItemEntity.class, new net.minecraft.world.phys.AABB(targetPos).inflate(1.5), item -> true);
+            List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(targetPos).inflate(1.5), item -> true);
             if (!items.isEmpty()) {
                 for (ItemEntity item : items) {
                     ItemStack stack = item.getItem();
@@ -6984,12 +7041,12 @@ public class GolemAI {
             if ((waterPos != null && targetPos.equals(waterPos)) || (waterPos == null && targetPos.equals(findPlaceForWater(golem.getChestPos())))) {
                 if (!isWater(targetPos)) {
                     ItemStack waterBucket = golem.getHeldItem();
-                    if (!waterBucket.is(Items.WATER_BUCKET)) {
+                    if (!waterBucket.is(net.minecraft.world.item.Items.WATER_BUCKET)) {
                         waterBucket = getWaterBucket();
                     }
                     
                     if (!waterBucket.isEmpty()) {
-                        world.setBlockAndUpdate(targetPos, Blocks.WATER.defaultBlockState());
+                        world.setBlock(targetPos, net.minecraft.world.level.block.Blocks.WATER.defaultBlockState(), 3);
                         useWaterBucket(waterBucket);
 
                         // After placing water, if we have a hoe in golem.getInventory(), swap back to it
@@ -7015,43 +7072,43 @@ public class GolemAI {
             if (shouldHarvest(targetPos, waterPos)) {
                 if (world instanceof ServerLevel serverLevel) {
                     // Ensure axe if pumpkin/melon
-                    if ((state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) && hasAxe()) {
+                    if ((state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) && hasAxe()) {
                         if (!UtilityGolem.isAxe(golem.getHeldItem())) {
                             swapToAxe();
                         }
-                    } else if (UtilityGolem.isAxe(golem.getHeldItem()) && !(state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON))) {
+                    } else if (UtilityGolem.isAxe(golem.getHeldItem()) && !(state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON))) {
                         // If we are holding an axe but it's not pumpkin/melon, swap to hoe or seeds if we have them
                         if (hasHoe()) swapToHoe();
-                    } else if (state.is(Blocks.NETHER_WART)) {
+                    } else if (state.is(net.minecraft.world.level.block.Blocks.NETHER_WART)) {
                         // Nether wart doesn't need tools.
                     }
 
                     // Check if we can actually harvest this (e.g. if we need a tool for pumpkin/melon but don't have one)
-                    boolean needsAxe = state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON);
+                    boolean needsAxe = state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON);
                     if (needsAxe && !hasAxe()) {
                         targetPos = null;
                         golem.setFarmTarget(null);
                         return;
                     }
 
-                    LootLevelContext.Builder builder = new LootLevelContext.Builder(serverLevel)
-                            .add(LootContextParameters.ORIGIN, Vec3.atCenterOf(targetPos))
-                            .add(LootContextParameters.TOOL, golem.getHeldItem())
-                            .addOptional(LootContextParameters.THIS_ENTITY, golem);
+                    net.minecraft.world.level.storage.loot.LootParams.Builder builder = new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
+                            .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(targetPos))
+                            .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, golem.getHeldItem())
+                            .withOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, golem);
 
-                    List<ItemStack> drops = state.getDroppedStacks(builder);
-                    serverLevel.breakBlock(targetPos, false, golem);
+                    ItemStack tool = golem.getHeldItem();
+                    List<ItemStack> drops = net.minecraft.world.level.block.Block.getDrops(state, serverLevel, targetPos, null, golem, tool);
+                    serverLevel.destroyBlock(targetPos, false, golem, 512);
                     for (ItemStack drop : drops) {
                         ItemStack remaining = golem.getInventory().addItem(drop);
                         if (!remaining.isEmpty()) {
-                            Block.dropStack(serverLevel, targetPos, remaining);
+                            net.minecraft.world.level.block.Block.popResource(serverLevel, targetPos, remaining);
                         }
                     }
 
                     // Damage axe if used for pumpkin/melon
-                    ItemStack tool = golem.getHeldItem();
-                    if ((state.is(Blocks.PUMPKIN) || state.is(Blocks.MELON)) && UtilityGolem.isAxe(tool)) {
-                        tool.damage(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                    if ((state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON)) && UtilityGolem.isAxe(tool)) {
+                        tool.hurtAndBreak(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                     }
                     
                     // Swing hand to show action
@@ -7072,18 +7129,18 @@ public class GolemAI {
                 // Break things like grass or flowers above first
                 BlockPos abovePos = targetPos.above();
                 BlockState aboveState = world.getBlockState(abovePos);
-                if (aboveState.canBeReplaced() && !aboveState.is(Blocks.AIR) && !aboveState.is(Blocks.WATER)) {
-                    world.breakBlock(abovePos, true, golem);
+                if (aboveState.canBeReplaced() && !aboveState.is(net.minecraft.world.level.block.Blocks.AIR) && !aboveState.is(net.minecraft.world.level.block.Blocks.WATER)) {
+                    world.destroyBlock(abovePos, true, golem, 512);
                 }
 
-                world.setBlockAndUpdate(targetPos, Blocks.FARMLAND.defaultBlockState());
+                world.setBlock(targetPos, net.minecraft.world.level.block.Blocks.FARMLAND.defaultBlockState(), 3);
                 world.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.HOE_TILL, net.minecraft.sounds.SoundSource.BLOCKS, 1.0F, 1.0F);
                 
                 // Damage hoe
                 ItemStack hoe = golem.getHeldItem();
                 if (UtilityGolem.isHoe(hoe)) {
                     if (world instanceof ServerLevel serverLevel) {
-                        hoe.damage(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                        hoe.hurtAndBreak(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                     }
                 }
                 
@@ -7098,19 +7155,19 @@ public class GolemAI {
             // 5. Plant and Nether Wart Farm
             if (shouldPlant(targetPos, waterPos)) {
                 // Nether Wart Farm Construction: Dig and place Soul Sand
-                if (!state.is(Blocks.SOUL_SAND) && hasItem(Items.SOUL_SAND) && hasNetherWart() && hasShovel()) {
+                if (!state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND) && hasItem(net.minecraft.world.item.Items.SOUL_SAND) && hasNetherWart() && hasShovel()) {
                     if (!UtilityGolem.isShovel(golem.getHeldItem())) {
                         swapToShovel();
                     }
                     if (UtilityGolem.isShovel(golem.getHeldItem())) {
-                        world.breakBlock(targetPos, true, golem);
+                        world.destroyBlock(targetPos, true, golem, 512);
                         ItemStack soulSand = ItemStack.EMPTY;
-                        if (golem.getHeldItem().is(Items.SOUL_SAND)) {
+                        if (golem.getHeldItem().is(net.minecraft.world.item.Items.SOUL_SAND)) {
                             soulSand = golem.getHeldItem();
                         } else {
                             SimpleContainer inv = golem.getInventory();
                             for (int i = 0; i < inv.getContainerSize(); i++) {
-                                if (inv.getItem(i).is(Items.SOUL_SAND)) {
+                                if (inv.getItem(i).is(net.minecraft.world.item.Items.SOUL_SAND)) {
                                     soulSand = inv.getItem(i);
                                     break;
                                 }
@@ -7118,7 +7175,7 @@ public class GolemAI {
                         }
                         
                         if (!soulSand.isEmpty()) {
-                            world.setBlockAndUpdate(targetPos, Blocks.SOUL_SAND.defaultBlockState());
+                            world.setBlock(targetPos, net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState(), 3);
                             soulSand.shrink(1);
                             if (soulSand.isEmpty() && golem.getHeldItem() == soulSand) {
                                 golem.setHeldItem(ItemStack.EMPTY);
@@ -7130,7 +7187,7 @@ public class GolemAI {
                         ItemStack shovel = golem.getHeldItem();
                         if (UtilityGolem.isShovel(shovel)) {
                             if (world instanceof ServerLevel serverLevel) {
-                                shovel.damage(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                                shovel.hurtAndBreak(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                             }
                         }
                         
@@ -7151,12 +7208,12 @@ public class GolemAI {
                     Block seedBlock = getSeedBlock(seeds);
                         if (seedBlock != null) {
                             // Specialized planting for certain crops
-                            if (seedBlock == Blocks.COCOA) {
+                            if (seedBlock == net.minecraft.world.level.block.Blocks.COCOA) {
                                 // Find jungle log to plant on
                                 BlockPos logPos = findJungleLogNearby(targetPos);
                                 if (logPos != null) {
                                     Direction dir = getDirectionToPlantCocoa(targetPos, logPos);
-                                    world.setBlockAndUpdate(targetPos, seedBlock.defaultBlockState().with(CocoaBlock.FACING, dir));
+                                    world.setBlock(targetPos, seedBlock.defaultBlockState().setValue(net.minecraft.world.level.block.CocoaBlock.FACING, dir), 3);
                                     seeds.shrink(1);
                                     if (seeds.isEmpty() && golem.getHeldItem() == seeds) {
                                         golem.setHeldItem(ItemStack.EMPTY);
@@ -7164,7 +7221,7 @@ public class GolemAI {
                                     world.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.GRASS_PLACE, net.minecraft.sounds.SoundSource.BLOCKS, 1.0F, 1.0F);
                                 }
                             } else {
-                                world.setBlockAndUpdate(plantPos, seedBlock.defaultBlockState());
+                                world.setBlock(plantPos, seedBlock.defaultBlockState(), 3);
                                 seeds.shrink(1);
                                 if (seeds.isEmpty() && golem.getHeldItem() == seeds) {
                                     golem.setHeldItem(ItemStack.EMPTY);
@@ -7187,10 +7244,10 @@ public class GolemAI {
         }
 
         private ItemStack getWaterBucket() {
-            if (golem.getHeldItem().is(Items.WATER_BUCKET)) return golem.getHeldItem();
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) return golem.getHeldItem();
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.WATER_BUCKET)) return inv.getItem(i);
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.WATER_BUCKET)) return inv.getItem(i);
             }
             return ItemStack.EMPTY;
         }
@@ -7200,32 +7257,32 @@ public class GolemAI {
                 // If it's in the hand, we can just replace it.
                 // If it's in the golem.getInventory(), it's more complex because it becomes an empty bucket.
                 if (golem.getHeldItem() == waterBucket) {
-                    golem.setHeldItem(new ItemStack(Items.BUCKET));
+                    golem.setHeldItem(new ItemStack(net.minecraft.world.item.Items.BUCKET));
                 } else {
                     // It's in the golem.getInventory(). We need to find its slot.
                     SimpleContainer inv = golem.getInventory();
                     for (int i = 0; i < inv.getContainerSize(); i++) {
                         if (inv.getItem(i) == waterBucket) {
-                            inv.setItem(i, new ItemStack(Items.BUCKET));
+                            inv.setItem(i, new ItemStack(net.minecraft.world.item.Items.BUCKET));
                             break;
                         }
                     }
                 }
             } else {
                 waterBucket.shrink(1);
-                ItemStack emptyBucket = new ItemStack(Items.BUCKET);
+                ItemStack emptyBucket = new ItemStack(net.minecraft.world.item.Items.BUCKET);
                 ItemStack remaining = golem.getInventory().addItem(emptyBucket);
                 if (!remaining.isEmpty()) {
-                    Block.dropStack(golem.level(), golem.blockPosition(), remaining);
+                    net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), remaining);
                 }
             }
         }
 
         private boolean hasWaterBucket() {
-            if (golem.getHeldItem().is(Items.WATER_BUCKET)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.WATER_BUCKET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             }
             return false;
         }
@@ -7242,56 +7299,56 @@ public class GolemAI {
         private ItemStack getSeedsForTarget(BlockPos pos) {
             Level world = golem.level();
             BlockState state = world.getBlockState(pos);
-            if (state.is(Blocks.FARMLAND)) return getStandardSeeds();
-            if (state.is(Blocks.SOUL_SAND)) return getNetherWart();
+            if (state.is(net.minecraft.world.level.block.Blocks.FARMLAND)) return getStandardSeeds();
+            if (state.is(net.minecraft.world.level.block.Blocks.SOUL_SAND)) return getNetherWart();
             if (findJungleLogNearby(pos) != null) return getCocoaBeans();
             return getSeeds();
         }
 
         private ItemStack getStandardSeeds() {
-            if (isSeed(golem.getHeldItem()) && !golem.getHeldItem().is(Items.NETHER_WART) && !golem.getHeldItem().is(Items.COCOA_BEANS)) return golem.getHeldItem();
+            if (isSeed(golem.getHeldItem()) && !golem.getHeldItem().is(net.minecraft.world.item.Items.NETHER_WART) && !golem.getHeldItem().is(net.minecraft.world.item.Items.COCOA_BEANS)) return golem.getHeldItem();
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (isSeed(stack) && !stack.is(Items.NETHER_WART) && !stack.is(Items.COCOA_BEANS)) return stack;
+                if (isSeed(stack) && !stack.is(net.minecraft.world.item.Items.NETHER_WART) && !stack.is(net.minecraft.world.item.Items.COCOA_BEANS)) return stack;
             }
             return ItemStack.EMPTY;
         }
 
         private ItemStack getNetherWart() {
-            if (golem.getHeldItem().is(Items.NETHER_WART)) return golem.getHeldItem();
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.NETHER_WART)) return golem.getHeldItem();
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.NETHER_WART)) return inv.getItem(i);
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.NETHER_WART)) return inv.getItem(i);
             }
             return ItemStack.EMPTY;
         }
 
         private ItemStack getCocoaBeans() {
-            if (golem.getHeldItem().is(Items.COCOA_BEANS)) return golem.getHeldItem();
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.COCOA_BEANS)) return golem.getHeldItem();
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.COCOA_BEANS)) return inv.getItem(i);
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.COCOA_BEANS)) return inv.getItem(i);
             }
             return ItemStack.EMPTY;
         }
 
         private Block getSeedBlock(ItemStack seeds) {
-            if (seeds.is(Items.WHEAT_SEEDS)) return Blocks.WHEAT;
-            if (seeds.is(Items.CARROT)) return Blocks.CARROTS;
-            if (seeds.is(Items.POTATO)) return Blocks.POTATOES;
-            if (seeds.is(Items.BEETROOT_SEEDS)) return Blocks.BEETROOTS;
-            if (seeds.is(Items.PUMPKIN_SEEDS)) return Blocks.PUMPKIN_STEM;
-            if (seeds.is(Items.MELON_SEEDS)) return Blocks.MELON_STEM;
-            if (seeds.is(Items.NETHER_WART)) return Blocks.NETHER_WART;
-            if (seeds.is(Items.COCOA_BEANS)) return Blocks.COCOA;
+            if (seeds.is(net.minecraft.world.item.Items.WHEAT_SEEDS)) return net.minecraft.world.level.block.Blocks.WHEAT;
+            if (seeds.is(net.minecraft.world.item.Items.CARROT)) return net.minecraft.world.level.block.Blocks.CARROTS;
+            if (seeds.is(net.minecraft.world.item.Items.POTATO)) return net.minecraft.world.level.block.Blocks.POTATOES;
+            if (seeds.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)) return net.minecraft.world.level.block.Blocks.BEETROOTS;
+            if (seeds.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS)) return net.minecraft.world.level.block.Blocks.PUMPKIN_STEM;
+            if (seeds.is(net.minecraft.world.item.Items.MELON_SEEDS)) return net.minecraft.world.level.block.Blocks.MELON_STEM;
+            if (seeds.is(net.minecraft.world.item.Items.NETHER_WART)) return net.minecraft.world.level.block.Blocks.NETHER_WART;
+            if (seeds.is(net.minecraft.world.item.Items.COCOA_BEANS)) return net.minecraft.world.level.block.Blocks.COCOA;
             return null;
         }
 
         private BlockPos findJungleLogNearby(BlockPos pos) {
             for (Direction dir : Direction.values()) {
                 BlockPos p = pos.relative(dir);
-                if (golem.level().getBlockState(p).is(BlockTags.JUNGLE_LOGS)) {
+                if (golem.level().getBlockState(p).is(net.minecraft.tags.BlockTags.JUNGLE_LOGS)) {
                     return p;
                 }
             }
@@ -7315,7 +7372,7 @@ public class GolemAI {
 
         public RefillBucketGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -7329,19 +7386,19 @@ public class GolemAI {
         }
 
         private boolean hasWaterBucket() {
-            if (golem.getHeldItem().is(Items.WATER_BUCKET)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.WATER_BUCKET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
             }
             return false;
         }
 
         private boolean hasEmptyBucket() {
-            if (golem.getHeldItem().is(Items.BUCKET)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.BUCKET)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.BUCKET)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.BUCKET)) return true;
             }
             return false;
         }
@@ -7351,8 +7408,8 @@ public class GolemAI {
             for (int x = -16; x <= 16; x++) {
                 for (int y = -4; y <= 4; y++) {
                     for (int z = -16; z <= 16; z++) {
-                        BlockPos p = pos.add(x, y, z);
-                        if (golem.level().getBlockState(p).is(Blocks.WATER)) {
+                        BlockPos p = pos.offset(x, y, z);
+                        if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.WATER)) {
                             return p;
                         }
                     }
@@ -7396,22 +7453,22 @@ public class GolemAI {
             if (!emptyBucket.isEmpty()) {
                 if (emptyBucket.getCount() == 1) {
                     if (golem.getHeldItem() == emptyBucket) {
-                        golem.setHeldItem(new ItemStack(Items.WATER_BUCKET));
+                        golem.setHeldItem(new ItemStack(net.minecraft.world.item.Items.WATER_BUCKET));
                     } else {
                         SimpleContainer inv = golem.getInventory();
                         for (int i = 0; i < inv.getContainerSize(); i++) {
                             if (inv.getItem(i) == emptyBucket) {
-                                inv.setItem(i, new ItemStack(Items.WATER_BUCKET));
+                                inv.setItem(i, new ItemStack(net.minecraft.world.item.Items.WATER_BUCKET));
                                 break;
                             }
                         }
                     }
                 } else {
                     emptyBucket.shrink(1);
-                    ItemStack waterBucket = new ItemStack(Items.WATER_BUCKET);
+                    ItemStack waterBucket = new ItemStack(net.minecraft.world.item.Items.WATER_BUCKET);
                     ItemStack remaining = golem.getInventory().addItem(waterBucket);
                     if (!remaining.isEmpty()) {
-                        Block.dropStack(golem.level(), golem.blockPosition(), remaining);
+                        net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), remaining);
                     }
                 }
                 golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -7420,10 +7477,10 @@ public class GolemAI {
         }
 
         private ItemStack getEmptyBucket() {
-            if (golem.getHeldItem().is(Items.BUCKET)) return golem.getHeldItem();
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.BUCKET)) return golem.getHeldItem();
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.BUCKET)) return inv.getItem(i);
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.BUCKET)) return inv.getItem(i);
             }
             return ItemStack.EMPTY;
         }
@@ -7434,7 +7491,7 @@ public class GolemAI {
 
         public TriggerRedstoneGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -7455,7 +7512,7 @@ public class GolemAI {
             }
 
             int index = golem.getCurrentInteractionIndex();
-            if (index >= program.getContainerSize()) {
+            if (index >= program.size()) {
                 golem.setCurrentInteractionIndex(0);
                 index = 0;
             }
@@ -7467,10 +7524,10 @@ public class GolemAI {
             BlockState state = golem.level().getBlockState(target);
             if (!(state.getBlock() instanceof ButtonBlock || state.getBlock() instanceof LeverBlock || 
                   state.getBlock() instanceof DoorBlock || state.getBlock() instanceof TrapDoorBlock ||
-                  state.getBlock() instanceof FenceGateBlock || state.getBlock() == Blocks.TNT || 
-                  state.getBlock() == Blocks.REDSTONE_LAMP)) {
+                  state.getBlock() instanceof FenceGateBlock || state.getBlock() == net.minecraft.world.level.block.Blocks.TNT || 
+                  state.getBlock() == net.minecraft.world.level.block.Blocks.REDSTONE_LAMP)) {
                 // If the block is gone, skip it? Or just try anyway? Let's skip it to avoid getting stuck.
-                golem.setCurrentInteractionIndex((index + 1) % program.getContainerSize());
+                golem.setCurrentInteractionIndex((index + 1) % program.size());
                 golem.setRedstoneTickCounter(0);
                 return;
             }
@@ -7488,7 +7545,7 @@ public class GolemAI {
                 int counter = golem.getRedstoneTickCounter();
                 if (counter >= interaction.interval()) {
                     interactWithComponent(target, state);
-                    golem.setCurrentInteractionIndex((index + 1) % program.getContainerSize());
+                    golem.setCurrentInteractionIndex((index + 1) % program.size());
                     golem.setRedstoneTickCounter(0);
                 } else {
                     golem.setRedstoneTickCounter(counter + 1);
@@ -7499,21 +7556,21 @@ public class GolemAI {
         private void interactWithComponent(BlockPos pos, BlockState state) {
             Block block = state.getBlock();
             golem.setAnimation(GolemAnimation.PRESSING_BUTTON, 20);
-            if (block instanceof ButtonBlock button) {
-                golem.level().setBlockAndUpdate(pos, state.with(ButtonBlock.POWERED, true));
-                golem.level().scheduleBlockTick(pos, block, 20);
-                golem.level().playSound(null, pos, SoundEvents.BLOCK_WOODEN_BUTTON_CLICK_ON, SoundSource.BLOCKS, 0.3f, 0.6f);
-            } else if (block instanceof LeverBlock lever) {
-                golem.level().setBlockAndUpdate(pos, state.cycle(LeverBlock.POWERED));
-                golem.level().playSound(null, pos, SoundEvents.BLOCK_LEVER_CLICK, SoundSource.BLOCKS, 0.3f, 0.6f);
-            } else if (block instanceof DoorBlock || block instanceof TrapDoorBlock || block instanceof FenceGateBlock) {
+            if (block instanceof net.minecraft.world.level.block.ButtonBlock button) {
+                golem.level().setBlock(pos, state.setValue(net.minecraft.world.level.block.ButtonBlock.POWERED, true), 3);
+                golem.level().scheduleTick(pos, block, 20);
+                golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.WOODEN_BUTTON_CLICK_ON, SoundSource.BLOCKS, 0.3f, 0.6f);
+            } else if (block instanceof net.minecraft.world.level.block.LeverBlock lever) {
+                golem.level().setBlock(pos, state.cycle(net.minecraft.world.level.block.LeverBlock.POWERED), 3);
+                golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 0.3f, 0.6f);
+            } else if (block instanceof net.minecraft.world.level.block.DoorBlock || block instanceof net.minecraft.world.level.block.TrapDoorBlock || block instanceof net.minecraft.world.level.block.FenceGateBlock) {
                 // Find the property representing whether it is open
-                if (state.contains(net.minecraft.world.level.block.state.properties.BlockStateProperties.OPEN)) {
-                    golem.level().setBlockAndUpdate(pos, state.cycle(net.minecraft.world.level.block.state.properties.BlockStateProperties.OPEN));
-                    golem.level().playSound(null, pos, SoundEvents.BLOCK_WOODEN_DOOR_OPEN, SoundSource.BLOCKS, 1.0f, 1.0f);
+                if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.OPEN)) {
+                    golem.level().setBlock(pos, state.cycle(net.minecraft.world.level.block.state.properties.BlockStateProperties.OPEN), 3);
+                    golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.WOODEN_DOOR_OPEN, SoundSource.BLOCKS, 1.0f, 1.0f);
                 }
-            } else if (block == Blocks.TNT) {
-                TntBlock.prime(golem.level(), pos);
+            } else if (block == net.minecraft.world.level.block.Blocks.TNT) {
+                net.minecraft.world.level.block.TntBlock.prime(golem.level(), pos);
                 golem.level().removeBlock(pos, false);
             }
         }
@@ -7527,7 +7584,7 @@ public class GolemAI {
 
         public ConnectRedstoneGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -7536,7 +7593,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             boolean hasRedstone = false;
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.REDSTONE)) {
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.REDSTONE)) {
                     hasRedstone = true;
                     break;
                 }
@@ -7554,7 +7611,7 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int y = -2; y <= 2; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
+                        BlockPos p = pos.offset(x, y, z);
                         BlockState bs = golem.level().getBlockState(p);
                         if (isRedstoneComponent(bs)) {
                             components.add(p);
@@ -7563,10 +7620,10 @@ public class GolemAI {
                 }
             }
 
-            if (components.getContainerSize() >= 2) {
+            if (components.size() >= 2) {
                 // Find two components not already connected (simplistic check)
-                for (int i = 0; i < components.getContainerSize(); i++) {
-                    for (int j = i + 1; j < components.getContainerSize(); j++) {
+                for (int i = 0; i < components.size(); i++) {
+                    for (int j = i + 1; j < components.size(); j++) {
                         BlockPos p1 = components.get(i);
                         BlockPos p2 = components.get(j);
                         if (p1.distSqr(p2) > 4 && p1.distSqr(p2) < 256) {
@@ -7583,15 +7640,15 @@ public class GolemAI {
 
         private boolean isRedstoneComponent(BlockState state) {
             Block b = state.getBlock();
-            return b instanceof ButtonBlock || b instanceof LeverBlock || b instanceof PressurePlateBlock || b == Blocks.TNT || b == Blocks.REDSTONE_LAMP || b instanceof net.minecraft.world.level.block.DoorBlock;
+            return b instanceof ButtonBlock || b instanceof LeverBlock || b instanceof PressurePlateBlock || b == net.minecraft.world.level.block.Blocks.TNT || b == net.minecraft.world.level.block.Blocks.REDSTONE_LAMP || b instanceof net.minecraft.world.level.block.DoorBlock;
         }
 
         private boolean areConnected(BlockPos p1, BlockPos p2) {
             // Very basic check: is there redstone dust near p1 that leads towards p2?
             // For now, let's just assume they are not connected if there is no dust immediately adjacent
             for (Direction dir : Direction.values()) {
-                if (golem.level().getBlockState(p1.relative(dir)).is(Blocks.REDSTONE_WIRE)) return true;
-                if (golem.level().getBlockState(p2.relative(dir)).is(Blocks.REDSTONE_WIRE)) return true;
+                if (golem.level().getBlockState(p1.relative(dir)).is(net.minecraft.world.level.block.Blocks.REDSTONE_WIRE)) return true;
+                if (golem.level().getBlockState(p2.relative(dir)).is(net.minecraft.world.level.block.Blocks.REDSTONE_WIRE)) return true;
             }
             return false;
         }
@@ -7645,7 +7702,7 @@ public class GolemAI {
                     currZ += sz;
                 }
                 
-                if (p.getContainerSize() > 32) break; // Limit path length
+                if (p.size() > 32) break; // Limit path length
             }
             return p;
         }
@@ -7673,7 +7730,7 @@ public class GolemAI {
                     placeRedstone(target);
                     path.remove(0);
                     // If path is long, we might need a repeater
-                    if (path.getContainerSize() > 0 && (path.getContainerSize() % 14 == 0)) {
+                    if (path.size() > 0 && (path.size() % 14 == 0)) {
                         if (!path.isEmpty()) {
                             placeRepeater(path.remove(0));
                         }
@@ -7686,9 +7743,9 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(Items.REDSTONE)) {
+                if (stack.is(net.minecraft.world.item.Items.REDSTONE)) {
                     if (golem.level().getBlockState(pos).canBeReplaced()) {
-                        golem.level().setBlockAndUpdate(pos, Blocks.REDSTONE_WIRE.defaultBlockState());
+                        golem.level().setBlock(pos, net.minecraft.world.level.block.Blocks.REDSTONE_WIRE.defaultBlockState(), 3);
                         stack.shrink(1);
                         golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
                         break;
@@ -7701,11 +7758,11 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(Items.REPEATER)) {
+                if (stack.is(net.minecraft.world.item.Items.REPEATER)) {
                     if (golem.level().getBlockState(pos).canBeReplaced()) {
                         // Direction should be facing towards endPos
-                        Direction facing = Direction.fromHorizontalDegrees(golem.getYaw());
-                        golem.level().setBlockAndUpdate(pos, Blocks.REPEATER.defaultBlockState().with(HorizontalDirectionalBlock.FACING, facing));
+                        Direction facing = Direction.fromHorizontalDegrees(golem.getYRot());
+                        golem.level().setBlock(pos, net.minecraft.world.level.block.Blocks.REPEATER.defaultBlockState().setValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING, facing), 3);
                         stack.shrink(1);
                         golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
                         break;
@@ -7722,7 +7779,7 @@ public class GolemAI {
 
         public BreedAnimalsGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         private boolean isCompatibleMate(Animal a, Animal b) {
@@ -7748,20 +7805,20 @@ public class GolemAI {
 
             BlockPos chestPos = golem.getChestPos();
             List<Animal> animals = golem.level()
-                    .getEntitiesByClass(
+                    .getEntitiesOfClass(
                             Animal.class,
-                            golem.getBoundingBox().expand(16.0),
+                            golem.getBoundingBox().inflate(16.0),
                             a -> {
                                 boolean ok = a.isAlive() && a.getBreedingAge() == 0 && !a.isInLove() && a.canEat() && isReadyForBreeding(a);
                                 if (!ok && golem.getRandom().nextInt(100) == 0) {
-                                    golem.debugLog("BreedAnimalsGoal: Animal " + a.getType().getName().getString() + " at " + a.blockPosition().toShortString() + " NOT READY: alive=" + a.isAlive() + ", age=" + a.getBreedingAge() + ", inLove=" + a.isInLove() + ", canEat=" + a.canEat() + ", isReady=" + isReadyForBreeding(a));
+                                    golem.debugLog("BreedAnimalsGoal: Animal " + a.getType().getDescriptionId() + " at " + a.blockPosition().toShortString() + " NOT READY: alive=" + a.isAlive() + ", tickCount=" + a.getBreedingAge() + ", inLove=" + a.isInLove() + ", canEat=" + a.canEat() + ", isReady=" + isReadyForBreeding(a));
                                 }
                                 return ok;
                             }
                     );
 
-            for (int i = 0; i < animals.getContainerSize(); i++) {
-                for (int j = i + 1; j < animals.getContainerSize(); j++) {
+            for (int i = 0; i < animals.size(); i++) {
+                for (int j = i + 1; j < animals.size(); j++) {
                     Animal a = animals.get(i);
                     Animal b = animals.get(j);
 
@@ -7790,7 +7847,7 @@ public class GolemAI {
                 }
             }
             if (!animals.isEmpty()) {
-                golem.debugLog("BreedAnimalsGoal: Found " + animals.getContainerSize() + " animals, but no matching pair could be bred.");
+                golem.debugLog("BreedAnimalsGoal: Found " + animals.size() + " animals, but no matching pair could be bred.");
             }
             return false;
         }
@@ -7833,7 +7890,7 @@ public class GolemAI {
             BlockPos pos = panda.blockPosition();
             int bambooCount = 0;
             for (BlockPos p : BlockPos.iterate(pos.add(-5, -2, -5), pos.add(5, 2, 5))) {
-                if (golem.level().getBlockState(p).is(Blocks.BAMBOO)) {
+                if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.BAMBOO)) {
                     if (++bambooCount >= 8) return true;
                 }
             }
@@ -7896,7 +7953,7 @@ public class GolemAI {
             ItemStack food = getBreedingItemFor(animalA);
             if (food.isEmpty() || food.getCount() < 2) return;
 
-            golem.equipStack(EquipmentSlot.MAINHAND, food.copy());
+            golem.setItemSlot(EquipmentSlot.MAINHAND, food.copy());
 
             boolean isAxolotl = animalA instanceof net.minecraft.world.entity.animal.axolotl.Axolotl;
 
@@ -7905,7 +7962,7 @@ public class GolemAI {
 
             if (isAxolotl) {
                 // Return buckets
-                ItemStack bucket = new ItemStack(Items.BUCKET, 2);
+                ItemStack bucket = new ItemStack(net.minecraft.world.item.Items.BUCKET, 2);
                 if (!golem.getInventory().addItem(bucket).isEmpty()) {
                     net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), bucket);
                 }
@@ -7938,16 +7995,16 @@ public class GolemAI {
                     }
                     // Special case for some animals that might not use isBreedingItem correctly in some versions/mods
                     if (animal instanceof net.minecraft.world.entity.animal.cow.Cow || animal instanceof net.minecraft.world.entity.animal.sheep.Sheep) {
-                        if (stack.is(Items.WHEAT)) return stack;
+                        if (stack.is(net.minecraft.world.item.Items.WHEAT)) return stack;
                     }
                     if (animal instanceof net.minecraft.world.entity.animal.pig.Pig) {
-                        if (stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT)) return stack;
+                        if (stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT)) return stack;
                     }
                     if (animal instanceof net.minecraft.world.entity.animal.chicken.Chicken) {
-                        if (stack.is(Items.WHEAT_SEEDS) || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.BEETROOT_SEEDS)) return stack;
+                        if (stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS)) return stack;
                     }
                     if (animal instanceof net.minecraft.world.entity.animal.equine.AbstractHorse) {
-                        if (stack.is(Items.GOLDEN_APPLE) || stack.is(Items.GOLDEN_CARROT) || stack.is(Items.ENCHANTED_GOLDEN_APPLE)) return stack;
+                        if (stack.is(net.minecraft.world.item.Items.GOLDEN_APPLE) || stack.is(net.minecraft.world.item.Items.GOLDEN_CARROT) || stack.is(net.minecraft.world.item.Items.ENCHANTED_GOLDEN_APPLE)) return stack;
                     }
                 }
             }
@@ -7970,7 +8027,7 @@ public class GolemAI {
 
         public ChopTreeGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -7989,7 +8046,7 @@ public class GolemAI {
             }
 
             // Cleanup failed blocks older than 30 seconds
-            long now = golem.level().getTime();
+            long now = golem.level().getGameTime();
             failedBlocks.entrySet().removeIf(entry -> now - entry.getValue() > 600);
 
             // If it's a deepslate golem, we should always allow chopping if there's a tool and golem.getInventory() space.
@@ -8020,7 +8077,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER)) {
+                if (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER)) {
                     count += stack.getCount();
                 }
             }
@@ -8034,8 +8091,8 @@ public class GolemAI {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
-                if (stack.is(Items.STICK)) return true; // Always deposit sticks
-                if (stack.getCount() >= stack.getMaxCount()) return true; // Deposit full stacks
+                if (stack.is(net.minecraft.world.item.Items.STICK)) return true; // Always deposit sticks
+                if (stack.getCount() >= stack.getMaxStackSize()) return true; // Deposit full stacks
             }
             return false;
         }
@@ -8049,9 +8106,9 @@ public class GolemAI {
         }
 
         private boolean findNearbySaplingsOnGround() {
-            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesByClass(
+            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.item.ItemEntity.class,
-                    golem.getBoundingBox().expand(16.0, 4.0, 16.0),
+                    golem.getBoundingBox().inflate(16.0, 4.0, 16.0),
                     item -> item.getItem().is(net.minecraft.tags.ItemTags.SAPLINGS)
             );
             return !items.isEmpty();
@@ -8064,11 +8121,11 @@ public class GolemAI {
 
             float speed = 1.0f;
             if (tool != null && !tool.isEmpty()) {
-                speed = tool.getMiningSpeedMultiplier(state);
+                speed = tool.getDestroySpeed(state);
                 
                 // If the tool is efficient against this block, apply efficiency enchantment
                 if (speed > 1.0f && golem.level() instanceof ServerLevel serverLevel) {
-                    int efficiencyLevel = EnchantmentHelper.getEnchantmentLevel(serverLevel.registryAccess().value(net.minecraft.core.registries.Registries.ENCHANTMENT).value(Enchantments.EFFICIENCY), tool);
+                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
                     if (efficiencyLevel > 0) {
                         speed += (float)(efficiencyLevel * efficiencyLevel + 1);
                     }
@@ -8085,8 +8142,8 @@ public class GolemAI {
             if (currentTreePos != null) {
                 // If the current tree is way too far from the golem (e.g. golem was teleported),
                 // or too far from the chest, reset it.
-                if (currentTreePos.distSqr(golem.getX(), golem.getY(), golem.getZ()) > 1024 ||
-                    (chestPos != null && currentTreePos.distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 1024)) {
+                if (currentTreePos.distSqr(golem.blockPosition()) > 1024 ||
+                    (chestPos != null && currentTreePos.distSqr(chestPos) > 1024)) {
                     currentTreePos = null;
                 } else {
                     BlockPos connected = findConnectedTarget(currentTreePos);
@@ -8116,11 +8173,11 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int y = -range; y <= range; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
+                        BlockPos p = pos.offset(x, y, z);
                         if (canChop(p) && !failedBlocks.containsKey(p) && !golem.isBlacklisted(p)) {
                             // Only chop if within 32 blocks of chest (if chest is known)
-                            if (chestPos == null || p.distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
-                                double distSq = p.distSqr(golem.getX(), golem.getY(), golem.getZ());
+                            if (chestPos == null || p.distSqr(chestPos) < 1024) {
+                                double distSq = p.distSqr(golem.blockPosition());
                                 // Heavy bias towards logs to prioritize them over leaves
                                 double leafPenalty = hasShearsInInventory() ? 10.0 : 1000.0;
                                 // Add a Y penalty to favor lower blocks (like the base of the tree)
@@ -8170,7 +8227,7 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int y = -range; y <= range; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
+                        BlockPos p = pos.offset(x, y, z);
                         if (isLog(p) && isLog(p.east()) && isLog(p.south()) && isLog(p.east().south())) {
                             // Found a 2x2 base (lowest found in this search)
                             return p;
@@ -8207,11 +8264,11 @@ public class GolemAI {
             for (int x = -searchRange; x <= searchRange; x++) {
                 for (int y = -searchRange; y <= searchRange; y++) {
                     for (int z = -searchRange; z <= searchRange; z++) {
-                        BlockPos p = startPos.add(x, y, z);
+                        BlockPos p = startPos.offset(x, y, z);
                         if (canChop(p) && !failedBlocks.containsKey(p) && !golem.isBlacklisted(p)) {
                             // Only chop if within 32 blocks of chest (if chest is known)
-                            if (chestPos == null || p.distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
-                                double distSq = p.distSqr(golem.getX(), golem.getY(), golem.getZ());
+                            if (chestPos == null || p.distSqr(chestPos) < 1024) {
+                                double distSq = p.distSqr(golem.blockPosition());
                                 // Heavy bias towards logs to prioritize them over leaves
                                 double leafPenalty = hasShearsInInventory() ? 10.0 : 1000.0;
                                 double chorusFlowerBonus = isChorusFlower(p) ? -100.0 : 0.0;
@@ -8239,16 +8296,16 @@ public class GolemAI {
 
         private boolean canChop(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            if (state.is(BlockTags.LOGS)) return true;
-            if (state.is(Blocks.CHORUS_FLOWER)) {
+            if (state.is(net.minecraft.tags.BlockTags.LOGS)) return true;
+            if (state.is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER)) {
                 if (!golem.isChorusReady(pos)) return false;
                 // If it's a flower on end stone, it's a newly planted one.
                 // We should only break it once it has grown into a stem (becoming a CHORUS_PLANT)
                 // and new flowers have grown above/around it.
-                return !golem.level().getBlockState(pos.below()).is(Blocks.END_STONE);
+                return !golem.level().getBlockState(pos.below()).is(net.minecraft.world.level.block.Blocks.END_STONE);
             }
-            if (state.is(Blocks.CHORUS_PLANT)) return true;
-            if (state.is(BlockTags.LEAVES)) {
+            if (state.is(net.minecraft.world.level.block.Blocks.CHORUS_PLANT)) return true;
+            if (state.is(net.minecraft.tags.BlockTags.LEAVES)) {
                 // Deepslate golems with shears should always be allowed to collect leaves.
                 if (golem.getGolemType() == GolemType.DEEPSLATE && hasShearsInInventory()) {
                     return true;
@@ -8283,26 +8340,26 @@ public class GolemAI {
 
         private boolean isChorus(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            return state.is(Blocks.CHORUS_PLANT) || state.is(Blocks.CHORUS_FLOWER);
+            return state.is(net.minecraft.world.level.block.Blocks.CHORUS_PLANT) || state.is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER);
         }
 
         private boolean isChorusFlower(BlockPos pos) {
-            return golem.level().getBlockState(pos).is(Blocks.CHORUS_FLOWER);
+            return golem.level().getBlockState(pos).is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER);
         }
 
         private boolean isBottomChorus(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            if (state.is(Blocks.CHORUS_FLOWER)) {
+            if (state.is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER)) {
                 // A flower directly on end stone is newly planted.
-                return golem.level().getBlockState(pos.below()).is(Blocks.END_STONE);
+                return golem.level().getBlockState(pos.below()).is(net.minecraft.world.level.block.Blocks.END_STONE);
             }
             // A stem on end stone means the flower has changed into a stem (grown).
-            return state.is(Blocks.CHORUS_PLANT) && golem.level().getBlockState(pos.below()).is(Blocks.END_STONE);
+            return state.is(net.minecraft.world.level.block.Blocks.CHORUS_PLANT) && golem.level().getBlockState(pos.below()).is(net.minecraft.world.level.block.Blocks.END_STONE);
         }
 
         private boolean isLog(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            return state.is(BlockTags.LOGS) || state.is(Blocks.CHORUS_PLANT) || state.is(Blocks.CHORUS_FLOWER);
+            return state.is(net.minecraft.tags.BlockTags.LOGS) || state.is(net.minecraft.world.level.block.Blocks.CHORUS_PLANT) || state.is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER);
         }
 
         @Override
@@ -8317,7 +8374,7 @@ public class GolemAI {
         public boolean canContinueToUse() {
             ItemStack tool = golem.getHeldItem();
             return targetPos != null && canChop(targetPos) && !tool.isEmpty() && (UtilityGolem.isAxe(tool) || UtilityGolem.isShears(tool)) &&
-                    breakingTime < maxBreakingTime && golem.blockPosition().distSqr(targetPos.getX(), targetPos.getY(), targetPos.getZ()) < 400 &&
+                    breakingTime < maxBreakingTime && golem.blockPosition().distSqr(targetPos) < 400 &&
                     stuckTicks < 100 && !shouldStopToDeposit();
         }
 
@@ -8326,7 +8383,7 @@ public class GolemAI {
             if (targetPos != null) {
                 golem.level().destroyBlockProgress(golem.getId(), targetPos, -1);
                 if (stuckTicks >= 100) {
-                    failedBlocks.put(targetPos, golem.level().getTime());
+                    failedBlocks.put(targetPos, golem.level().getGameTime());
                 }
             }
             targetPos = null;
@@ -8432,26 +8489,26 @@ public class GolemAI {
             BlockState state = golem.level().getBlockState(target);
             
             // Prioritize correct tool for the block type
-            if (state.is(BlockTags.LOGS) && UtilityGolem.isAxe(stack)) {
+            if (state.is(net.minecraft.tags.BlockTags.LOGS) && UtilityGolem.isAxe(stack)) {
                 score += 100;
-            } else if (state.is(BlockTags.LEAVES) && UtilityGolem.isShears(stack)) {
+            } else if (state.is(net.minecraft.tags.BlockTags.LEAVES) && UtilityGolem.isShears(stack)) {
                 score += 100;
             }
 
             if (golem.level() instanceof ServerLevel serverLevel) {
-                var registry = serverLevel.registryAccess().value(net.minecraft.core.registries.Registries.ENCHANTMENT);
-                score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.EFFICIENCY), stack) * 10;
+                var registry = serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+                score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), stack) * 10;
                 
-                if (state.is(BlockTags.LOGS)) {
+                if (state.is(net.minecraft.tags.BlockTags.LOGS)) {
                     // Silk touch on logs?
-                    score += EnchantmentHelper.getEnchantmentLevel(registry.value(Enchantments.SILK_TOUCH), stack) * 20;
+                    score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH), stack) * 20;
                 }
             }
             
-            if (stack.is(Items.NETHERITE_AXE)) score += 5;
-            else if (stack.is(Items.DIAMOND_AXE)) score += 4;
-            else if (stack.is(Items.IRON_AXE)) score += 3;
-            else if (stack.is(Items.GOLDEN_AXE)) score += 6;
+            if (stack.is(net.minecraft.world.item.Items.NETHERITE_AXE)) score += 5;
+            else if (stack.is(net.minecraft.world.item.Items.DIAMOND_AXE)) score += 4;
+            else if (stack.is(net.minecraft.world.item.Items.IRON_AXE)) score += 3;
+            else if (stack.is(net.minecraft.world.item.Items.GOLDEN_AXE)) score += 6;
             
             return score;
         }
@@ -8499,24 +8556,24 @@ public class GolemAI {
             if (canChop(targetPos)) {
                 ItemStack tool = golem.getHeldItem();
                 
-                LootLevelContext.Builder builder = new LootLevelContext.Builder(serverLevel)
-                        .add(LootContextParameters.ORIGIN, Vec3.atCenterOf(targetPos))
-                        .add(LootContextParameters.TOOL, tool)
-                        .addOptional(LootContextParameters.THIS_ENTITY, golem);
+                net.minecraft.world.level.storage.loot.LootParams.Builder builder = new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
+                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(targetPos))
+                        .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, tool)
+                        .withOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, golem);
 
-                serverLevel.breakBlock(targetPos, false, golem);
+                serverLevel.destroyBlock(targetPos, false, golem, 512);
 
-                List<ItemStack> drops = state.getDroppedStacks(builder);
+                List<ItemStack> drops = net.minecraft.world.level.block.Block.getDrops(state, serverLevel, targetPos, null, golem, tool);
                 for (ItemStack drop : drops) {
                     ItemStack remaining = golem.getInventory().addItem(drop);
                     if (!remaining.isEmpty()) {
-                        Block.dropStack(serverLevel, targetPos, remaining);
+                        net.minecraft.world.level.block.Block.popResource(serverLevel, targetPos, remaining);
                     }
                 }
 
                 if (!tool.isEmpty()) {
                     if (UtilityGolem.isAxe(tool) || UtilityGolem.isShears(tool)) {
-                        tool.damage(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
+                        tool.hurtAndBreak(1, serverLevel, null, (item) -> golem.setHeldItem(ItemStack.EMPTY));
                     }
                 }
                 
@@ -8535,7 +8592,7 @@ public class GolemAI {
 
         public ReplantSaplingGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -8548,7 +8605,7 @@ public class GolemAI {
             }
 
             // Cleanup failed positions older than 30 seconds
-            long now = golem.level().getTime();
+            long now = golem.level().getGameTime();
             failedPositions.entrySet().removeIf(entry -> now - entry.getValue() > 600);
 
             targetPos = findPlantingPos();
@@ -8561,8 +8618,8 @@ public class GolemAI {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
                 if (UtilityGolem.isTool(stack)) continue;
-                if (stack.is(Items.STICK)) return true; // Always deposit sticks
-                if (stack.getCount() >= stack.getMaxCount()) return true; // Deposit full stacks
+                if (stack.is(net.minecraft.world.item.Items.STICK)) return true; // Always deposit sticks
+                if (stack.getCount() >= stack.getMaxStackSize()) return true; // Deposit full stacks
             }
             return false;
         }
@@ -8571,7 +8628,7 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (!stack.isEmpty() && (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER))) {
+                if (!stack.isEmpty() && (stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER))) {
                     return stack;
                 }
             }
@@ -8585,12 +8642,12 @@ public class GolemAI {
             for (int x = -range; x <= range; x++) {
                 for (int z = -range; z <= range; z++) {
                     for (int y = -2; y <= 2; y++) {
-                        BlockPos p = pos.add(x, y, z);
+                        BlockPos p = pos.offset(x, y, z);
                         if (canPlantAt(p) && !failedPositions.containsKey(p)) {
                             // Sparse pattern check: No other saplings within 3 blocks
                             if (isSparse(p)) {
                                 // Only plant if within 32 blocks of chest (if chest is known)
-                                if (chestPos == null || p.distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 1024) {
+                                if (chestPos == null || p.distSqr(chestPos) < 1024) {
                                     return p;
                                 }
                             }
@@ -8606,26 +8663,26 @@ public class GolemAI {
             BlockState state = world.getBlockState(pos);
             BlockState floor = world.getBlockState(pos.below());
             ItemStack sapling = getSaplingFromInventory();
-            if (sapling.is(Items.CHORUS_FLOWER)) {
-                return state.is(Blocks.AIR) && floor.is(Blocks.END_STONE);
+            if (sapling.is(net.minecraft.world.item.Items.CHORUS_FLOWER)) {
+                return state.is(net.minecraft.world.level.block.Blocks.AIR) && floor.is(net.minecraft.world.level.block.Blocks.END_STONE);
             }
             // Can plant on dirt, grass, moss, or podzol
-            return state.is(Blocks.AIR) && (floor.is(BlockTags.DIRT) || floor.is(Blocks.GRASS_BLOCK) || floor.is(Blocks.MOSS_BLOCK) || floor.is(Blocks.PODZOL));
+            return state.is(net.minecraft.world.level.block.Blocks.AIR) && (floor.is(net.minecraft.tags.BlockTags.DIRT) || floor.is(net.minecraft.world.level.block.Blocks.GRASS_BLOCK) || floor.is(net.minecraft.world.level.block.Blocks.MOSS_BLOCK) || floor.is(net.minecraft.world.level.block.Blocks.PODZOL));
         }
 
         private boolean isSparse(BlockPos pos) {
             net.minecraft.world.level.Level world = golem.level();
             ItemStack sapling = getSaplingFromInventory();
-            if (sapling.is(Items.CHORUS_FLOWER)) {
+            if (sapling.is(net.minecraft.world.item.Items.CHORUS_FLOWER)) {
                 // Chorus can be planted closer together than trees if desired, 
                 // but let's stick to a similar sparse check for consistency.
                 int sparseRange = 2;
                 for (int x = -sparseRange; x <= sparseRange; x++) {
                     for (int z = -sparseRange; z <= sparseRange; z++) {
                         if (x == 0 && z == 0) continue;
-                        BlockPos p = pos.add(x, 0, z);
+                        BlockPos p = pos.offset(x, 0, z);
                         BlockState s = world.getBlockState(p);
-                        if (s.is(Blocks.CHORUS_PLANT) || s.is(Blocks.CHORUS_FLOWER)) {
+                        if (s.is(net.minecraft.world.level.block.Blocks.CHORUS_PLANT) || s.is(net.minecraft.world.level.block.Blocks.CHORUS_FLOWER)) {
                             return false;
                         }
                     }
@@ -8636,10 +8693,10 @@ public class GolemAI {
             for (int x = -sparseRange; x <= sparseRange; x++) {
                 for (int z = -sparseRange; z <= sparseRange; z++) {
                     if (x == 0 && z == 0) continue;
-                    BlockPos p = pos.add(x, 0, z);
+                    BlockPos p = pos.offset(x, 0, z);
                     BlockState s = world.getBlockState(p);
                     // Check if it's a sapling or a log (tree already there)
-                    if (s.is(BlockTags.SAPLINGS) || s.is(BlockTags.LOGS)) {
+                    if (s.is(net.minecraft.tags.BlockTags.SAPLINGS) || s.is(net.minecraft.tags.BlockTags.LOGS)) {
                         return false;
                     }
                 }
@@ -8656,7 +8713,7 @@ public class GolemAI {
         @Override
         public void stop() {
             if (stuckTicks >= 100 && targetPos != null) {
-                failedPositions.put(targetPos, golem.level().getTime());
+                failedPositions.put(targetPos, golem.level().getGameTime());
             }
             targetPos = null;
         }
@@ -8696,9 +8753,9 @@ public class GolemAI {
                 ItemStack saplingStack = getSaplingFromInventory();
                 if (!saplingStack.isEmpty()) {
                     Block saplingBlock = Block.getBlockFromItem(saplingStack.getItem());
-                    if (saplingBlock != Blocks.AIR) {
-                        golem.level().setBlockAndUpdate(targetPos, saplingBlock.defaultBlockState());
-                        if (saplingBlock == Blocks.CHORUS_FLOWER) {
+                    if (saplingBlock != net.minecraft.world.level.block.Blocks.AIR) {
+                        golem.level().setBlock(targetPos, saplingBlock.defaultBlockState(), 3);
+                        if (saplingBlock == net.minecraft.world.level.block.Blocks.CHORUS_FLOWER) {
                             golem.recordChorusPlanting(targetPos);
                         }
                         saplingStack.shrink(1);
@@ -8719,7 +8776,7 @@ public class GolemAI {
 
         public TradeWithPiglinGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -8733,7 +8790,7 @@ public class GolemAI {
 
             // If we are holding something that isn't gold, maybe we should finish depositing it first?
             // Actually, if we have gold in golem.getInventory() but holding a trade result, we should probably finish that.
-            if (!golem.getHeldItem().isEmpty() && !golem.getHeldItem().is(Items.GOLD_INGOT)) return false;
+            if (!golem.getHeldItem().isEmpty() && !golem.getHeldItem().is(net.minecraft.world.item.Items.GOLD_INGOT)) return false;
 
             targetPiglin = findNearbyPiglin();
             if (targetPiglin != null) {
@@ -8744,22 +8801,22 @@ public class GolemAI {
         }
 
         private boolean hasGoldIngot() {
-            if (golem.getHeldItem().is(Items.GOLD_INGOT)) return true;
+            if (golem.getHeldItem().is(net.minecraft.world.item.Items.GOLD_INGOT)) return true;
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.GOLD_INGOT)) return true;
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.GOLD_INGOT)) return true;
             }
             return false;
         }
 
         private net.minecraft.world.entity.monster.piglin.Piglin findNearbyPiglin() {
-            List<net.minecraft.world.entity.monster.piglin.Piglin> piglins = golem.level().getEntitiesByClass(
+            List<net.minecraft.world.entity.monster.piglin.Piglin> piglins = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.monster.piglin.Piglin.class,
-                    golem.getBoundingBox().expand(16.0),
+                    golem.getBoundingBox().inflate(16.0),
                     piglin -> piglin.isAlive() && !piglin.isBaby() && (!CLAIMED_PIGLINS.containsKey(piglin) || CLAIMED_PIGLINS.get(piglin) == golem)
             );
             return piglins.stream()
-                    .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                    .min(Comparator.comparingDouble(golem::distanceToSqr))
                     .orElse(null);
         }
 
@@ -8842,18 +8899,18 @@ public class GolemAI {
                 }
 
                 // Ensure golem is holding gold ingot before trading
-                if (!golem.getHeldItem().is(Items.GOLD_INGOT)) {
+                if (!golem.getHeldItem().is(net.minecraft.world.item.Items.GOLD_INGOT)) {
                     SimpleContainer inv = golem.getInventory();
                     for (int i = 0; i < inv.getContainerSize(); i++) {
                         ItemStack stack = inv.getItem(i);
-                        if (stack.is(Items.GOLD_INGOT)) {
+                        if (stack.is(net.minecraft.world.item.Items.GOLD_INGOT)) {
                             ItemStack held = golem.getHeldItem();
                             // If we were holding something else, try to put it in golem.getInventory()
                             if (!held.isEmpty()) {
                                 ItemStack remaining = inv.addItem(held);
                                 if (!remaining.isEmpty()) {
                                     // No space? Just drop it
-                                    Block.dropStack(golem.level(), golem.blockPosition(), remaining);
+                                    net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), remaining);
                                 }
                             }
                             ItemStack toHold = stack.copy();
@@ -8866,7 +8923,7 @@ public class GolemAI {
                 }
 
                 if (++tradeDelay % 10 == 0) {
-                    if (isPiglinReady(targetPiglin) && golem.getHeldItem().is(Items.GOLD_INGOT)) {
+                    if (isPiglinReady(targetPiglin) && golem.getHeldItem().is(net.minecraft.world.item.Items.GOLD_INGOT)) {
                         dropGoldIngot();
                         waitingForPiglin = true;
                         tradeDelay = 0;
@@ -8878,13 +8935,13 @@ public class GolemAI {
         private net.minecraft.world.entity.item.ItemEntity findNearbyDroppedItem() {
             // Cactus Golems should NOT pick up items off the ground.
             if (golem.getGolemType() == GolemType.CACTUS) return null;
-            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesByClass(
+            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.item.ItemEntity.class,
-                    golem.getBoundingBox().expand(4.0),
-                    item -> !item.cannotPickup() && !item.getItem().is(Items.GOLD_INGOT)
+                    golem.getBoundingBox().inflate(4.0),
+                    item -> !item.hasPickUpDelay() && !item.getItem().is(net.minecraft.world.item.Items.GOLD_INGOT)
             );
             return items.stream()
-                    .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                    .min(Comparator.comparingDouble(golem::distanceToSqr))
                     .orElse(null);
         }
 
@@ -8907,13 +8964,13 @@ public class GolemAI {
             // However, simply checking if they are holding gold is a good start.
             ItemStack mainInteractionHand = piglin.getMainInteractionHandItem();
             ItemStack offInteractionHand = piglin.getOffhandItem();
-            return !mainInteractionHand.is(Items.GOLD_INGOT) && !offInteractionHand.is(Items.GOLD_INGOT);
+            return !mainInteractionHand.is(net.minecraft.world.item.Items.GOLD_INGOT) && !offInteractionHand.is(net.minecraft.world.item.Items.GOLD_INGOT);
         }
 
         private void dropGoldIngot() {
             ItemStack goldIngot = golem.getHeldItem();
 
-            if (goldIngot.is(Items.GOLD_INGOT)) {
+            if (goldIngot.is(net.minecraft.world.item.Items.GOLD_INGOT)) {
                 ItemStack toDrop = goldIngot.copy();
                 toDrop.setCount(1);
                 
@@ -8957,7 +9014,7 @@ public class GolemAI {
         private boolean hasEmeraldBlocks() {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
-                if (inv.getItem(i).is(Items.EMERALD_BLOCK)) {
+                if (inv.getItem(i).is(net.minecraft.world.item.Items.EMERALD_BLOCK)) {
                     return true;
                 }
             }
@@ -8974,11 +9031,11 @@ public class GolemAI {
             SimpleContainer inv = golem.getInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.is(Items.EMERALD_BLOCK)) {
+                if (stack.is(net.minecraft.world.item.Items.EMERALD_BLOCK)) {
                     int count = stack.getCount();
                     stack.shrink(count);
                     
-                    ItemStack emeralds = new ItemStack(Items.EMERALD, count * 9);
+                    ItemStack emeralds = new ItemStack(net.minecraft.world.item.Items.EMERALD, count * 9);
                     ItemStack remaining = inv.addItem(emeralds);
                     
                     if (!remaining.isEmpty()) {
@@ -8986,7 +9043,7 @@ public class GolemAI {
                     }
                     
                     golem.debugLog("CraftEmeraldsGoal: Crafted " + (count * 9) + " emeralds from " + count + " blocks.");
-                    golem.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, 1.0F);
+                    golem.playSound(net.minecraft.sounds.SoundEvents.ITEM_PICKUP, 1.0F, 1.0F);
                     break;
                 }
             }
@@ -9004,7 +9061,7 @@ public class GolemAI {
 
         public PickupItemGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -9019,14 +9076,14 @@ public class GolemAI {
             }
 
             // Cleanup blacklisted items older than 30 seconds
-            long now = golem.level().getTime();
+            long now = golem.level().getGameTime();
             blacklistedItems.entrySet().removeIf(entry -> now - entry.getValue() > 600 || !entry.getKey().isAlive());
 
             targetItem = findNearbyItem();
             if (targetItem == null) {
                 cooldown = 20;
             } else {
-                golem.debugLog("PickupItemGoal: Found item " + targetItem.getItem().getItem().getName().getString() + " at " + targetItem.blockPosition().toShortString());
+                golem.debugLog("PickupItemGoal: Found item " + targetItem.getItem().getItem().getDescriptionId() + " at " + targetItem.blockPosition().toShortString());
             }
             return targetItem != null;
         }
@@ -9058,54 +9115,54 @@ public class GolemAI {
             if (golem.getGolemType() == GolemType.AMETHYST) {
                 if (chestPos == null) return null;
                 
-                List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesByClass(
+                List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                         net.minecraft.world.entity.item.ItemEntity.class,
                         new net.minecraft.world.phys.AABB(chestPos).inflate(16.0),
                         item -> {
-                            if (item.cannotPickup()) return false;
+                            if (item.hasPickUpDelay()) return false;
                             if (blacklistedItems.containsKey(item)) return false;
-                            if (item.distanceToSqr(chestPos.toCenterPos()) > 16.0 * 16.0) return false;
+                            if (item.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(chestPos)) > 16.0 * 16.0) return false;
                             ItemStack stack = item.getItem();
                             return GolemAI.isValidBreedingItem(stack);
                         }
                 );
                 
                 return items.stream()
-                        .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                        .min(Comparator.comparingDouble(golem::distanceToSqr))
                         .orElse(null);
             }
 
-            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesByClass(
+            List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.item.ItemEntity.class,
-                    golem.getBoundingBox().expand(16.0, 4.0, 16.0),
+                    golem.getBoundingBox().inflate(16.0, 4.0, 16.0),
                     item -> {
-                        if (item.cannotPickup()) return false;
+                        if (item.hasPickUpDelay()) return false;
                         if (blacklistedItems.containsKey(item)) return false;
                         ItemStack stack = item.getItem();
                         
                         boolean isFamiliar = false;
                         if (golem.getGolemType() == GolemType.DEEPSLATE) {
                             boolean isAxe = UtilityGolem.isAxe(stack);
-                            boolean isSapling = stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(Items.CHORUS_FLOWER);
-                            boolean isChorusFruit = stack.is(Items.CHORUS_FRUIT);
-                            boolean isApple = stack.is(Items.APPLE);
-                            boolean isStick = stack.is(Items.STICK);
+                            boolean isSapling = stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.world.item.Items.CHORUS_FLOWER);
+                            boolean isChorusFruit = stack.is(net.minecraft.world.item.Items.CHORUS_FRUIT);
+                            boolean isApple = stack.is(net.minecraft.world.item.Items.APPLE);
+                            boolean isStick = stack.is(net.minecraft.world.item.Items.STICK);
                             isFamiliar = isAxe || isSapling || isChorusFruit || isApple || isStick;
                         } else if (golem.getGolemType() == GolemType.BAMBOO) {
                             boolean isHoe = UtilityGolem.isHoe(stack);
-                            boolean isCrop = stack.is(Items.WHEAT) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT) ||
-                                            stack.is(Items.NETHER_WART) || stack.is(Items.COCOA_BEANS) || stack.is(Items.PUMPKIN) || stack.is(Items.MELON);
-                            boolean isSeed = stack.is(Items.WHEAT_SEEDS) || stack.is(Items.BEETROOT_SEEDS) || stack.is(Items.PUMPKIN_SEEDS) || stack.is(Items.MELON_SEEDS) || stack.is(Items.TORCHFLOWER_SEEDS) || stack.is(Items.PITCHER_POD);
-                            isFamiliar = isHoe || isCrop || isSeed || stack.is(Items.WATER_BUCKET) || stack.is(Items.BUCKET);
+                            boolean isCrop = stack.is(net.minecraft.world.item.Items.WHEAT) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO) || stack.is(net.minecraft.world.item.Items.BEETROOT) ||
+                                            stack.is(net.minecraft.world.item.Items.NETHER_WART) || stack.is(net.minecraft.world.item.Items.COCOA_BEANS) || stack.is(net.minecraft.world.item.Items.PUMPKIN) || stack.is(net.minecraft.world.item.Items.MELON);
+                            boolean isSeed = stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) || stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS) || stack.is(net.minecraft.world.item.Items.PITCHER_POD);
+                            isFamiliar = isHoe || isCrop || isSeed || stack.is(net.minecraft.world.item.Items.WATER_BUCKET) || stack.is(net.minecraft.world.item.Items.BUCKET);
                         } else if (golem.getGolemType() == GolemType.DIAMOND) {
                             // User requested only blocks. Some "seeds" (like Wheat Seeds) are BlockItems but 
                             // user might not want them. For now, let's keep it to BlockItem but exclude common "seed/non-blocky" items if they cause confusion.
                             // But usually, Diamond Golem is for building.
-                            isFamiliar = stack.getItem() instanceof net.minecraft.world.item.BlockItem && !stack.is(Items.WHEAT_SEEDS) && !stack.is(Items.BEETROOT_SEEDS) && !stack.is(Items.PUMPKIN_SEEDS) && !stack.is(Items.MELON_SEEDS);
+                            isFamiliar = stack.getItem() instanceof net.minecraft.world.item.BlockItem && !stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) && !stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS) && !stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) && !stack.is(net.minecraft.world.item.Items.MELON_SEEDS);
                         } else if (golem.getGolemType() == GolemType.SPONGE) {
                             boolean isFishingRod = UtilityGolem.isFishingRod(stack);
-                            isFamiliar = isFishingRod || stack.is(Items.COD) || stack.is(Items.SALMON) || stack.is(Items.PUFFERFISH) || stack.is(Items.TROPICAL_FISH) ||
-                                            stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.NAME_TAG) || stack.is(Items.SADDLE) || stack.is(Items.BOW);
+                            isFamiliar = isFishingRod || stack.is(net.minecraft.world.item.Items.COD) || stack.is(net.minecraft.world.item.Items.SALMON) || stack.is(net.minecraft.world.item.Items.PUFFERFISH) || stack.is(net.minecraft.world.item.Items.TROPICAL_FISH) ||
+                                            stack.is(net.minecraft.world.item.Items.ENCHANTED_BOOK) || stack.is(net.minecraft.world.item.Items.NAME_TAG) || stack.is(net.minecraft.world.item.Items.SADDLE) || stack.is(net.minecraft.world.item.Items.BOW);
                         } else if (golem.getGolemType() == GolemType.JUKEBOX) {
                             isFamiliar = stack.get(DataComponents.JUKEBOX_PLAYABLE) != null;
                         } else if (golem.getGolemType() == GolemType.GOLD) {
@@ -9114,7 +9171,7 @@ public class GolemAI {
                         } else if (golem.getGolemType() == GolemType.LAMP) {
                             isFamiliar = UtilityGolem.isTorch(stack);
                         } else if (golem.getGolemType() == GolemType.EMERALD) {
-                            boolean isEmerald = stack.is(Items.EMERALD) || stack.is(Items.EMERALD_BLOCK);
+                            boolean isEmerald = stack.is(net.minecraft.world.item.Items.EMERALD) || stack.is(net.minecraft.world.item.Items.EMERALD_BLOCK);
                             boolean isOnSellingList = golem.getDiscoveredTrades().stream().anyMatch(tradeStack -> ItemStack.isSameItemSameComponents(tradeStack, stack));
                             isFamiliar = isEmerald || isOnSellingList;
                         } else if (golem.getGolemType() == GolemType.NETHERITE || golem.getGolemType() == GolemType.ANCIENT) {
@@ -9122,11 +9179,11 @@ public class GolemAI {
                             isFamiliar = true;
                         } else if (golem.getGolemType() == GolemType.NETHER_WART) {
                             boolean isIngredient = isIngredient(stack);
-                            boolean isSupply = stack.is(Items.GLASS_BOTTLE) || stack.is(Items.BLAZE_POWDER) || stack.is(Items.BREWING_STAND);
-                            boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(stack) || stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION);
+                            boolean isSupply = stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE) || stack.is(net.minecraft.world.item.Items.BLAZE_POWDER) || stack.is(net.minecraft.world.item.Items.BREWING_STAND);
+                            boolean isPotionOrWater = BrewingGoal.isWaterBottleStatic(stack) || stack.is(net.minecraft.world.item.Items.POTION) || stack.is(net.minecraft.world.item.Items.SPLASH_POTION) || stack.is(net.minecraft.world.item.Items.LINGERING_POTION);
                             isFamiliar = isIngredient || isSupply || isPotionOrWater;
                         } else if (golem.getGolemType() == GolemType.HONEYCOMB) {
-                            isFamiliar = stack.is(Items.HONEYCOMB) || stack.is(Items.HONEY_BOTTLE) || stack.is(Items.SHEARS) || stack.is(Items.GLASS_BOTTLE);
+                            isFamiliar = stack.is(net.minecraft.world.item.Items.HONEYCOMB) || stack.is(net.minecraft.world.item.Items.HONEY_BOTTLE) || stack.is(net.minecraft.world.item.Items.SHEARS) || stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE);
                         } else if (golem.getGolemType() == GolemType.LAPIS) {
                             // Lapis golems pick up ores, raw ores, and mining-related blocks/tools
                             isFamiliar = stack.is(net.minecraft.tags.ItemTags.COAL_ORES)
@@ -9137,18 +9194,18 @@ public class GolemAI {
                                     || stack.is(net.minecraft.tags.ItemTags.EMERALD_ORES)
                                     || stack.is(net.minecraft.tags.ItemTags.LAPIS_ORES)
                                     || stack.is(net.minecraft.tags.ItemTags.REDSTONE_ORES)
-                                    || stack.is(Items.QUARTZ)
-                                    || stack.is(Items.RAW_IRON) || stack.is(Items.RAW_GOLD) || stack.is(Items.RAW_COPPER)
-                                    || stack.is(Items.COAL) || stack.is(Items.DIAMOND) || stack.is(Items.EMERALD)
-                                    || stack.is(Items.LAPIS_LAZULI) || stack.is(Items.REDSTONE)
-                                    || stack.is(Items.ANCIENT_DEBRIS)
+                                    || stack.is(net.minecraft.world.item.Items.QUARTZ)
+                                    || stack.is(net.minecraft.world.item.Items.RAW_IRON) || stack.is(net.minecraft.world.item.Items.RAW_GOLD) || stack.is(net.minecraft.world.item.Items.RAW_COPPER)
+                                    || stack.is(net.minecraft.world.item.Items.COAL) || stack.is(net.minecraft.world.item.Items.DIAMOND) || stack.is(net.minecraft.world.item.Items.EMERALD)
+                                    || stack.is(net.minecraft.world.item.Items.LAPIS_LAZULI) || stack.is(net.minecraft.world.item.Items.REDSTONE)
+                                    || stack.is(net.minecraft.world.item.Items.ANCIENT_DEBRIS)
                                     || stack.is(net.minecraft.tags.ItemTags.PICKAXES)
                                     || stack.is(net.minecraft.tags.ItemTags.SHOVELS)
-                                    || stack.is(Items.COBBLESTONE) || stack.is(Items.COBBLED_DEEPSLATE)
-                                    || stack.is(Items.DIRT) || stack.is(Items.GRAVEL) || stack.is(Items.SAND);
+                                    || stack.is(net.minecraft.world.item.Items.COBBLESTONE) || stack.is(net.minecraft.world.item.Items.COBBLED_DEEPSLATE)
+                                    || stack.is(net.minecraft.world.item.Items.DIRT) || stack.is(net.minecraft.world.item.Items.GRAVEL) || stack.is(net.minecraft.world.item.Items.SAND);
                         } else {
                             // Default: only pick up blocks to avoid cluttering golem.getInventory() with junk
-                            isFamiliar = stack.getItem() instanceof net.minecraft.world.item.BlockItem && !stack.is(Items.WHEAT_SEEDS) && !stack.is(Items.BEETROOT_SEEDS) && !stack.is(Items.PUMPKIN_SEEDS) && !stack.is(Items.MELON_SEEDS);
+                            isFamiliar = stack.getItem() instanceof net.minecraft.world.item.BlockItem && !stack.is(net.minecraft.world.item.Items.WHEAT_SEEDS) && !stack.is(net.minecraft.world.item.Items.BEETROOT_SEEDS) && !stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) && !stack.is(net.minecraft.world.item.Items.MELON_SEEDS);
                         }
                         
                         if (!isFamiliar) return false;
@@ -9171,7 +9228,7 @@ public class GolemAI {
             );
 
             return items.stream()
-                    .min(Comparator.comparingDouble(golem::squaredDistanceTo))
+                    .min(Comparator.comparingDouble(golem::distanceToSqr))
                     .orElse(null);
         }
 
@@ -9182,7 +9239,7 @@ public class GolemAI {
             for (int x = -10; x <= 10; x++) {
                 for (int z = -10; z <= 10; z++) {
                     for (int y = -3; y <= 3; y++) {
-                        BlockPos p = chestPos.add(x, y, z);
+                        BlockPos p = chestPos.offset(x, y, z);
                         if (p.equals(chestPos) || golem.isBlacklisted(p)) continue;
                         if (isMatureCrop(p)) return true;
                     }
@@ -9195,8 +9252,8 @@ public class GolemAI {
             BlockState state = golem.level().getBlockState(pos);
             Block block = state.getBlock();
             if (block instanceof CropBlock crop) return crop.isMaxAge(state);
-            if (block instanceof NetherWartBlock) return state.get(NetherWartBlock.AGE) >= 3;
-            if (block instanceof CocoaBlock) return state.get(CocoaBlock.AGE) >= 2;
+            if (block instanceof NetherWartBlock) return state.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) >= 3;
+            if (block instanceof CocoaBlock) return state.getValue(net.minecraft.world.level.block.CocoaBlock.AGE) >= 2;
             return false;
         }
 
@@ -9215,8 +9272,8 @@ public class GolemAI {
         @Override
         public void stop() {
             if (stuckTicks >= 60 && targetItem != null) {
-                blacklistedItems.put(targetItem, golem.level().getTime());
-                golem.debugLog("PickupItemGoal: Blacklisting item " + targetItem.getItem().getItem().getName().getString() + " due to being stuck");
+                blacklistedItems.put(targetItem, golem.level().getGameTime());
+                golem.debugLog("PickupItemGoal: Blacklisting item " + targetItem.getItem().getItem().getDescriptionId() + " due to being stuck");
             }
             targetItem = null;
             if (stuckTicks >= 60) {
@@ -9274,7 +9331,7 @@ public class GolemAI {
 
         private void pickup() {
             ItemStack stack = targetItem.getItem();
-            golem.debugLog("PickupItemGoal: Attempting pickup of " + stack.getItem().getName().getString());
+            golem.debugLog("PickupItemGoal: Attempting pickup of " + stack.getItem().getDescriptionId());
             ItemStack remaining = golem.getInventory().addItem(stack);
             if (remaining.isEmpty()) {
                 golem.debugLog("PickupItemGoal: Success");
@@ -9292,7 +9349,7 @@ public class GolemAI {
 
         public PlayRecordGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.noneOf(Control.class));
+            this.setFlags(EnumSet.noneOf(net.minecraft.world.entity.ai.goal.Goal.Flag.class));
         }
 
         @Override
@@ -9328,7 +9385,7 @@ public class GolemAI {
 
         public HoneyBabysitterGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -9404,13 +9461,13 @@ public class GolemAI {
         }
 
         private void updateHeldItem() {
-            int shearsIdx = findItem(Items.SHEARS);
+            int shearsIdx = findItem(net.minecraft.world.item.Items.SHEARS);
             if (shearsIdx != -1) {
                 golem.setHeldItem(golem.getInventory().getItem(shearsIdx).copyWithCount(1));
                 return;
             }
 
-            int bottleIdx = findItem(Items.GLASS_BOTTLE);
+            int bottleIdx = findItem(net.minecraft.world.item.Items.GLASS_BOTTLE);
             if (bottleIdx != -1) {
                 golem.setHeldItem(golem.getInventory().getItem(bottleIdx).copyWithCount(1));
                 return;
@@ -9430,12 +9487,12 @@ public class GolemAI {
         }
 
         private boolean isHive(BlockState state) {
-            return state.is(BlockTags.BEEHIVES);
+            return state.is(net.minecraft.tags.BlockTags.BEEHIVES);
         }
 
         private int getHoneyLevel(BlockState state) {
             if (state.contains(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY)) {
-                return state.get(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY);
+                return state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY);
             }
             return 0;
         }
@@ -9445,14 +9502,14 @@ public class GolemAI {
             BlockState state = world.getBlockState(targetPos);
             
             // Try harvest honeycomb first (shears)
-            int shearsIdx = findItem(Items.SHEARS);
+            int shearsIdx = findItem(net.minecraft.world.item.Items.SHEARS);
             if (shearsIdx != -1) {
                 harvestHoneycomb(world, targetPos, state, shearsIdx);
                 return;
             }
 
             // Try harvest honey (glass bottle)
-            int bottleIdx = findItem(Items.GLASS_BOTTLE);
+            int bottleIdx = findItem(net.minecraft.world.item.Items.GLASS_BOTTLE);
             if (bottleIdx != -1) {
                 harvestHoney(world, targetPos, state, bottleIdx);
                 return;
@@ -9463,23 +9520,23 @@ public class GolemAI {
             if (golem.level().isClientSide()) return;
             
             golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
-            world.playSound(null, pos, SoundEvents.BLOCK_BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.BLOCK_BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
             
             // Reset honey level without angering bees (simulate silk touch/smoke behavior)
             if (world instanceof ServerLevel serverLevel) {
                 // In vanilla, bees are calmed by smoke. We simulate this by directly setting state
                 // and ensuring no angry bees are spawned.
-                world.setBlockAndUpdate(pos, state.with(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0), 3);
+                world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0, 3), 3);
                 
-                ItemStack honeycombs = new ItemStack(Items.HONEYCOMB, 3);
+                ItemStack honeycombs = new ItemStack(net.minecraft.world.item.Items.HONEYCOMB, 3);
                 if (!golem.getInventory().addItem(honeycombs).isEmpty()) {
-                    Block.dropStack(world, pos, honeycombs);
+                    net.minecraft.world.level.block.Block.popResource(world, pos, honeycombs);
                 }
                 golem.setHeldItem(honeycombs.copyWithCount(1));
                 
                 // Damage shears
                 ItemStack shears = golem.getInventory().getItem(slot);
-                shears.damage(1, serverLevel, null, (item) -> {});
+                shears.hurtAndBreak(1, serverLevel, null, (item) -> {});
             }
         }
 
@@ -9487,18 +9544,18 @@ public class GolemAI {
             if (golem.level().isClientSide()) return;
 
             golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
-            world.playSound(null, pos, SoundEvents.ITEM_BOTTLE_FILL_DRAGONBREATH, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.ITEM_BOTTLE_FILL_DRAGONBREATH, SoundSource.BLOCKS, 1.0F, 1.0F);
 
             // Reset honey level
-            world.setBlockAndUpdate(pos, state.with(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0), 3);
+            world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0, 3), 3);
 
             // Consume bottle
             golem.getInventory().getItem(slot).shrink(1);
 
             // Add honey bottle
-            ItemStack honeyBottle = new ItemStack(Items.HONEY_BOTTLE);
+            ItemStack honeyBottle = new ItemStack(net.minecraft.world.item.Items.HONEY_BOTTLE);
             if (!golem.getInventory().addItem(honeyBottle).isEmpty()) {
-                Block.dropStack(world, pos, honeyBottle);
+                net.minecraft.world.level.block.Block.popResource(world, pos, honeyBottle);
             }
             golem.setHeldItem(honeyBottle.copy());
         }
@@ -9523,7 +9580,7 @@ public class GolemAI {
 
         public PlaceBlockGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -9561,7 +9618,7 @@ public class GolemAI {
 
         private boolean hasLadders() {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
-                if (golem.getInventory().getItem(i).is(Items.LADDER)) return true;
+                if (golem.getInventory().getItem(i).is(net.minecraft.world.item.Items.LADDER)) return true;
             }
             return false;
         }
@@ -9579,7 +9636,7 @@ public class GolemAI {
         @Override
         public void start() {
             startPos = golem.blockPosition();
-            startFacing = golem.getHorizontalFacing();
+            startFacing = golem.getDirection();
             golem.debugLog("PlaceBlockGoal started. Mode: " + golem.getBuildPattern() + " | Pos: " + startPos.toShortString() + " | Facing: " + startFacing);
             if (golem.getBuildPattern() == BuildPattern.SCHEMATIC) {
                 schematic = null;
@@ -9689,7 +9746,7 @@ public class GolemAI {
         }
 
         private BlockPos getTargetPos() {
-            Direction facing = golem.getHorizontalFacing();
+            Direction facing = golem.getDirection();
             switch (golem.getBuildPattern()) {
                 case PLATFORM:
                     Direction side = facing.getClockWise();
@@ -9750,7 +9807,7 @@ public class GolemAI {
                     Block newBlock = ((net.minecraft.world.item.BlockItem) stack.getItem()).getBlock();
                     
                     if (newBlock != filterBlock) {
-                        boolean success = golem.level().setBlockAndUpdate(pos, newBlock.defaultBlockState(), 3);
+                        boolean success = golem.level().setBlock(pos, newBlock.defaultBlockState(), 3, 3);
                         if (success) {
                             stack.shrink(1);
                             golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -9770,7 +9827,7 @@ public class GolemAI {
                 if (blockSlot != -1) {
                     ItemStack stack = golem.getInventory().getItem(blockSlot);
                     Block block = ((net.minecraft.world.item.BlockItem) stack.getItem()).getBlock();
-                    if (golem.level().setBlockAndUpdate(pos, block.defaultBlockState(), 3)) {
+                    if (golem.level().setBlock(pos, block.defaultBlockState(), 3, 3)) {
                         stack.shrink(1);
                         golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                         golem.level().playSound(null, pos, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -9803,7 +9860,7 @@ public class GolemAI {
                 return; 
             }
             // Determine required block at this target by reverse-mapping pos to schematic index
-            Direction facing = golem.getHorizontalFacing();
+            Direction facing = golem.getDirection();
             // Find index that maps to this pos; iterate through as in getTargetPos to keep order
             int total = schematic.getTotalBlocks();
             int seen = 0;
@@ -9834,8 +9891,8 @@ public class GolemAI {
                 if (slot != -1) {
                     ItemStack stack = golem.getInventory().getItem(slot);
                     Block block = ((net.minecraft.world.item.BlockItem) stack.getItem()).getBlock();
-                    golem.debugLog("Placing " + block.getName().getString() + " at " + pos.toShortString());
-                    boolean success = golem.level().setBlockAndUpdate(pos, block.defaultBlockState(), 3);
+                    golem.debugLog("Placing " + block.getDescriptionId() + " at " + pos.toShortString());
+                    boolean success = golem.level().setBlock(pos, block.defaultBlockState(), 3, 3);
                     if (success) {
                         stack.shrink(1);
                         golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -9854,10 +9911,10 @@ public class GolemAI {
                         golem.debugLog("setBlockState failed at " + pos.toShortString());
                     }
                 } else {
-                    golem.debugLog("Missing block in golem.getInventory(): " + needed.getName().getString());
+                    golem.debugLog("Missing block in golem.getInventory(): " + needed.getDescriptionId());
                 }
             } else {
-                golem.debugLog("Block at " + pos.toShortString() + " is not replaceable: " + golem.level().getBlockState(pos).getBlock().getName().getString());
+                golem.debugLog("Block at " + pos.toShortString() + " is not replaceable: " + golem.level().getBlockState(pos).getBlock().getDescriptionId());
             }
             patternProgress++;
             if (patternProgress >= getMaxProgress()) {
@@ -9897,7 +9954,7 @@ public class GolemAI {
                     Block block = ((net.minecraft.world.item.BlockItem) stack.getItem()).getBlock();
                     
                     // Use setBlockState with flags to ensure updates
-                    boolean success = golem.level().setBlockAndUpdate(pos, block.defaultBlockState(), 3);
+                    boolean success = golem.level().setBlock(pos, block.defaultBlockState(), 3, 3);
                     if (success) {
                         stack.shrink(1);
                         golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -9967,7 +10024,7 @@ public class GolemAI {
             for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                 ItemStack stack = golem.getInventory().getItem(i);
                 if (!stack.isEmpty() && stack.is(UGItems.WRENCH_ITEM)) {
-                    golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                    golem.setItemSlot(EquipmentSlot.MAINHAND, stack);
                     break;
                 }
             }
@@ -9983,7 +10040,7 @@ public class GolemAI {
 
         public HealGolemsGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -10009,10 +10066,10 @@ public class GolemAI {
         }
 
         private UtilityGolem findDamagedGolem() {
-            List<UtilityGolem> golems = golem.level().getEntitiesByClass(UtilityGolem.class, golem.getBoundingBox().expand(10.0D), 
+            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(10.0D), 
                 e -> e.getHealth() < e.getMaxHealth());
             if (golems.isEmpty()) return null;
-            golems.sort(Comparator.comparingDouble(golem::squaredDistanceTo));
+            golems.sort(Comparator.comparingDouble(golem::distanceToSqr));
             return golems.get(0);
         }
 
@@ -10032,7 +10089,7 @@ public class GolemAI {
                 for (int i = 0; i < golem.getInventory().getContainerSize(); i++) {
                     ItemStack stack = golem.getInventory().getItem(i);
                     if (!stack.isEmpty() && stack.is(UGItems.WRENCH_ITEM)) {
-                        golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                        golem.setItemSlot(EquipmentSlot.MAINHAND, stack);
                         break;
                     }
                 }
@@ -10094,7 +10151,7 @@ public class GolemAI {
 
                     // Efficiency enchantment increases amount of health that's healed
                     if (golem.level() instanceof ServerLevel serverLevel) {
-                        int efficiencyLevel = EnchantmentHelper.getEnchantmentLevel(serverLevel.registryAccess().value(net.minecraft.core.registries.Registries.ENCHANTMENT).value(Enchantments.EFFICIENCY), stack);
+                        int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
                         if (efficiencyLevel > 0) {
                             healAmount += (efficiencyLevel * 1.0F); // Add 1.0 (half heart) per efficiency level
                         }
@@ -10102,23 +10159,23 @@ public class GolemAI {
 
                     targetGolem.heal(healAmount);
                     golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
-                    targetGolem.world.playSound(null, targetGolem.blockPosition(), SoundEvents.BLOCK_ANVIL_USE, SoundSource.NEUTRAL, 0.5F, 1.5F);
+                    targetGolem.world.playSound(null, targetGolem.blockPosition(), net.minecraft.sounds.SoundEvents.BLOCK_ANVIL_USE, SoundSource.NEUTRAL, 0.5F, 1.5F);
                     
                     if (golem.level() instanceof ServerLevel serverLevel) {
                         serverLevel.spawnParticles(net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER, targetGolem.getX(), targetGolem.getY() + 1.0, targetGolem.getZ(), 5, 0.2, 0.2, 0.2, 0.05);
                         
                         // Using the version of damage that handles Unbreaking/Mending
-                        stack.damage(1, serverLevel, null, item -> {});
+                        stack.hurtAndBreak(1, serverLevel, null, item -> {});
                     } else {
-                        stack.damage(1, (ServerLevel) golem.level(), null, item -> {});
+                        stack.hurtAndBreak(1, (ServerLevel) golem.level(), null, item -> {});
                     }
 
                     if (stack.isEmpty()) {
                         golem.getInventory().setItem(i, ItemStack.EMPTY);
-                        golem.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                        golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
                     } else {
                         // Update hand in case it was a new stack (unlikely but good for consistency)
-                        golem.equipStack(EquipmentSlot.MAINHAND, stack);
+                        golem.setItemSlot(EquipmentSlot.MAINHAND, stack);
                     }
                     return;
                 }
@@ -10131,7 +10188,7 @@ public class GolemAI {
 
         public ReturnToChestGoal(UtilityGolem golem) {
             this.golem = golem;
-            this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
+            this.setFlags(EnumSet.of(Goal.Flag.MOVE, net.minecraft.world.entity.ai.goal.Goal.Flag.LOOK));
         }
 
         @Override
@@ -10142,14 +10199,14 @@ public class GolemAI {
             if (chestPos == null) return false;
             
             // Only return if we are not already near the chest
-            return golem.blockPosition().distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 25.0D;
+            return golem.blockPosition().distSqr(chestPos) > 25.0D;
         }
 
         @Override
         public boolean canContinueToUse() {
             if (chestPos == null) return false;
             // Interrupt if some other task becomes available (this is low priority anyway)
-            return golem.blockPosition().distSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) > 9.0D &&
+            return golem.blockPosition().distSqr(chestPos) > 9.0D &&
                    !golem.getNavigation().isDone();
         }
 

@@ -2,7 +2,6 @@
 // TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package rehdpanda.utilitygolems;
 
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import net.minecraft.world.entity.animal.equine.Llama;
 import net.minecraft.world.entity.animal.feline.Cat;
@@ -60,6 +59,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -308,7 +308,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         /*
         if (animation == GolemAnimation.SPINNING_HEAD) {
             this.setState(net.minecraft.world.entity.animal.golem.UtilityGolemState.IDLE);
-            // Trigger the spin head animation by setting the age to match the timer
+            // Trigger the spin head animation by setting the tickCount to match the timer
             // Since we can't set the private field, we just let it happen naturally if possible,
             // or we might need a mixin if we really want to force it.
             // But wait, UtilityGolemEntity's clientTick handles it.
@@ -546,11 +546,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.blockPosition();
                 this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
                 if (!this.currentlyPlayingStack.isEmpty()) {
-                    JukeboxPlayable playable = this.currentlyPlayingStack.getComponents().get(DataComponents.JUKEBOX_PLAYABLE);
+                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
                     if (playable != null) {
-                        playable.song().resolveEntry(this.level().registryAccess()).ifPresent(songEntry -> {
+                        if (playable.song().isBound()) {
                             stopMusicSound();
-                        });
+                        }
                     }
                 }
 
@@ -600,14 +600,14 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         net.minecraft.world.entity.animal.golem.CopperGolemAi.updateActivity(this);
     }
 
-    @Override
-    protected Brain.Provider<? extends UtilityGolem> brainProvider() {
-        return Brain.provider(java.util.Collections.emptyList());
+    protected Brain.Provider<UtilityGolem> brainProvider() {
+        return Brain.provider(java.util.Collections.emptySet());
     }
 
     @Override
     protected net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem> makeBrain(Brain.Packed packed) {
-        return (net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem>)(Object)this.brainProvider().makeBrain((UtilityGolem)(Object)this, packed);
+        Brain.Provider<UtilityGolem> provider = this.brainProvider();
+        return (net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem>)(Object)provider.makeBrain(this, packed);
     }
 
     @Override
@@ -670,11 +670,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                     this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
                     
                     // Stop the music sound if it was playing via playSound
-                    JukeboxPlayable playable = this.currentlyPlayingStack.getComponents().get(DataComponents.JUKEBOX_PLAYABLE);
+                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
                     if (playable != null) {
-                        playable.song().resolveEntry(this.level().registryAccess()).ifPresent(songEntry -> {
+                        if (playable.song().isBound()) {
                             stopMusicSound();
-                        });
+                        }
                     }
 
                     if (this.golemType == GolemType.JUKEBOX) {
@@ -783,7 +783,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     @Override
     public boolean onClimbable() {
-        return super.isClimbing() || this.level().getBlockState(this.blockPosition()).isIn(net.minecraft.tags.BlockTags.CLIMBABLE);
+        return super.onClimbable() || this.level().getBlockState(this.blockPosition()).is(net.minecraft.tags.BlockTags.CLIMBABLE);
     }
 
     private void tickFurnace() {
@@ -1000,9 +1000,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     public void stopMusicSound() {
         if (!this.level().isClientSide() && this.level() instanceof net.minecraft.server.level.ServerLevel world) {
             net.minecraft.network.protocol.game.ClientboundStopSoundPacket stopPacket = new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(null, net.minecraft.sounds.SoundSource.RECORDS);
-            for (ServerPlayer player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
-                player.connection.send(stopPacket);
-            }
+            world.getChunkSource().sendToTrackingPlayers(this, stopPacket);
         }
     }
 
@@ -1066,7 +1064,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         int nextSlot = -1;
         if (this.isJukeboxShuffle()) {
-            nextSlot = validSlots.get(this.getRandom().nextInt(validSlots.getContainerSize()));
+            nextSlot = validSlots.get(this.getRandom().nextInt(validSlots.size()));
         } else {
             // Find next slot after currentJukeboxSlot
             for (int slot : validSlots) {
@@ -1087,22 +1085,23 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             ItemStack stack = jukeboxInventory.getItem(nextSlot);
             JukeboxPlayable playable = stack.get(DataComponents.JUKEBOX_PLAYABLE);
             if (playable != null) {
-                playable.song().resolveEntry(this.level().registryAccess()).ifPresent(songEntry -> {
+                if (playable.song().isBound()) {
+                    net.minecraft.world.item.JukeboxSong song = playable.song().value();
                     this.currentlyPlayingStack = stack.copy();
                     this.currentlyPlayingStack.setCount(1);
-                    this.jukeboxCooldown = (int) (songEntry.value().lengthInSeconds() * 20);
+                    this.jukeboxCooldown = (int) (song.lengthInSeconds() * 20);
                     this.jukeboxStartPos = this.blockPosition();
                     
                     if (!this.level().isClientSide()) {
                         this.jukeboxStartPos = this.blockPosition();
                         this.level().levelEvent(null, net.minecraft.world.level.block.LevelEvent.SOUND_PLAY_JUKEBOX_SONG, this.jukeboxStartPos, net.minecraft.core.registries.BuiltInRegistries.ITEM.getId(this.currentlyPlayingStack.getItem()));
-                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.soundEvent().value(), SoundSource.RECORDS, 3.0F, 1.0F);
+                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), song.soundEvent().value(), SoundSource.RECORDS, 3.0F, 1.0F);
                         this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                     }
 
                     this.setHeldItem(this.currentlyPlayingStack.copy());
                     this.setSearching(true);
-                });
+                }
             }
         } else {
             this.setJukeboxPlaying(false);
@@ -1111,7 +1110,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     }
 
     private void tickGold() {
-        if (this.age % 20 == 0) {
+        if (this.tickCount % 20 == 0) {
             SimpleContainer inv = this.getInventory();
             int nuggetCount = 0;
             for (int i = 0; i < inv.getContainerSize(); i++) {
@@ -1143,7 +1142,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     public void setSearching(boolean searching) {
         if (searching) {
-            this.swingInteractionHand(InteractionHand.MAIN_HAND);
+            this.swing(InteractionHand.MAIN_HAND);
             if (this.getAnimation() == GolemAnimation.IDLE || this.getAnimation() == GolemAnimation.SEARCHING) {
                 this.setAnimation(GolemAnimation.SEARCHING, 20);
             }
@@ -1172,11 +1171,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         ItemStack playerStack = player.getItemInHand(hand);
 
         // SHIFT+RIGHT CLICK to take item back or toggle lamp
-        if (player.isSneaking() && hand == InteractionHand.MAIN_HAND) {
+        if (player.isCrouching() && hand == InteractionHand.MAIN_HAND) {
             if (this.golemType == GolemType.LAMP) {
                 if (!player.level().isClientSide()) {
                     this.setLampOn(!this.isLampOn());
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundSource.BLOCKS, 0.5F, 1.2F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.DISPENSER_FAIL, SoundSource.BLOCKS, 0.5F, 1.2F);
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1192,10 +1191,10 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 if (!wrench.isEmpty()) {
                     if (!player.level().isClientSide()) {
                         if (!player.getInventory().add(wrench)) {
-                            player.dropItem(wrench, false);
+                            player.drop(wrench, false);
                         }
-                        this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
+                        this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
                     }
                     return InteractionResult.SUCCESS;
                 }
@@ -1205,10 +1204,10 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             if (!golemStack.isEmpty()) {
                 if (!player.level().isClientSide()) {
                     if (!player.getInventory().add(golemStack)) {
-                        player.dropItem(golemStack, false);
+                        player.drop(golemStack, false);
                     }
                     this.setHeldItem(ItemStack.EMPTY);
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1220,7 +1219,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             JukeboxPlayable playableCheck = playerStack.get(DataComponents.JUKEBOX_PLAYABLE);
             if (playableCheck != null) {
                 if (!player.level().isClientSide()) {
-                    player.sendMessage(Component.literal("This golem can't play records."), true);
+                    player.sendOverlayMessage(Component.literal("This golem can't play records."));
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1228,19 +1227,19 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         if (this.golemType == GolemType.REDSTONE && playerStack.is(Items.CLOCK)) {
             if (!player.level().isClientSide()) {
-                if (!player.getAbilities().creativeMode) {
+                if (!player.isCreative()) {
                     playerStack.shrink(1);
                 }
                 BlockPos pos = this.blockPosition();
-                BlockState state = UGBlocks.REDSTONE_GOLEM_STATUE.getDefaultState().with(RedstoneGolemStatueBlock.FACING, this.getHorizontalFacing().getOpposite());
-                this.level().setBlockState(pos, state);
+                BlockState state = UGBlocks.REDSTONE_GOLEM_STATUE.defaultBlockState().setValue(RedstoneGolemStatueBlock.FACING, this.getDirection().getOpposite());
+                this.level().setBlock(pos, state, 3);
                 BlockEntity be = this.level().getBlockEntity(pos);
                 if (be instanceof RedstoneGolemStatueBlockEntity statueBe) {
                     if (this.hasCustomName()) {
                         statueBe.setCustomName(this.getCustomName());
                     }
                 }
-                this.level().playSound(null, pos, SoundEvents.ENTITY_COPPER_GOLEM_BECOME_STATUE, SoundSource.BLOCKS, 1.0F, 1.0F);
+                this.level().playSound(null, pos, SoundEvents.COPPER_GOLEM_BECOME_STATUE, SoundSource.BLOCKS, 1.0F, 1.0F);
                 this.discard();
             }
             return InteractionResult.SUCCESS;
@@ -1249,9 +1248,9 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
             if (!player.level().isClientSide()) {
                 this.setStripped(true);
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_AXE_STRIP, SoundSource.NEUTRAL, 1.0F, 1.0F);
-                if (!player.getAbilities().creativeMode) {
-                    playerStack.damage(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.AXE_STRIP, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                if (!player.isCreative()) {
+                    playerStack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                 }
             }
             return InteractionResult.SUCCESS;
@@ -1312,13 +1311,13 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 disc.setCount(1);
                 ItemStack remaining = this.inventory.addItem(disc);
                 if (remaining.isEmpty()) {
-                    if (!player.getAbilities().creativeMode) {
+                    if (!player.isCreative()) {
                         playerStack.shrink(1);
                     }
-                    this.equipStack(EquipmentSlot.MAINHAND, disc);
-                    player.sendMessage(Component.literal("Gave wrench to Medic Golem"), true);
+                    this.setItemSlot(EquipmentSlot.MAINHAND, disc);
+                    player.sendOverlayMessage(Component.literal("Gave wrench to Medic Golem"));
                 } else {
-                    player.sendMessage(Component.literal("Medic Golem's getInventory() is full"), true);
+                    player.sendOverlayMessage(Component.literal("Medic Golem's getInventory() is full"));
                 }
             }
             return InteractionResult.SUCCESS;
@@ -1332,28 +1331,28 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                     float healAmount = maxHealth * 0.25f; // Base 25% heal
 
                     // Efficiency enchantment increases amount of health that's healed
-                    int efficiencyLevel = EnchantmentHelper.getLevel(this.level().registryAccess().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), playerStack);
+                    int efficiencyLevel = EnchantmentHelper.getEnchantmentLevel(this.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.EFFICIENCY), this);
                     if (efficiencyLevel > 0) {
                         healAmount += (maxHealth * 0.05f * efficiencyLevel); // Add 5% per efficiency level
                     }
 
                     this.heal(healAmount);
-                    if (!player.getAbilities().creativeMode) {
-                        playerStack.damage(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+                    if (!player.isCreative()) {
+                        playerStack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                     }
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_IRON_GOLEM_REPAIR, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.NEUTRAL, 1.0F, 1.0F);
                     for (int i = 0; i < 7; ++i) {
                         double d = this.getRandom().nextGaussian() * 0.02;
                         double e = this.getRandom().nextGaussian() * 0.02;
                         double f = this.getRandom().nextGaussian() * 0.02;
-                        ((net.minecraft.server.level.ServerLevel)this.level()).spawnParticles(ParticleTypes.HEART, this.getParticleX(1.0), this.getRandomBodyY() + 0.5, this.getParticleZ(1.0), 1, d, e, f, 0.0);
+                        ((net.minecraft.server.level.ServerLevel)this.level()).sendParticles(ParticleTypes.HEART, this.getX(1.0), this.getY(0.5), this.getZ(1.0), 1, d, e, f, 0.0);
                     }
-                    player.sendMessage(Component.literal(this.golemType.getFriendlyName() + " Health: " + (int)this.getHealth() + "/" + (int)maxHealth), true);
+                    player.sendOverlayMessage(Component.literal(this.golemType.getFriendlyName() + " Health: " + (int)this.getHealth() + "/" + (int)maxHealth));
                 }
                 return InteractionResult.SUCCESS;
             } else {
                 if (!player.level().isClientSide()) {
-                    player.sendMessage(Component.literal(this.golemType.getFriendlyName() + " is already at full health (" + (int)maxHealth + "/" + (int)maxHealth + ")"), true);
+                    player.sendOverlayMessage(Component.literal(this.golemType.getFriendlyName() + " is already at full health (" + (int)maxHealth + "/" + (int)maxHealth + ")"));
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1361,7 +1360,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         if (this.golemType == GolemType.FURNACE || this.golemType == GolemType.SMOKER || this.golemType == GolemType.BLAST_FURNACE) {
             if (!player.level().isClientSide()) {
-                player.openMenu(new net.minecraft.world.inventory.SimpleNamedAbstractContainerMenuFactory(
+                player.openMenu(new net.minecraft.world.SimpleMenuProvider(
                         (syncId, playerInventory, p) -> new GolemFurnaceMenu(syncId, playerInventory, this.furnaceInventory, this.furnacePropertyDelegate, this),
                         this.getDisplayName()
                 ));
@@ -1379,12 +1378,12 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                     disc.setCount(1);
                     ItemStack remaining = this.jukeboxInventory.addItem(disc);
                     if (remaining.isEmpty()) {
-                        if (!player.getAbilities().creativeMode) {
+                        if (!player.isCreative()) {
                             playerStack.shrink(1);
                         }
-                        player.sendMessage(Component.literal("Added to playlist"), true);
+                        player.sendOverlayMessage(Component.literal("Added to playlist"));
                     } else {
-                        player.sendMessage(Component.literal("Playlist is full"), true);
+                        player.sendOverlayMessage(Component.literal("Playlist is full"));
                     }
                 }
                 return InteractionResult.SUCCESS;
@@ -1392,12 +1391,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
             // Always open the Jukebox UI for Jukebox Golems
             if (!player.level().isClientSide()) {
-                player.openMenu(new ExtendedScreenHandlerFactory<Integer>() {
-                    @Override
-                    public Integer getScreenOpeningData(ServerPlayer player) {
-                        return UtilityGolem.this.getId();
-                    }
-
+                player.openMenu(new net.minecraft.world.MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return UtilityGolem.this.getDisplayName();
@@ -1414,12 +1408,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         if (this.golemType == GolemType.REDSTONE) {
             if (!player.level().isClientSide()) {
-                player.openMenu(new ExtendedScreenHandlerFactory<Integer>() {
-                    @Override
-                    public Integer getScreenOpeningData(ServerPlayer player) {
-                        return UtilityGolem.this.getId();
-                    }
-
+                player.openMenu(new net.minecraft.world.MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return UtilityGolem.this.getDisplayName();
@@ -1434,12 +1423,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             return InteractionResult.SUCCESS;
         }
 
-        player.openMenu(new ExtendedScreenHandlerFactory<Integer>() {
-            @Override
-            public Integer getScreenOpeningData(net.minecraft.server.network.ServerPlayer player) {
-                return UtilityGolem.this.getId();
-            }
-
+        player.openMenu(new net.minecraft.world.MenuProvider() {
             @Override
             public Component getDisplayName() {
                 return UtilityGolem.this.getDisplayName();
@@ -1462,12 +1446,12 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         // This ensures tool-using golems never inherit copper golem item-interaction logic
         // (rendering should rely on HELD_ITEM_SLOT / setHeldItem instead)
         // Intentionally left blank to avoid POPPY_SLOT usage.
-        if (!player.getAbilities().creativeMode) {
+        if (!player.isCreative()) {
             playerStack.shrink(1);
         }
         if (!golemStack.isEmpty()) {
             if (!player.getInventory().add(golemStack)) {
-                player.dropItem(golemStack, false);
+                player.drop(golemStack, false);
             }
         }
     }
@@ -1560,7 +1544,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     }
 
     public static boolean isLightSource(BlockState state) {
-        return state.isIn(BlockTags.CANDLES) || state.isIn(BlockTags.CAMPFIRES) || state.is(Blocks.TORCH) || state.is(Blocks.SOUL_TORCH) || state.is(Blocks.REDSTONE_TORCH) || state.is(Blocks.COPPER_TORCH) || state.is(Blocks.WALL_TORCH) || state.is(Blocks.SOUL_WALL_TORCH) || state.is(Blocks.REDSTONE_WALL_TORCH) || state.is(Blocks.COPPER_WALL_TORCH) || state.is(Blocks.LANTERN) || state.is(Blocks.SOUL_LANTERN) || state.is(Blocks.GLOWSTONE) || state.is(Blocks.SEA_LANTERN) || state.is(Blocks.OCHRE_FROGLIGHT) || state.is(Blocks.PEARLESCENT_FROGLIGHT) || state.is(Blocks.VERDANT_FROGLIGHT) || state.is(Blocks.JACK_O_LANTERN) || state.is(Blocks.SHROOMLIGHT);
+        return state.is(BlockTags.CANDLES) || state.is(BlockTags.CAMPFIRES) || state.is(Blocks.TORCH) || state.is(Blocks.SOUL_TORCH) || state.is(Blocks.REDSTONE_TORCH) || state.is(Blocks.COPPER_TORCH) || state.is(Blocks.WALL_TORCH) || state.is(Blocks.SOUL_WALL_TORCH) || state.is(Blocks.REDSTONE_WALL_TORCH) || state.is(Blocks.COPPER_WALL_TORCH) || state.is(Blocks.LANTERN) || state.is(Blocks.SOUL_LANTERN) || state.is(Blocks.GLOWSTONE) || state.is(Blocks.SEA_LANTERN) || state.is(Blocks.OCHRE_FROGLIGHT) || state.is(Blocks.PEARLESCENT_FROGLIGHT) || state.is(Blocks.VERDANT_FROGLIGHT) || state.is(Blocks.JACK_O_LANTERN) || state.is(Blocks.SHROOMLIGHT);
     }
 
     private BlockPos chestPos;
@@ -1568,7 +1552,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     private final Map<BlockPos, Long> plantedChorusFlowers = new java.util.HashMap<>();
 
     public void recordChorusPlanting(BlockPos pos) {
-        this.plantedChorusFlowers.put(pos, this.level().getTime());
+        this.plantedChorusFlowers.put(pos, this.level().getGameTime());
     }
 
     public boolean isChorusReady(BlockPos pos) {
@@ -1578,14 +1562,14 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             return true;
         }
         long plantedTime = this.plantedChorusFlowers.get(pos);
-        long currentTime = this.level().getTime();
+        long currentTime = this.level().getGameTime();
         // 2 minutes = 120 seconds = 2400 ticks
         return (currentTime - plantedTime) >= 2400;
     }
 
     @Override
-    public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag writeView) {
-        super.writeCustomData(writeView);
+    public void addAdditionalSaveData(net.minecraft.world.level.storage.ValueOutput writeView) {
+        super.addAdditionalSaveData(writeView);
         writeView.putInt("BuildPattern", this.getBuildPattern().ordinal());
         writeView.putInt("WallWidth", this.getWallWidth());
         writeView.putInt("WallLength", this.getWallLength());
@@ -1593,11 +1577,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         writeView.putInt("XpScore", this.getXpScore());
         writeView.putBoolean("LampOn", this.isLampOn());
         writeView.putBoolean("Stripped", this.isStripped());
-        net.minecraft.world.ContainerHelper.saveAllItems(writeView.get("Inventory"), this.inventory.getHeldStacks());
-        net.minecraft.world.ContainerHelper.saveAllItems(writeView.get("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
-        net.minecraft.world.ContainerHelper.saveAllItems(writeView.get("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
+        this.inventory.storeAsItemList(writeView.list("Inventory", ItemStack.CODEC));
+        this.furnaceInventory.storeAsItemList(writeView.list("FurnaceInventory", ItemStack.CODEC));
+        this.jukeboxInventory.storeAsItemList(writeView.list("JukeboxInventory", ItemStack.CODEC));
         if (!this.currentlyPlayingStack.isEmpty()) {
-            writeView.put("PlayingDisc", ItemStack.CODEC, this.currentlyPlayingStack);
+            writeView.store("PlayingDisc", ItemStack.CODEC, this.currentlyPlayingStack);
         }
         writeView.putInt("JukeboxCooldown", this.jukeboxCooldown);
         writeView.putInt("CurrentJukeboxSlot", this.currentJukeboxSlot);
@@ -1609,7 +1593,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         writeView.putInt("CookTime", this.cookTime);
         writeView.putInt("CookTimeTotal", this.cookTimeTotal);
         if (!this.getSelectedBuyItem().isEmpty()) {
-            writeView.put("SelectedBuyItem", ItemStack.CODEC, this.getSelectedBuyItem());
+            writeView.store("SelectedBuyItem", ItemStack.CODEC, this.getSelectedBuyItem());
         }
         if (this.chestPos != null) {
             writeView.putInt("ChestX", this.chestPos.getX());
@@ -1619,55 +1603,55 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         if (!this.getSchematicName().isEmpty()) {
             writeView.putString("SchematicName", this.getSchematicName());
         }
-        writeView.putInt("MiningDirection", this.syncedEntityData.get(MINING_DIRECTION));
+        writeView.putInt("MiningDirection", this.entityData.get(MINING_DIRECTION));
         // Persist current animation for seamless reloads
-        writeView.putInt("AnimationId", this.syncedEntityData.get(ANIMATION_ID));
-        writeView.putInt("AnimationTicks", this.syncedEntityData.get(ANIMATION_TICKS));
-        writeView.putInt("AnimationStartTicks", this.syncedEntityData.get(ANIMATION_START_TICKS));
+        writeView.putInt("AnimationId", this.entityData.get(ANIMATION_ID));
+        writeView.putInt("AnimationTicks", this.entityData.get(ANIMATION_TICKS));
+        writeView.putInt("AnimationStartTicks", this.entityData.get(ANIMATION_START_TICKS));
         writeView.putInt("DeletedItemsCount", this.getDeletedItemsCount());
         writeView.putInt("GoldTradeCount", this.getGoldTradeCount());
-        writeView.putString("OwnerUUID", this.syncedEntityData.get(OWNER_UUID_STRING));
+        writeView.putString("OwnerUUID", this.entityData.get(OWNER_UUID_STRING));
     }
 
     @Override
-    public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag readView) {
-        super.readCustomData(readView);
-        this.setBuildPattern(BuildPattern.values()[readView.getInt("BuildPattern", 0)]);
-        this.setWallWidth(readView.getInt("WallWidth", 3));
-        this.setWallLength(readView.getInt("WallLength", 3));
-        this.setBuildingStarted(readView.getBoolean("BuildingStarted", false));
-        this.setXpScore(readView.getInt("XpScore", 0));
-        this.setLampOn(readView.getBoolean("LampOn", false));
-        this.setStripped(readView.getBoolean("Stripped", false));
-        net.minecraft.world.ContainerHelper.loadAllItems(readView.getCompound("Inventory"), this.inventory.getHeldStacks());
-        net.minecraft.world.ContainerHelper.loadAllItems(readView.getCompound("FurnaceInventory"), this.furnaceInventory.getHeldStacks());
-        net.minecraft.world.ContainerHelper.loadAllItems(readView.getCompound("JukeboxInventory"), this.jukeboxInventory.getHeldStacks());
+    public void readAdditionalSaveData(net.minecraft.world.level.storage.ValueInput readView) {
+        super.readAdditionalSaveData(readView);
+        this.setBuildPattern(BuildPattern.values()[readView.getIntOr("BuildPattern", 0)]);
+        this.setWallWidth(readView.getIntOr("WallWidth", 3));
+        this.setWallLength(readView.getIntOr("WallLength", 3));
+        this.setBuildingStarted(readView.getBooleanOr("BuildingStarted", false));
+        this.setXpScore(readView.getIntOr("XpScore", 0));
+        this.setLampOn(readView.getBooleanOr("LampOn", false));
+        this.setStripped(readView.getBooleanOr("Stripped", false));
+        this.inventory.fromItemList(readView.listOrEmpty("Inventory", ItemStack.CODEC));
+        this.furnaceInventory.fromItemList(readView.listOrEmpty("FurnaceInventory", ItemStack.CODEC));
+        this.jukeboxInventory.fromItemList(readView.listOrEmpty("JukeboxInventory", ItemStack.CODEC));
         readView.read("PlayingDisc", ItemStack.CODEC).ifPresent(stack -> this.currentlyPlayingStack = stack);
-        this.jukeboxCooldown = readView.getInt("JukeboxCooldown", 0);
-        this.currentJukeboxSlot = readView.getInt("CurrentJukeboxSlot", -1);
-        this.setJukeboxPlaying(readView.getBoolean("JukeboxPlaying", false));
-        this.setJukeboxShuffle(readView.getBoolean("JukeboxShuffle", false));
-        this.setJukeboxRepeat(readView.getBoolean("JukeboxRepeat", false));
-        this.burnTime = readView.getInt("BurnTime", 0);
-        this.fuelTime = readView.getInt("FuelTime", 0);
-        this.cookTime = readView.getInt("CookTime", 0);
-        this.cookTimeTotal = readView.getInt("CookTimeTotal", 0);
+        this.jukeboxCooldown = readView.getIntOr("JukeboxCooldown", 0);
+        this.currentJukeboxSlot = readView.getIntOr("CurrentJukeboxSlot", -1);
+        this.setJukeboxPlaying(readView.getBooleanOr("JukeboxPlaying", false));
+        this.setJukeboxShuffle(readView.getBooleanOr("JukeboxShuffle", false));
+        this.setJukeboxRepeat(readView.getBooleanOr("JukeboxRepeat", false));
+        this.burnTime = readView.getIntOr("BurnTime", 0);
+        this.fuelTime = readView.getIntOr("FuelTime", 0);
+        this.cookTime = readView.getIntOr("CookTime", 0);
+        this.cookTimeTotal = readView.getIntOr("CookTimeTotal", 0);
         readView.read("SelectedBuyItem", ItemStack.CODEC).ifPresent(this::setSelectedBuyItem);
-        if (readView.contains("ChestX")) {
-            this.chestPos = new BlockPos(readView.getInt("ChestX", 0), readView.getInt("ChestY", 0), readView.getInt("ChestZ", 0));
+        if (readView.getInt("ChestX").isPresent()) {
+            this.chestPos = new BlockPos(readView.getIntOr("ChestX", 0), readView.getIntOr("ChestY", 0), readView.getIntOr("ChestZ", 0));
         }
-        this.setSchematicName(readView.getString("SchematicName", ""));
-        this.syncedEntityData.set(MINING_DIRECTION, readView.getInt("MiningDirection", -1));
+        this.setSchematicName(readView.getStringOr("SchematicName", ""));
+        this.entityData.set(MINING_DIRECTION, readView.getIntOr("MiningDirection", -1));
         // Restore animation
-        int animId = readView.getInt("AnimationId", GolemAnimation.IDLE.ordinal());
-        int animTicks = readView.getInt("AnimationTicks", 0);
-        int animStartTicks = readView.getInt("AnimationStartTicks", Math.max(1, animTicks));
-        this.syncedEntityData.set(ANIMATION_ID, animId);
-        this.syncedEntityData.set(ANIMATION_TICKS, animTicks);
-        this.syncedEntityData.set(ANIMATION_START_TICKS, animStartTicks);
-        this.setDeletedItemsCount(readView.getInt("DeletedItemsCount", 0));
-        this.setGoldTradeCount(readView.getInt("GoldTradeCount", 0));
-        this.syncedEntityData.set(OWNER_UUID_STRING, readView.getString("OwnerUUID", ""));
+        int animId = readView.getIntOr("AnimationId", GolemAnimation.IDLE.ordinal());
+        int animTicks = readView.getIntOr("AnimationTicks", 0);
+        int animStartTicks = readView.getIntOr("AnimationStartTicks", Math.max(1, animTicks));
+        this.entityData.set(ANIMATION_ID, animId);
+        this.entityData.set(ANIMATION_TICKS, animTicks);
+        this.entityData.set(ANIMATION_START_TICKS, animStartTicks);
+        this.setDeletedItemsCount(readView.getIntOr("DeletedItemsCount", 0));
+        this.setGoldTradeCount(readView.getIntOr("GoldTradeCount", 0));
+        this.entityData.set(OWNER_UUID_STRING, readView.getStringOr("OwnerUUID", ""));
 
         updateAttackDamage();
     }
@@ -1689,13 +1673,13 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         this.setMiningDirection(null); // Reset mining direction when chest changes
     }
 
-    public Inventory getChestInventory(BlockPos pos) {
+    public net.minecraft.world.Container getChestInventory(BlockPos pos) {
         BlockState state = this.level().getBlockState(pos);
         if (state.getBlock() instanceof GolemChestBlock block) {
             return GolemChestBlockEntity.getInventory(block, state, this.level(), pos, false);
         }
         BlockEntity be = this.level().getBlockEntity(pos);
-        if (be instanceof Inventory inv) {
+        if (be instanceof net.minecraft.world.Container inv) {
             return inv;
         }
         return null;
@@ -1709,7 +1693,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             } else {
                 BlockEntity be = this.level().getBlockEntity(this.chestPos);
                 BlockState bs = this.level().getBlockState(this.chestPos);
-                if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                if (be instanceof net.minecraft.world.Container && bs.getBlock() == this.getGolemType().getChestBlock()) {
                     return this.chestPos;
                 }
             }
@@ -1722,11 +1706,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         for (int x = -range; x <= range; x++) {
             for (int y = -verticalRange; y <= verticalRange; y++) {
                 for (int z = -range; z <= range; z++) {
-                    BlockPos p = pos.add(x, y, z);
+                    BlockPos p = pos.offset(x, y, z);
                     if (this.isBlacklisted(p)) continue;
                     BlockEntity be = this.level().getBlockEntity(p);
                     BlockState bs = this.level().getBlockState(p);
-                    if (be instanceof Inventory && bs.getBlock() == this.getGolemType().getChestBlock()) {
+                    if (be instanceof net.minecraft.world.Container && bs.getBlock() == this.getGolemType().getChestBlock()) {
                         this.setChestPos(p);
                         return p;
                     }
@@ -1739,11 +1723,11 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             for (int x = -range; x <= range; x++) {
                 for (int y = -verticalRange; y <= verticalRange; y++) {
                     for (int z = -range; z <= range; z++) {
-                        BlockPos p = pos.add(x, y, z);
+                        BlockPos p = pos.offset(x, y, z);
                         if (this.isBlacklisted(p)) continue;
                         BlockEntity be = this.level().getBlockEntity(p);
                         BlockState bs = this.level().getBlockState(p);
-                        if (be instanceof Inventory && (bs.getBlock() == net.minecraft.world.level.block.Blocks.CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.BARREL)) {
+                        if (be instanceof net.minecraft.world.Container && (bs.getBlock() == net.minecraft.world.level.block.Blocks.CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.TRAPPED_CHEST || bs.getBlock() == net.minecraft.world.level.block.Blocks.BARREL)) {
                             this.setChestPos(p);
                             return p;
                         }
@@ -1773,7 +1757,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         }
 
         if (!item.isEmpty()) {
-            this.equipStack(HELD_ITEM_SLOT, item);
+            this.setItemSlot(HELD_ITEM_SLOT, item);
             // Never equip the UtilityGolemEntity.POPPY_SLOT to avoid vanilla copper golem behaviors being triggered
             // Rendering/usage will rely solely on HELD_ITEM_SLOT
             // Intentionally no POPPY_SLOT assignment here.
@@ -1788,19 +1772,19 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     }
 
     @Override
-    protected PathNavigation createNavigation(Level world) {
-        return new MobNavigation(this, world);
+    protected net.minecraft.world.entity.ai.navigation.PathNavigation createNavigation(Level world) {
+        return new net.minecraft.world.entity.ai.navigation.GroundPathNavigation(this, world);
     }
 
     @Override
     protected void registerGoals() {
         // Clear any goals inherited from parent to avoid unintended behaviors (e.g., random chest checks)
-        this.goalSelector.getGoals().clear();
-        this.targetSelector.getGoals().clear();
+        this.goalSelector.removeAllGoals(goal -> true);
+        this.targetSelector.removeAllGoals(goal -> true);
 
-        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new SwimGoal(this)));
-        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.LongDoorInteractGoal(this, true)));
-        this.goalSelector.add(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
+        this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.FloatGoal(this)));
+        this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.OpenDoorGoal(this, true)));
+        this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
 
         initGolemsGoals();
         
@@ -1850,7 +1834,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             }
 
             if (!weapons.isEmpty()) {
-                heldItem = weapons.get(this.getRandom().nextInt(weapons.getContainerSize()));
+                heldItem = weapons.get(this.getRandom().nextInt(weapons.size()));
                 // We don't necessarily swap the main hand item permanently, 
                 // but we use this chosen item for the attack logic.
                 // However, updateAttackDamage() uses getHeldItem(), so it might be better 
@@ -1862,16 +1846,16 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 net.minecraft.world.phys.Vec3 targetPos = new net.minecraft.world.phys.Vec3(target.getX(), target.getY(), target.getZ());
                 net.minecraft.world.phys.Vec3 myPos = new net.minecraft.world.phys.Vec3(this.getX(), this.getY(), this.getZ());
                 net.minecraft.world.phys.Vec3 vec3d = targetPos.subtract(myPos).normalize().multiply(1.5, 0.1, 1.5);
-                this.addVelocity(vec3d.x, vec3d.y + 0.2, vec3d.z);
+                this.push(vec3d.x, vec3d.y + 0.2, vec3d.z);
                 this.attackCooldown = 40; // 2 seconds cooldown
-                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
             } else if (isAxe(heldItem)) {
                 this.attackCooldown = 30; // 1.5 seconds cooldown
             } else if (isMace(heldItem)) {
                 // Mace jump attack
-                this.addVelocity(0, 0.6, 0);
+                this.push(0, 0.6, 0);
                 this.attackCooldown = 60; // 3 seconds cooldown
-                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
             }
         }
 
@@ -1883,14 +1867,14 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 this.setHeldItem(heldItem);
                 this.updateAttackDamage();
             }
-            success = super.tryAttack(world, target);
+            success = super.doHurtTarget(world, target);
             if (success && isNetheriteOrAncient && target instanceof LivingEntity livingTarget && this.getOwnerUuid().isPresent()) {
-                livingTarget.setAttacker(null); // Clear mob attacker to ensure player takes precedence for XP
+                livingTarget.setLastHurtByMob(null); // Clear mob attacker to ensure player takes precedence for XP
                 // In 1.21.1, we can't easily set lastAttackedByPlayerTime directly as it's private.
                 // However, we can use a damage source that is attributed to a player if we have the player entity.
-                Player owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                Player owner = world.getPlayerInAnyDimension(this.getOwnerUuid().get());
                 if (owner != null) {
-                    livingTarget.damage(world, this.getDamageSources().playerAttack(owner), 0.0f);
+                    livingTarget.hurt(this.damageSources().playerAttack(owner), 0.0f);
                 }
             }
         } finally {
@@ -1905,18 +1889,18 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 // Apply knockback enchantment
                 int knockbackLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
                 if (knockbackLevel > 0) {
-                    livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
+                    livingTarget.knockback((float) knockbackLevel * 0.5f, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
                     this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
                 }
 
                 // Apply fire aspect enchantment
                 int fireAspectLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), heldItem);
                 if (fireAspectLevel > 0) {
-                    livingTarget.setOnFireFor(fireAspectLevel * 4);
+                    livingTarget.igniteForSeconds(fireAspectLevel * 4);
                 }
 
                 // Apply post-attack effects
-                EnchantmentHelper.onTargetDamaged(world, livingTarget, this.getDamageSources().mobAttack(this));
+                EnchantmentHelper.doPostAttackEffects(world, livingTarget, this.damageSources().mobAttack(this));
             }
 
             // Netherite/Ancient sweeping attack (Sword only)
@@ -1929,41 +1913,41 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     }
 
     private void spawnSweepingAttackParticles(net.minecraft.server.level.ServerLevel world) {
-        double d = -Math.sin(this.getYaw() * (Math.PI / 180.0));
-        double e = Math.cos(this.getYaw() * (Math.PI / 180.0));
-        world.spawnParticles(net.minecraft.particle.ParticleTypes.SWEEP_ATTACK, this.getX() + d, this.getBodyY(0.5), this.getZ() + e, 0, d, 0.0, e, 0.0);
+        double d = -Math.sin(this.getYRot() * (Math.PI / 180.0));
+        double e = Math.cos(this.getYRot() * (Math.PI / 180.0));
+        world.sendParticles(net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, this.getX() + d, this.getY(0.5), this.getZ() + e, 0, d, 0.0, e, 0.0);
     }
 
     private void applySweepingDamage(net.minecraft.server.level.ServerLevel world, net.minecraft.world.entity.Entity target, ItemStack heldItem) {
         float damage = (float)this.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
-        int sweepingLevel = EnchantmentHelper.getLevel(world.registryAccess().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(net.minecraft.enchantment.Enchantments.SWEEPING_EDGE), heldItem);
+        int sweepingLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SWEEPING_EDGE), heldItem);
         float sweepingDamage = 1.0f + (sweepingLevel > 0 ? (float)sweepingLevel / (float)(sweepingLevel + 1) : 0.0f) * damage;
         
-        for (net.minecraft.world.entity.LivingEntity livingEntity : world.getEntitiesByClass(net.minecraft.world.entity.LivingEntity.class, target.getBoundingBox().expand(1.0, 0.25, 1.0), (entity) -> {
-            return entity != this && entity != target && !this.isTeammate(entity) && this.canTarget(entity) && (!(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity) || !((net.minecraft.entity.decoration.ArmorStandEntity)entity).isMarker()) && this.squaredDistanceTo(entity) < 9.0;
+        for (net.minecraft.world.entity.LivingEntity livingEntity : world.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, target.getBoundingBox().inflate(1.0, 0.25, 1.0), (e) -> {
+            return e != this && e != target && !this.isAlliedTo(e) && this.canAttack(e) && (!(e instanceof net.minecraft.world.entity.decoration.ArmorStand) || !((net.minecraft.world.entity.decoration.ArmorStand)e).isMarker()) && this.distanceToSqr(e) < 9.0;
         })) {
-            livingEntity.takeKnockback(0.4000000059604645, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
-            DamageSource source = this.getDamageSources().mobAttack(this);
+            livingEntity.knockback(0.4000000059604645, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
+            DamageSource source = this.damageSources().mobAttack(this);
             if (this.getOwnerUuid().isPresent()) {
-                Player owner = world.getPlayerByUuid(this.getOwnerUuid().get());
+                Player owner = world.getPlayerInAnyDimension(this.getOwnerUuid().get());
                 if (owner != null) {
-                    source = this.getDamageSources().playerAttack(owner);
+                    source = this.damageSources().playerAttack(owner);
                 }
             }
-            livingEntity.damage(world, source, sweepingDamage);
+            livingEntity.hurt(source, sweepingDamage);
         }
         
-        world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, this.getSoundSource(), 1.0f, 1.0f);
+        world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, this.getSoundSource(), 1.0f, 1.0f);
     }
 
     @Override
     public void setTarget(@Nullable net.minecraft.world.entity.LivingEntity target) {
         if (this.getGolemType() == GolemType.NETHERITE || this.getGolemType() == GolemType.ANCIENT) {
             if (target != null) {
-                this.debugLog("Targeting " + target.getType().getName().getString() + " at " + target.blockPosition().toShortString() + " (HP: " + (int)target.getHealth() + "/" + (int)target.getMaxHealth() + ")");
+                this.debugLog("Targeting " + target.getType().getDescription().getString() + " at " + target.blockPosition().toShortString() + " (HP: " + (int)target.getHealth() + "/" + (int)target.getMaxHealth() + ")");
             } else if (this.getTarget() != null) {
                 net.minecraft.world.entity.LivingEntity oldTarget = this.getTarget();
-                this.debugLog("Target cleared (null). Was " + oldTarget.getType().getName().getString() + " (Dead: " + oldTarget.isDeadOrDying() + ", Removed: " + oldTarget.isRemoved() + ")");
+                this.debugLog("Target cleared (null). Was " + oldTarget.getType().getDescription().getString() + " (Dead: " + oldTarget.isDeadOrDying() + ", Removed: " + oldTarget.isRemoved() + ")");
             }
         }
         super.setTarget(target);
@@ -1977,20 +1961,20 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     @Override
     public boolean canAttack(net.minecraft.world.entity.LivingEntity target) {
-        if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
+        if (target instanceof net.minecraft.world.entity.animal.allay.Allay) return false;
         if (target.isDeadOrDying() || target.isRemoved()) return false;
         
         // Netherite and Ancient golems only target hostile mobs
         if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
-            return target instanceof net.minecraft.entity.mob.HostileEntity;
+            return target instanceof net.minecraft.world.entity.monster.Monster;
         }
         
-        return super.canTarget(target);
+        return super.canAttack(target);
     }
 
     @Override
     public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect) {
-        return super.canHaveStatusEffect(effect);
+        return super.canBeAffected(effect);
     }
 
     @Override
@@ -2000,8 +1984,8 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     @Override
     protected void doPush(net.minecraft.world.entity.Entity entity) {
-        if (entity instanceof net.minecraft.entity.passive.AllayEntity) return;
-        super.pushAway(entity);
+        if (entity instanceof net.minecraft.world.entity.animal.allay.Allay) return;
+        super.push(entity);
     }
 
     public net.minecraft.world.entity.ai.goal.GoalSelector getGoalSelector() {
@@ -2048,9 +2032,9 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             else baseDamage += 6.0f;
         }
         
-        var instance = this.getAttributeInstance(Attributes.ATTACK_DAMAGE);
+        var instance = this.getAttribute(Attributes.ATTACK_DAMAGE);
         if (instance != null) {
-            instance.setBaseValue(baseDamage);
+            instance.setBaseValue((double)baseDamage);
         }
     }
 }
