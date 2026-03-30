@@ -26,7 +26,7 @@ public class GolemPatterns {
 
     // Called from Mixin after block is placed
     public static void onPumpkinPlaced(Level world, BlockPos pos) {
-        if (world instanceof ServerLevel serverWorld) {
+        if (world instanceof ServerLevel serverLevel) {
             // Check if placed on a GolemChestBlock that has a dead golem
             BlockPos belowPos = pos.below();
             BlockState belowState = world.getBlockState(belowPos);
@@ -41,7 +41,7 @@ public class GolemPatterns {
                             isStripped = belowState.getValue(GolemChestBlock.STRIPPED);
                         }
 
-                        UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), serverWorld, type);
+                        UtilityGolem golem = new UtilityGolem(UGInit.GOLEM_TYPES.get(type), serverLevel, type);
                         net.minecraft.world.entity.player.Player creator = world.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 10.0, false);
                         if (creator != null) {
                             golem.setOwnerUuid(creator.getUUID());
@@ -49,14 +49,14 @@ public class GolemPatterns {
                         golem.setStripped(isStripped);
                         golem.setChestPos(belowPos);
                         golem.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.toYRot(), 0);
-                        golem.finalizeSpawn(serverWorld, serverWorld.getCurrentDifficultyAt(pos), net.minecraft.world.entity.EntityMobSpawnType.MOB_SUMMONED, null);
-                        serverWorld.addFreshEntity(golem);
+                        golem.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(pos), net.minecraft.world.entity.SpawnReason.MOB_SUMMONED, null);
+                        serverLevel.addFreshEntity(golem);
 
                         chestEntity.setGolemDead(false);
                         world.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 
                         // Play some effects
-                        serverWorld.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.5, 0.5, 0.5, 0.1);
+                        serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.5, 0.5, 0.5, 0.1);
                         world.playSound(null, pos, SoundEvents.PUMPKIN_CARVE, SoundSource.BLOCKS, 1.0f, 1.0f);
                         return;
                     }
@@ -66,29 +66,29 @@ public class GolemPatterns {
             net.minecraft.world.entity.player.Player player = world.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
             Direction facing = player != null ? player.getDirection().getOpposite() : Direction.NORTH;
 
-            trySpawnGolem(serverWorld, pos, GolemType.LAPIS, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.REDSTONE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.EMERALD, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.GOLD, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.AMETHYST, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.NETHERITE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.ANCIENT, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.FURNACE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.BAMBOO, facing, true);
-            trySpawnGolem(serverWorld, pos, GolemType.DIAMOND, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.SPONGE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.DEEPSLATE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.JUKEBOX, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.LAMP, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.SMOKER, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.BLAST_FURNACE, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.NETHER_WART, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.MEDIC, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.CACTUS, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.HONEYCOMB, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.HOPPER, facing, false);
-            trySpawnGolem(serverWorld, pos, GolemType.TINTED_GLASS, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.LAPIS, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.REDSTONE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.EMERALD, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.GOLD, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.AMETHYST, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.NETHERITE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.ANCIENT, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.FURNACE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.BAMBOO, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.BAMBOO, facing, true);
+            trySpawnGolem(serverLevel, pos, GolemType.DIAMOND, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.SPONGE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.DEEPSLATE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.JUKEBOX, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.LAMP, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.SMOKER, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.BLAST_FURNACE, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.NETHER_WART, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.MEDIC, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.CACTUS, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.HONEYCOMB, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.HOPPER, facing, false);
+            trySpawnGolem(serverLevel, pos, GolemType.TINTED_GLASS, facing, false);
         }
     }
 
@@ -133,7 +133,7 @@ public class GolemPatterns {
         }
         golem.setStripped(isStripped);
         golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.toYRot(), 0);
-        golem.finalizeSpawn(world, world.getCurrentDifficultyAt(spawnPos), net.minecraft.world.entity.EntityMobSpawnType.MOB_SUMMONED, null);
+        golem.finalizeSpawn(world, world.getCurrentDifficultyAt(spawnPos), net.minecraft.world.entity.SpawnReason.MOB_SUMMONED, null);
         world.addFreshEntity(golem);
 
         // Remove blocks used in the pattern

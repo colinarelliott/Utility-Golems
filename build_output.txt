@@ -1,0 +1,10 @@
+
+> Configure project :
+Fabric Loom: 1.15.5
+
+> Task :clean
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///Users/colin/Documents/Utility-Golems/build/reports/problems/problems-report.html
+2 actionable tasks: 2 executed

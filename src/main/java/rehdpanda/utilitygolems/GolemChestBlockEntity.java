@@ -3,12 +3,12 @@ package rehdpanda.utilitygolems;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
-import net.minecraft.world.WorldlyContainer;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.WorldlyContainerHolder;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
@@ -113,7 +113,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     private static int[] getAvailableSlots(Container inventory, Direction side) {
-        if (inventory instanceof WorldlyContainer sidedInventory) {
+        if (inventory instanceof WorldContainer sidedInventory) {
             return sidedInventory.getSlotsForFace(side);
         } else {
             int[] slots = new int[inventory.getContainerSize()];
@@ -125,7 +125,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     private static boolean canExtract(Container inventory, ItemStack stack, int slot, Direction side) {
-        return !(inventory instanceof WorldlyContainer sidedInventory) || sidedInventory.canTakeItemThroughFace(slot, stack, side);
+        return !(inventory instanceof WorldContainer sidedInventory) || sidedInventory.canTakeItemThroughFace(slot, stack, side);
     }
 
     private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
@@ -136,7 +136,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
             ignoreNbt = gFrom.getGolemType() == GolemType.HOPPER;
         }
 
-        if (to instanceof WorldlyContainer sidedInventory && side != null) {
+        if (to instanceof WorldContainer sidedInventory && side != null) {
             int[] slots = sidedInventory.getSlotsForFace(side);
             for (int i = 0; i < slots.length && !stack.isEmpty(); ++i) {
                 stack = transfer(from, to, stack, slots[i], side, ignoreNbt);
@@ -173,24 +173,24 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     private static boolean canInsert(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
-        if (!inventory.canPlaceItem(slot, stack)) {
+        if (!getInventory().canPlaceItem(slot, stack)) {
             return false;
         }
-        return !(inventory instanceof WorldlyContainer sidedInventory) || sidedInventory.canPlaceItemThroughFace(slot, stack, side);
+        return !(inventory instanceof WorldContainer sidedInventory) || sidedInventory.canPlaceItemThroughFace(slot, stack, side);
     }
 
     private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
         if (ignoreNbt) {
             return first.is(second.getItem()) && first.getDamageValue() == second.getDamageValue() && first.getCount() < first.getMaxStackSize();
         }
-        return first.is(second.getItem()) && first.getDamageValue() == second.getDamageValue() && first.getCount() < first.getMaxStackSize() && ItemStack.isSameItemSameComponents(first, second);
+        return first.is(second.getItem()) && first.getDamageValue() == second.getDamageValue() && first.getCount() < first.getMaxStackSize() && ItemStack.areItemsAndComponentsEqual(first, second);
     }
 
     @Nullable
     private static Container getInventoryAt(Level world, BlockPos pos) {
         BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
-        if (block instanceof WorldlyContainerHolder inventoryProvider) {
+        if (block instanceof WorldContainerHolder inventoryProvider) {
             return inventoryProvider.getContainer(state, world, pos);
         }
         if (state.hasBlockEntity()) {
@@ -199,7 +199,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
                 if (inventory instanceof ChestBlockEntity && block instanceof ChestBlock) {
                     return ChestBlock.getContainer((ChestBlock)block, state, world, pos, false);
                 }
-                return inventory;
+                return getInventory();
             }
         }
         return null;
@@ -233,27 +233,27 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     @Override
-    public void loadAdditional(net.minecraft.world.level.storage.ValueInput readView) {
-        super.loadAdditional(readView);
-        this.golemDead = readView.getBooleanOr("golemDead", false);
-        this.transferCooldown = readView.getIntOr("transferCooldown", -1);
+    public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+        super.loadAdditional(nbt, registries);
+        this.golemDead = nbt.getBoolean("golemDead");
+        this.transferCooldown = nbt.contains("transferCooldown") ? nbt.getInt("transferCooldown") : -1;
     }
 
     @Override
-    protected void saveAdditional(net.minecraft.world.level.storage.ValueOutput writeView) {
-        super.saveAdditional(writeView);
-        writeView.putBoolean("golemDead", this.golemDead);
-        writeView.putInt("transferCooldown", this.transferCooldown);
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+        super.saveAdditional(nbt, registries);
+        nbt.putBoolean("golemDead", this.golemDead);
+        nbt.putInt("transferCooldown", this.transferCooldown);
     }
 
     @Override
-    public net.minecraft.network.protocol.game.ClientboundBlockSynchedEntityDataPacket getUpdatePacket() {
-        return net.minecraft.network.protocol.game.ClientboundBlockSynchedEntityDataPacket.create(this);
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
-        return (net.minecraft.nbt.CompoundTag) this.saveWithoutMetadata(registries);
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return this.saveCustomOnly(registries);
     }
 
     public static Container getInventory(GolemChestBlock block, BlockState state, net.minecraft.world.level.Level world, BlockPos pos, boolean ignoreBlocked) {

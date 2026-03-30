@@ -52,6 +52,42 @@ import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import org.jetbrains.annotations.Nullable;
+import rehdpanda.utilitygolems.GolemChestBlockEntity;
+
+import java.util.function.Supplier;
+
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+
+import net.minecraft.world.Containers;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.Container;
 
 public class GolemChestBlock extends Block implements EntityBlock {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -170,7 +206,7 @@ public class GolemChestBlock extends Block implements EntityBlock {
         if (blockEntity instanceof GolemChestBlockEntity) {
             boolean result = blockEntity.triggerEvent(type, data);
             
-            // Handle double chest synchronization
+            // InteractionHandle double chest synchronization
             ChestType chestType = state.getValue(CHEST_TYPE);
             if (chestType != ChestType.SINGLE) {
                 BlockPos otherPos = pos.relative(getFacing(state));
@@ -252,7 +288,7 @@ public class GolemChestBlock extends Block implements EntityBlock {
 
                     @Override
                     public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
-                        return new GolemChestScreenHandler(syncId, playerInventory, inventory, pos, finalIsDead);
+                        return new GolemChestMenu(syncId, playerInventory, inventory, pos, finalIsDead);
                     }
                 });
             }

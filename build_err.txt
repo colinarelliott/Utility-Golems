@@ -1,0 +1,52 @@
+
+> Configure project :
+Fabric Loom: 1.15.5
+
+> Task :compileJava FAILED
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:5: error: package net.fabricmc.fabric.api.screenhandler.v1 does not exist
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+                                               ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:12: error: cannot find symbol
+import net.minecraft.world.item.component.JukeboxPlayable;
+                                         ^
+  symbol:   class JukeboxPlayable
+  location: package net.minecraft.world.item.component
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:48: error: cannot find symbol
+import net.minecraft.resources.ResourceLocation;
+                              ^
+  symbol:   class ResourceLocation
+  location: package net.minecraft.resources
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:54: error: cannot find symbol
+import net.minecraft.world.level.LevelEvent;
+                                ^
+  symbol:   class LevelEvent
+  location: package net.minecraft.world.level
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemType.java:7: error: cannot find symbol
+import net.minecraft.resources.ResourceLocation;
+                              ^
+  symbol:   class ResourceLocation
+  location: package net.minecraft.resources
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:572: error: cannot find symbol
+    protected net.minecraft.world.entity.ai.Brain.Profile<UtilityGolem> brainProvider() {
+                                                 ^
+  symbol:   class Profile
+  location: class Brain
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1733: error: cannot find symbol
+    public SynchedEntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, MobSpawnType spawnReason, @Nullable SynchedEntityData entityData) {
+                                           ^
+  symbol:   class ServerLevelAccess
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1733: error: cannot find symbol
+    public SynchedEntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, MobSpawnType spawnReason, @Nullable SynchedEntityData entityData) {
+                                                                                                   ^
+  symbol:   class MobSpawnType
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemType.java:148: error: cannot find symbol
+    public ResourceLocation getComponenture() {
+           ^
+  symbol:   class ResourceLocation
+  location: class GolemType
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/schematic/SchematicLoader.java:5: error: cannot find symbol
+import net.minecraft.resources.ResourceLocation;
+                              ^
+  symbol:   class ResourceLocation

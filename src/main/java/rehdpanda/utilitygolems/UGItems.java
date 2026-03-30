@@ -7,7 +7,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +18,7 @@ public class UGItems {
     public static final Map<GolemType, Item> GOLEM_SPAWN_EGGS = new HashMap<>();
 
     public static void register() {
-        ResourceLocation wrenchId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, "wrench");
+        Identifier wrenchId = new Identifier(UGInit.MOD_ID, "wrench");
         UGInit.LOGGER.info("Registering wrench item with ID: " + wrenchId);
         WRENCH_ITEM = Registry.register(
                 BuiltInRegistries.ITEM,
@@ -33,7 +33,7 @@ public class UGItems {
 
     public static void registerSpawnEggs() {
         for (GolemType type : GolemType.values()) {
-            ResourceLocation eggId = ResourceLocation.fromNamespaceAndPath(UGInit.MOD_ID, type.getName() + "_spawn_egg");
+            Identifier eggId = new Identifier(UGInit.MOD_ID, type.getName() + "_spawn_egg");
             Item.Properties settings = new Item.Properties()
                     .setId(ResourceKey.create(Registries.ITEM, eggId));
             Item egg = new UtilityGolemSpawnEggItem(settings, type);

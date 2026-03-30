@@ -9,16 +9,16 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.core.BlockPos;
 
-public class GolemChestScreenHandler extends AbstractContainerMenu {
+public class GolemChestMenu extends AbstractContainerMenu {
     private final Container inventory;
     private final BlockPos pos;
     private boolean golemDead;
 
-    public GolemChestScreenHandler(int syncId, Inventory playerInventory) {
+    public GolemChestMenu(int syncId, Inventory playerInventory) {
         this(syncId, playerInventory, new SimpleContainer(54), BlockPos.ZERO, false);
     }
 
-    public GolemChestScreenHandler(int syncId, Inventory playerInventory, Container inventory, BlockPos pos, boolean golemDead) {
+    public GolemChestMenu(int syncId, Inventory playerInventory, Container inventory, BlockPos pos, boolean golemDead) {
         super(UGInit.GOLEM_CHEST_SCREEN_HANDLER, syncId);
         this.inventory = inventory;
         this.pos = pos;
@@ -50,12 +50,12 @@ public class GolemChestScreenHandler extends AbstractContainerMenu {
     }
 
     public int getRows() {
-        return this.inventory.getContainerSize() / 9;
+        return this.getInventory().getContainerSize() / 9;
     }
 
     @Override
     public boolean stillValid(Player player) {
-        return this.inventory.stillValid(player);
+        return this.inventory;stillValid(player);
     }
 
     @Override

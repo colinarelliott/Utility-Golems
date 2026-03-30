@@ -2,7 +2,7 @@ package rehdpanda.utilitygolems.schematic;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -108,10 +108,10 @@ public class SchematicLoader {
                     int bracket = blockName.indexOf('[');
                     if (bracket > 0) blockName = blockName.substring(0, bracket);
                     
-                    // Handle possible minecraft: prefix
+                    // InteractionHandle possible minecraft: prefix
                     if (!blockName.contains(":")) blockName = "minecraft:" + blockName;
 
-                    ResourceLocation idf = ResourceLocation.tryParse(blockName);
+                    Identifier idf = new Identifier(blockName);
                     if (idf != null) {
                         Block block = BuiltInRegistries.BLOCK.getValue(idf);
                         palette.put(id, block);
@@ -127,7 +127,7 @@ public class SchematicLoader {
         int total = width * height * length;
         int[] indices = null;
         
-        // WorldEdit often uses 'BlockData' (VarInt encoded byte array)
+        // LevelEdit often uses 'BlockData' (VarInt encoded byte array)
         Object bytes = invokeNbtGetByteArray(root, "BlockData");
         if (bytes instanceof byte[] barr) {
             System.out.println("[DEBUG_LOG] Found BlockData as byte array, length: " + barr.length);

@@ -3,13 +3,13 @@ package rehdpanda.utilitygolems.client;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.entity.UtilityGolemRenderer;
+import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.CameraRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import rehdpanda.utilitygolems.UtilityGolem;
 import rehdpanda.utilitygolems.GolemType;
@@ -19,7 +19,7 @@ import net.minecraft.client.renderer.texture.OverlayComponenture;
 import net.minecraft.world.phys.Vec3;
 
 public class SpongeGolemEntityRenderer extends UtilityGolemRenderer {
-    private static final ResourceLocation BOBBER_TEXTURE = ResourceLocation.withDefaultNamespace("textures/entity/fishing_hook.png");
+    private static final Identifier BOBBER_TEXTURE = Identifier.withDefaultNamespace("textures/entity/fishing_hook.png");
     private static final RenderType BOBBER_LAYER = RenderTypes.entityCutout(BOBBER_TEXTURE);
 
     public SpongeGolemEntityRenderer(EntityRendererProvider.Context ctx) {

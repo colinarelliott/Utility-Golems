@@ -7,25 +7,25 @@ import net.minecraft.world.item.ItemStack;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import rehdpanda.utilitygolems.BuildPattern;
-import rehdpanda.utilitygolems.GolemInventoryScreenHandler;
+import rehdpanda.utilitygolems.GolemInventoryMenu;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
 /**
- * Draws the inventory screen for golems
+ * Draws the getInventory() screen for golems
  */
-public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventoryScreenHandler> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/dispenser.png");
+public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventoryMenu> {
+    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/dispenser.png");
 
-    public GolemInventoryScreen(GolemInventoryScreenHandler handler, Inventory inventory, Component title) {
-        super(handler, inventory, title);
+    public GolemInventoryScreen(GolemInventoryMenu handler, Inventory inventory, Component title) {
+        super(handler, getInventory(), title);
         
         UtilityGolem golem = handler.getGolem();
         if (golem != null && (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) {
             this.imageHeight = 206; // 166 (dispenser) + 40
-            this.inventoryLabelY = 75 + 40;
+            this.inventory.abelY = 75 + 40;
         }
     }
 
@@ -94,8 +94,8 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
                 sendSyncPacket(golem);
             }).bounds(leftPos + 89, topPos + 97, 80, 20).build());
         } else if (golem.getBuildPattern() == BuildPattern.REPLACE) {
-            this.addRenderableWidget(Button.builder(Component.literal("Capture Filter from Hand"), button -> {
-                ItemStack handStack = this.minecraft.player.getMainHandItem();
+            this.addRenderableWidget(Button.builder(Component.literal("Capture Filter from InteractionHand"), button -> {
+                ItemStack handStack = this.minecraft.player.getMainInteractionHandItem();
                 if (!handStack.isEmpty() && handStack.getItem() instanceof net.minecraft.world.item.BlockItem) {
                     golem.setHeldItem(handStack.copy());
                     sendSyncPacket(golem);
@@ -115,7 +115,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
                 if (!files.isEmpty()) {
                     int idx = files.indexOf(golem.getSchematicName());
                     if (idx == -1) idx = 0;
-                    idx = (idx - 1 + files.size()) % files.size();
+                    idx = (idx - 1 + files.getContainerSize()) % files.getContainerSize();
                     golem.setSchematicName(files.get(idx));
                     sendSyncPacket(golem);
                     this.rebuildWidgets();
@@ -137,7 +137,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
                 if (!files.isEmpty()) {
                     int idx = files.indexOf(golem.getSchematicName());
                     if (idx == -1) idx = 0;
-                    idx = (idx + 1) % files.size();
+                    idx = (idx + 1) % files.getContainerSize();
                     golem.setSchematicName(files.get(idx));
                     sendSyncPacket(golem);
                     this.rebuildWidgets();
@@ -157,10 +157,10 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
         java.util.List<ItemStack> trades = golem.getDiscoveredTrades();
         int maxTrades = 8;
         
-        for (int i = 0; i < Math.min(maxTrades, trades.size() - emeraldScrollOffset); i++) {
+        for (int i = 0; i < Math.min(maxTrades, trades.getContainerSize() - emeraldScrollOffset); i++) {
             final int index = i + emeraldScrollOffset;
             ItemStack stack = trades.get(index);
-            boolean isSelected = ItemStack.isSameItem(stack, golem.getSelectedBuyItem());
+            boolean isSelected = ItemStack.areItemsAndComponentsEqual(stack, golem.getSelectedBuyItem());
             
             this.addRenderableWidget(Button.builder(Component.literal(""), button -> {
                 if (isSelected) {
@@ -179,7 +179,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
                 this.rebuildWidgets();
             }).bounds(leftPos + 7, topPos + 98, 20, 18).build());
         }
-        if (trades.size() > emeraldScrollOffset + maxTrades) {
+        if (trades.getContainerSize() > emeraldScrollOffset + maxTrades) {
             this.addRenderableWidget(Button.builder(Component.literal(">"), b -> {
                 emeraldScrollOffset++;
                 this.rebuildWidgets();
@@ -203,7 +203,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
         UtilityGolem golem = menu.getGolem();
         if (golem != null && (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) {
             // Draw top part (the 3x3 grid and label area): 0 to 71 from texture
-            context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0.0f, 0.0f, imageWidth, 75, 256, 256);
+            context.blit(TEXTURE, x, y, 0.0f, 0.0f, imageWidth, 75, 256, 256);
 
             // Draw extra background for buttons (always 40 now)
             int extraHeight = 40;
@@ -211,18 +211,18 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
             // Fill the spacer with a generic background color from the texture (e.g., at 7, 7)
             for (int i = 0; i < extraHeight; i += 5) {
                 int h = Math.min(10, extraHeight - i);
-                context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x , y + 75 + i, 0.0f, 7.0f, imageWidth, h, 256, 256);
+                context.blit(TEXTURE, x , y + 75 + i, 0.0f, 7.0f, imageWidth, h, 256, 256);
             }
 
-            // Draw the player inventory part (which normally starts at 75 in the dispenser texture)
-            // Dispenser texture: top part 0-75, player inventory 75-166.
-            context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y + 75 + extraHeight, 0.0f, 75.0f, imageWidth, 91, 256, 256);
+            // Draw the player getInventory() part (which normally starts at 75 in the dispenser texture)
+            // Dispenser texture: top part 0-75, player getInventory() 75-166.
+            context.blit(TEXTURE, x, y + 75 + extraHeight, 0.0f, 75.0f, imageWidth, 91, 256, 256);
         } else {
-            context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0.0f, 0.0f, imageWidth, imageHeight, 256, 256);
+            context.blit(TEXTURE, x, y, 0.0f, 0.0f, imageWidth, imageHeight, 256, 256);
         }
 
         // Draw held item slot background
-        context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, x + 133, y + 34, 61.0f, 16.0f, 18, 18, 256, 256);
+        context.blit(TEXTURE, x + 133, y + 34, 61.0f, 16.0f, 18, 18, 256, 256);
     }
 
     @Override
@@ -243,7 +243,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
 
         // Draw tooltip for held item slot if hovered
         if (mouseX >= leftPos + 133 && mouseX < leftPos + 151 && mouseY >= topPos + 34 && mouseY < topPos + 52) {
-            context.setTooltipForNextFrame(font, Component.translatable("gui.utility-golems.held_item_tooltip"), mouseX, mouseY);
+            context.renderTooltip(font, Component.translatable("gui.utility-golems.held_item_tooltip"), mouseX, mouseY);
         }
 
         this.renderTooltip(context, mouseX, mouseY);
@@ -252,7 +252,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
     private void drawTintedGlassUI(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
         String text = String.valueOf(golem.getXpScore());
         int textWidth = font.width(text);
-        // Top right of the inventory: x + 176 is the right edge, minus padding and text width.
+        // Top right of the getInventory(): x + 176 is the right edge, minus padding and text width.
         // The title area is roughly 16 pixels high.
         context.drawString(font, text, leftPos + imageWidth - textWidth - 8, topPos + 6, 0xFF00FF00, true);
     }
@@ -268,7 +268,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
 
         // Draw overlay over occupied slots
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = golem.getInventory().getItem(i);
+            ItemStack stack = golem.inventory.getItem(i);
             if (!stack.isEmpty()) {
                 int slotX = leftPos + 62 + (i % 3) * 18;
                 int slotY = topPos + 17 + (i / 3) * 18;
@@ -291,14 +291,14 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
     private void drawEmeraldTradeIcons(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
         java.util.List<ItemStack> trades = golem.getDiscoveredTrades();
         int maxTrades = 8;
-        for (int i = 0; i < Math.min(maxTrades, trades.size() - emeraldScrollOffset); i++) {
+        for (int i = 0; i < Math.min(maxTrades, trades.getContainerSize() - emeraldScrollOffset); i++) {
             int index = i + emeraldScrollOffset;
             ItemStack stack = trades.get(index);
             int iconX = leftPos + 9 + i * 20;
             int iconY = topPos + 79;
-            context.renderItem(stack, iconX, iconY);
+            context.renderFakeItem(stack, iconX, iconY);
             
-            if (ItemStack.isSameItem(stack, golem.getSelectedBuyItem())) {
+            if (ItemStack.areItemsAndComponentsEqual(stack, golem.getSelectedBuyItem())) {
                 context.fill(iconX - 1, iconY - 1, iconX + 17, iconY + 17, 0x40FFFFFF);
             }
         }

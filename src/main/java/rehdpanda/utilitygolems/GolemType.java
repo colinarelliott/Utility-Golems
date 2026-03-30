@@ -4,7 +4,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import rehdpanda.utilitygolems.UtilityGolem;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.Item;
@@ -145,8 +145,8 @@ public enum GolemType implements StringRepresentable {
         return this.friendlyName;
     }
 
-    public ResourceLocation getComponenture() {
-        return ResourceLocation.fromNamespaceAndPath("utility-golems", texturePath);
+    public Identifier getComponenture() {
+        return new Identifier("utility-golems", texturePath);
     }
 
     public Block getChestBlock() {

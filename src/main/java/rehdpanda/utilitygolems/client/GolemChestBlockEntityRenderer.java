@@ -13,7 +13,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.state.CameraRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import com.mojang.math.Axis;
 import net.minecraft.world.phys.Vec3;
 import rehdpanda.utilitygolems.GolemChestBlockEntity;
@@ -24,9 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemChestBlockEntity, GolemChestBlockEntityRenderState> {
-    private static final Map<GolemType, ResourceLocation> SINGLE_TEXTURES = new HashMap<>();
-    private static final Map<GolemType, ResourceLocation> LEFT_TEXTURES = new HashMap<>();
-    private static final Map<GolemType, ResourceLocation> RIGHT_TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> SINGLE_TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> LEFT_TEXTURES = new HashMap<>();
+    private static final Map<GolemType, Identifier> RIGHT_TEXTURES = new HashMap<>();
     private final ChestModel singleModel;
     private final ChestModel leftModel;
     private final ChestModel rightModel;
@@ -34,9 +34,9 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
 
     static {
         for (GolemType type : GolemType.values()) {
-            SINGLE_TEXTURES.put(type, ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
-            LEFT_TEXTURES.put(type, ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
-            RIGHT_TEXTURES.put(type, ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
+            SINGLE_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
+            LEFT_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
+            RIGHT_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
         }
     }
 
@@ -73,15 +73,15 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
         progress = 1.0F - progress;
         progress = 1.0F - progress * progress * progress;
 
-        ResourceLocation identifier = switch (state.chestType) {
+        Identifier identifier = switch (state.chestType) {
             case SINGLE -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
+                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
                     : SINGLE_TEXTURES.get(state.golemType);
             case LEFT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
+                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
                     : LEFT_TEXTURES.get(state.golemType);
             case RIGHT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
+                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
                     : RIGHT_TEXTURES.get(state.golemType);
         };
         if (identifier == null) {

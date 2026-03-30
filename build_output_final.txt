@@ -1,0 +1,968 @@
+
+> Configure project :
+Fabric Loom: 1.15.5
+
+> Task :compileJava FAILED
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:5: error: package net.fabricmc.fabric.api.screenhandler.v1 does not exist
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+                                               ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:6: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:7: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.Llama;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:11: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.Horse;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:12: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.Donkey;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:13: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.Mule;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:21: error: package net.minecraft.world.entity.animal.snowgolem does not exist
+import net.minecraft.world.entity.animal.snowgolem.SnowGolem;
+                                                  ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:32: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.ZombieHorse;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:33: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.SkeletonHorse;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:54: error: cannot find symbol
+import net.minecraft.network.syncher.SyncedEntityData;
+                                    ^
+  symbol:   class SyncedEntityData
+  location: package net.minecraft.network.syncher
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:82: error: cannot find symbol
+import net.minecraft.world.level.ServerLevelAccess;
+                                ^
+  symbol:   class ServerLevelAccess
+  location: package net.minecraft.world.level
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:84: error: cannot find symbol
+import net.minecraft.world.level.LevelEvent;
+                                ^
+  symbol:   class LevelEvent
+  location: package net.minecraft.world.level
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:266: error: package SyncedEntityData does not exist
+    protected void defineSynchedData(SyncedEntityData.Builder builder) {
+                                                     ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:601: error: cannot find symbol
+    protected net.minecraft.world.entity.ai.Brain.Profile<UtilityGolem> brainProvider() {
+                                                 ^
+  symbol:   class Profile
+  location: class Brain
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+    public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                    ^
+  symbol:   class ServerLevelAccess
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+    public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                                                                            ^
+  symbol:   class SpawnReason
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+    public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                                                                                                               ^
+  symbol:   class EntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+    public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+           ^
+  symbol:   class EntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:15: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:16: error: package net.minecraft.world.entity.animal.horse does not exist
+import net.minecraft.world.entity.animal.horse.Llama;
+                                              ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:17: error: package net.minecraft.world.entity.animal.cat does not exist
+import net.minecraft.world.entity.animal.cat.Cat;
+                                            ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:6: error: package net.fabricmc.fabric.api.itemgroup.v1 does not exist
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+                                           ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:11: error: package net.fabricmc.fabric.api.screenhandler.v1 does not exist
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+                                               ^
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:18: error: cannot find symbol
+import net.minecraft.world.entity.SpawnReason;
+                                 ^
+  symbol:   class SpawnReason
+  location: package net.minecraft.world.entity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/RedstoneGolemStatueBlockEntity.java:46: error: cannot find symbol
+    public net.minecraft.network.protocol.game.ClientboundBlockSyncedEntityDataPacket getUpdatePacket() {
+                                              ^
+  symbol:   class ClientboundBlockSyncedEntityDataPacket
+  location: package net.minecraft.network.protocol.game
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:127: error: cannot find symbol
+    private static boolean canExtract(Container inventory, ItemStack stack, int slot, Direction side) {
+                                                           ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:131: error: cannot find symbol
+    private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
+                                                                              ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:131: error: cannot find symbol
+    private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
+                   ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:153: error: cannot find symbol
+    private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side, boolean ignoreNbt) {
+                                                                              ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:153: error: cannot find symbol
+    private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side, boolean ignoreNbt) {
+                   ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:175: error: cannot find symbol
+    private static boolean canInsert(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
+                                                          ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:182: error: cannot find symbol
+    private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
+                                         ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:182: error: cannot find symbol
+    private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
+                                                          ^
+  symbol:   class ItemStack
+  location: class GolemChestBlockEntity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolemSpawnEggItem.java:4: error: cannot find symbol
+import net.minecraft.world.entity.SpawnReason;
+                                 ^
+  symbol:   class SpawnReason
+  location: package net.minecraft.world.entity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:5: error: cannot find symbol
+import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
+                                           ^
+  symbol:   class PathfinderMobRenderer
+  location: package net.minecraft.client.renderer.entity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:7: error: cannot find symbol
+import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                 ^
+  symbol:   class UtilityGolemRenderState
+  location: package net.minecraft.client.renderer.entity.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:8: error: cannot find symbol
+import net.minecraft.client.renderer.state.CameraRenderState;
+                                          ^
+  symbol:   class CameraRenderState
+  location: package net.minecraft.client.renderer.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:16: error: cannot find symbol
+public class UtilityGolemRenderer extends PathfinderMobRenderer {
+                                          ^
+  symbol: class PathfinderMobRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderState.java:3: error: cannot find symbol
+import net.minecraft.client.renderer.entity.state.PathfinderMobRenderState;
+                                                 ^
+  symbol:   class PathfinderMobRenderState
+  location: package net.minecraft.client.renderer.entity.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderState.java:6: error: cannot find symbol
+public class UtilityGolemRenderState extends PathfinderMobRenderState {
+                                             ^
+  symbol: class PathfinderMobRenderState
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:71: error: cannot find symbol
+    public void submit(UtilityGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                     ^
+  symbol:   class CameraRenderState
+  location: class UtilityGolemRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:3: error: cannot find symbol
+import net.minecraft.client.gui.GuiGraphics;
+                               ^
+  symbol:   class GuiGraphics
+  location: package net.minecraft.client.gui
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:21: error: cannot find symbol
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                       ^
+  symbol:   class GuiGraphics
+  location: class GolemChestScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:36: error: cannot find symbol
+    protected void renderLabels(GuiGraphics context, int mouseX, int mouseY) {
+                                ^
+  symbol:   class GuiGraphics
+  location: class GolemChestScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:47: error: cannot find symbol
+    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                            ^
+  symbol:   class GuiGraphics
+  location: class GolemChestScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestBlockEntityRenderer.java:14: error: cannot find symbol
+import net.minecraft.client.renderer.state.CameraRenderState;
+                                          ^
+  symbol:   class CameraRenderState
+  location: package net.minecraft.client.renderer.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestBlockEntityRenderer.java:66: error: cannot find symbol
+    public void render(GolemChestBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                              ^
+  symbol:   class CameraRenderState
+  location: class GolemChestBlockEntityRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:3: error: cannot find symbol
+import net.minecraft.client.gui.GuiGraphics;
+                               ^
+  symbol:   class GuiGraphics
+  location: package net.minecraft.client.gui
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:199: error: cannot find symbol
+    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                            ^
+  symbol:   class GuiGraphics
+  location: class GolemInventoryScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:229: error: cannot find symbol
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                       ^
+  symbol:   class GuiGraphics
+  location: class GolemInventoryScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:252: error: cannot find symbol
+    private void drawTintedGlassUI(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                                   ^
+  symbol:   class GuiGraphics
+  location: class GolemInventoryScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:260: error: cannot find symbol
+    private void drawCactusUI(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                              ^
+  symbol:   class GuiGraphics
+  location: class GolemInventoryScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:291: error: cannot find symbol
+    private void drawEmeraldTradeIcons(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                                       ^
+  symbol:   class GuiGraphics
+  location: class GolemInventoryScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:8: error: cannot find symbol
+import net.minecraft.client.model.object.statue.UtilityGolemStatueModel;
+                                               ^
+  symbol:   class UtilityGolemStatueModel
+  location: package net.minecraft.client.model.object.statue
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:12: error: cannot find symbol
+import net.minecraft.client.renderer.state.CameraRenderState;
+                                          ^
+  symbol:   class CameraRenderState
+  location: package net.minecraft.client.renderer.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:21: error: cannot find symbol
+    private final UtilityGolemStatueModel model;
+                  ^
+  symbol:   class UtilityGolemStatueModel
+  location: class RedstoneGolemStatueBlockEntityRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:39: error: cannot find symbol
+    public void render(RedstoneGolemStatueBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                                       ^
+  symbol:   class CameraRenderState
+  location: class RedstoneGolemStatueBlockEntityRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:4: error: cannot find symbol
+import net.minecraft.client.gui.GuiGraphics;
+                               ^
+  symbol:   class GuiGraphics
+  location: package net.minecraft.client.gui
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:50: error: cannot find symbol
+    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                            ^
+  symbol:   class GuiGraphics
+  location: class GolemJukeboxScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:70: error: cannot find symbol
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                       ^
+  symbol:   class GuiGraphics
+  location: class GolemJukeboxScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:94: error: cannot find symbol
+    private void drawButtonHighlight(GuiGraphics context, Button button) {
+                                     ^
+  symbol:   class GuiGraphics
+  location: class GolemJukeboxScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:6: error: cannot find symbol
+import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
+                                           ^
+  symbol:   class PathfinderMobRenderer
+  location: package net.minecraft.client.renderer.entity
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:8: error: cannot find symbol
+import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                 ^
+  symbol:   class UtilityGolemRenderState
+  location: package net.minecraft.client.renderer.entity.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:10: error: cannot find symbol
+import net.minecraft.client.renderer.state.CameraRenderState;
+                                          ^
+  symbol:   class CameraRenderState
+  location: package net.minecraft.client.renderer.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:18: error: cannot find symbol
+import net.minecraft.client.renderer.texture.OverlayComponenture;
+                                            ^
+  symbol:   class OverlayComponenture
+  location: package net.minecraft.client.renderer.texture
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderState.java:3: error: cannot find symbol
+import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                 ^
+  symbol:   class UtilityGolemRenderState
+  location: package net.minecraft.client.renderer.entity.state
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:35: error: cannot find symbol
+    public void extractRenderState(net.minecraft.world.entity.animal.golem.UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
+                                                                          ^
+  symbol:   class UtilityGolem
+  location: package net.minecraft.world.entity.animal.golem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:43: error: cannot find symbol
+    public void submit(UtilityGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                     ^
+  symbol:   class CameraRenderState
+  location: class SpongeGolemEntityRenderer
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:5: error: cannot find symbol
+import net.minecraft.client.gui.GuiGraphics;
+                               ^
+  symbol:   class GuiGraphics
+  location: package net.minecraft.client.gui
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:8: error: cannot find symbol
+import net.minecraft.client.gui.components.EditAABB;
+                                          ^
+  symbol:   class EditAABB
+  location: package net.minecraft.client.gui.components
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:34: error: cannot find symbol
+    private EditAABB intervalField;
+            ^
+  symbol:   class EditAABB
+  location: class RedstoneGolemScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:160: error: cannot find symbol
+    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                            ^
+  symbol:   class GuiGraphics
+  location: class RedstoneGolemScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:165: error: cannot find symbol
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                       ^
+  symbol:   class GuiGraphics
+  location: class RedstoneGolemScreen
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/RedstoneGolemMenu.java:20: error: cannot find symbol
+        super(UGInit.REDSTONE_GOLEM_SCREEN_HANDLER, syncId);
+                    ^
+  symbol:   variable REDSTONE_GOLEM_SCREEN_HANDLER
+  location: class UGInit
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:95: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> XP_SCORE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:139: error: cannot find symbol
+    private static final EntityDataAccessor<Optional<BlockPos>> FISHING_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+                                                                                 ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:140: error: cannot find symbol
+    private static final EntityDataAccessor<Optional<BlockPos>> DEBUG_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+                                                                               ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:141: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> SELECTED_PATTERN = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                        ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:142: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> WALL_WIDTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                  ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:143: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> WALL_LENGTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                   ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:144: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> BUILDING_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                        ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:145: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> LAMP_ON = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                               ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:146: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> STRIPPED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:148: error: cannot find symbol
+    private static final EntityDataAccessor<ItemStack> SELECTED_BUY_ITEM = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.ITEM_STACK);
+                                                                           ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:149: error: cannot find symbol
+    private static final EntityDataAccessor<String> SCHEMATIC_NAME = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+                                                                     ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:150: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> MINING_DIRECTION = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                        ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:151: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> SMELTING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:152: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> JUKEBOX_PLAYING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                       ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:153: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> JUKEBOX_SHUFFLE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                       ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:154: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> JUKEBOX_REPEAT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                      ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:157: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> ANIMATION_ID = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                    ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:158: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> ANIMATION_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                       ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:159: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> ANIMATION_START_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                             ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:160: error: cannot find symbol
+    private static final EntityDataAccessor<Boolean> REDSTONE_PROGRAM_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                                ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:161: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> DELETED_ITEMS_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                           ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:162: error: cannot find symbol
+    private static final EntityDataAccessor<Integer> GOLD_TRADE_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                        ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:163: error: cannot find symbol
+    private static final EntityDataAccessor<String> OWNER_UUID_STRING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+                                                                        ^
+  symbol:   variable SyncedEntityData
+  location: class UtilityGolem
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:177: error: cannot find symbol
+        if (currentInteractionIndex >= this.redstoneProgram.getContainerSize()) {
+                                                           ^
+  symbol:   method getContainerSize()
+  location: variable redstoneProgram of type List<RedstoneInteraction>
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:353: error: cannot find symbol
+                        player.displayClientMessage(Component.literal("[DEBUG] " + message), false);
+                              ^
+  symbol:   method displayClientMessage(MutableComponent,boolean)
+  location: variable player of type Player
+/Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:474: error: cannot find symbol
+            if (ItemStack.areItemsAndComponentsEqual(s, stack)) return;
+                         ^
+  symbol:   method areItemsAndComponentsEqual(ItemStack,ItemStack)
+  location: class ItemStack
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+100 errors
+
+[Incubating] Problems report is available at: file:///Users/colin/Documents/Utility-Golems/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:54: error: cannot find symbol
+  import net.minecraft.network.syncher.SyncedEntityData;
+                                      ^
+    symbol:   class SyncedEntityData
+    location: package net.minecraft.network.syncher
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:82: error: cannot find symbol
+  import net.minecraft.world.level.ServerLevelAccess;
+                                  ^
+    symbol:   class ServerLevelAccess
+    location: package net.minecraft.world.level
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:84: error: cannot find symbol
+  import net.minecraft.world.level.LevelEvent;
+                                  ^
+    symbol:   class LevelEvent
+    location: package net.minecraft.world.level
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:601: error: cannot find symbol
+      protected net.minecraft.world.entity.ai.Brain.Profile<UtilityGolem> brainProvider() {
+                                                   ^
+    symbol:   class Profile
+    location: class Brain
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+      public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                      ^
+    symbol:   class ServerLevelAccess
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+      public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                                                                              ^
+    symbol:   class SpawnReason
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+      public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+                                                                                                                                 ^
+    symbol:   class EntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:1762: error: cannot find symbol
+      public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
+             ^
+    symbol:   class EntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:18: error: cannot find symbol
+  import net.minecraft.world.entity.SpawnReason;
+                                   ^
+    symbol:   class SpawnReason
+    location: package net.minecraft.world.entity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/RedstoneGolemStatueBlockEntity.java:46: error: cannot find symbol
+      public net.minecraft.network.protocol.game.ClientboundBlockSyncedEntityDataPacket getUpdatePacket() {
+                                                ^
+    symbol:   class ClientboundBlockSyncedEntityDataPacket
+    location: package net.minecraft.network.protocol.game
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:127: error: cannot find symbol
+      private static boolean canExtract(Container inventory, ItemStack stack, int slot, Direction side) {
+                                                             ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:131: error: cannot find symbol
+      private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
+                                                                                ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:131: error: cannot find symbol
+      private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
+                     ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:153: error: cannot find symbol
+      private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side, boolean ignoreNbt) {
+                                                                                ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:153: error: cannot find symbol
+      private static ItemStack transfer(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side, boolean ignoreNbt) {
+                     ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:175: error: cannot find symbol
+      private static boolean canInsert(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
+                                                            ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:182: error: cannot find symbol
+      private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
+                                           ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemChestBlockEntity.java:182: error: cannot find symbol
+      private static boolean canMergeItems(ItemStack first, ItemStack second, boolean ignoreNbt) {
+                                                            ^
+    symbol:   class ItemStack
+    location: class GolemChestBlockEntity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolemSpawnEggItem.java:4: error: cannot find symbol
+  import net.minecraft.world.entity.SpawnReason;
+                                   ^
+    symbol:   class SpawnReason
+    location: package net.minecraft.world.entity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:5: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
+                                             ^
+    symbol:   class PathfinderMobRenderer
+    location: package net.minecraft.client.renderer.entity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:7: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                   ^
+    symbol:   class UtilityGolemRenderState
+    location: package net.minecraft.client.renderer.entity.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:8: error: cannot find symbol
+  import net.minecraft.client.renderer.state.CameraRenderState;
+                                            ^
+    symbol:   class CameraRenderState
+    location: package net.minecraft.client.renderer.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderState.java:3: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.state.PathfinderMobRenderState;
+                                                   ^
+    symbol:   class PathfinderMobRenderState
+    location: package net.minecraft.client.renderer.entity.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:71: error: cannot find symbol
+      public void submit(UtilityGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                       ^
+    symbol:   class CameraRenderState
+    location: class UtilityGolemRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:3: error: cannot find symbol
+  import net.minecraft.client.gui.GuiGraphics;
+                                 ^
+    symbol:   class GuiGraphics
+    location: package net.minecraft.client.gui
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:21: error: cannot find symbol
+      public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                         ^
+    symbol:   class GuiGraphics
+    location: class GolemChestScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:36: error: cannot find symbol
+      protected void renderLabels(GuiGraphics context, int mouseX, int mouseY) {
+                                  ^
+    symbol:   class GuiGraphics
+    location: class GolemChestScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestScreen.java:47: error: cannot find symbol
+      protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                              ^
+    symbol:   class GuiGraphics
+    location: class GolemChestScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestBlockEntityRenderer.java:14: error: cannot find symbol
+  import net.minecraft.client.renderer.state.CameraRenderState;
+                                            ^
+    symbol:   class CameraRenderState
+    location: package net.minecraft.client.renderer.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemChestBlockEntityRenderer.java:66: error: cannot find symbol
+      public void render(GolemChestBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                                ^
+    symbol:   class CameraRenderState
+    location: class GolemChestBlockEntityRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:3: error: cannot find symbol
+  import net.minecraft.client.gui.GuiGraphics;
+                                 ^
+    symbol:   class GuiGraphics
+    location: package net.minecraft.client.gui
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:199: error: cannot find symbol
+      protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                              ^
+    symbol:   class GuiGraphics
+    location: class GolemInventoryScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:229: error: cannot find symbol
+      public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                         ^
+    symbol:   class GuiGraphics
+    location: class GolemInventoryScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:252: error: cannot find symbol
+      private void drawTintedGlassUI(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                                     ^
+    symbol:   class GuiGraphics
+    location: class GolemInventoryScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:260: error: cannot find symbol
+      private void drawCactusUI(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                                ^
+    symbol:   class GuiGraphics
+    location: class GolemInventoryScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemInventoryScreen.java:291: error: cannot find symbol
+      private void drawEmeraldTradeIcons(GuiGraphics context, int mouseX, int mouseY, UtilityGolem golem) {
+                                         ^
+    symbol:   class GuiGraphics
+    location: class GolemInventoryScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:8: error: cannot find symbol
+  import net.minecraft.client.model.object.statue.UtilityGolemStatueModel;
+                                                 ^
+    symbol:   class UtilityGolemStatueModel
+    location: package net.minecraft.client.model.object.statue
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:12: error: cannot find symbol
+  import net.minecraft.client.renderer.state.CameraRenderState;
+                                            ^
+    symbol:   class CameraRenderState
+    location: package net.minecraft.client.renderer.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:21: error: cannot find symbol
+      private final UtilityGolemStatueModel model;
+                    ^
+    symbol:   class UtilityGolemStatueModel
+    location: class RedstoneGolemStatueBlockEntityRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemStatueBlockEntityRenderer.java:39: error: cannot find symbol
+      public void render(RedstoneGolemStatueBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                                         ^
+    symbol:   class CameraRenderState
+    location: class RedstoneGolemStatueBlockEntityRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:4: error: cannot find symbol
+  import net.minecraft.client.gui.GuiGraphics;
+                                 ^
+    symbol:   class GuiGraphics
+    location: package net.minecraft.client.gui
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:50: error: cannot find symbol
+      protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                              ^
+    symbol:   class GuiGraphics
+    location: class GolemJukeboxScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:70: error: cannot find symbol
+      public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                         ^
+    symbol:   class GuiGraphics
+    location: class GolemJukeboxScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/GolemJukeboxScreen.java:94: error: cannot find symbol
+      private void drawButtonHighlight(GuiGraphics context, Button button) {
+                                       ^
+    symbol:   class GuiGraphics
+    location: class GolemJukeboxScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:6: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
+                                             ^
+    symbol:   class PathfinderMobRenderer
+    location: package net.minecraft.client.renderer.entity
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:8: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                   ^
+    symbol:   class UtilityGolemRenderState
+    location: package net.minecraft.client.renderer.entity.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:10: error: cannot find symbol
+  import net.minecraft.client.renderer.state.CameraRenderState;
+                                            ^
+    symbol:   class CameraRenderState
+    location: package net.minecraft.client.renderer.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:18: error: cannot find symbol
+  import net.minecraft.client.renderer.texture.OverlayComponenture;
+                                              ^
+    symbol:   class OverlayComponenture
+    location: package net.minecraft.client.renderer.texture
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderState.java:3: error: cannot find symbol
+  import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+                                                   ^
+    symbol:   class UtilityGolemRenderState
+    location: package net.minecraft.client.renderer.entity.state
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:35: error: cannot find symbol
+      public void extractRenderState(net.minecraft.world.entity.animal.golem.UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
+                                                                            ^
+    symbol:   class UtilityGolem
+    location: package net.minecraft.world.entity.animal.golem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/SpongeGolemEntityRenderer.java:43: error: cannot find symbol
+      public void submit(UtilityGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+                                                                                                       ^
+    symbol:   class CameraRenderState
+    location: class SpongeGolemEntityRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:5: error: cannot find symbol
+  import net.minecraft.client.gui.GuiGraphics;
+                                 ^
+    symbol:   class GuiGraphics
+    location: package net.minecraft.client.gui
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:8: error: cannot find symbol
+  import net.minecraft.client.gui.components.EditAABB;
+                                            ^
+    symbol:   class EditAABB
+    location: package net.minecraft.client.gui.components
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:34: error: cannot find symbol
+      private EditAABB intervalField;
+              ^
+    symbol:   class EditAABB
+    location: class RedstoneGolemScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:160: error: cannot find symbol
+      protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+                              ^
+    symbol:   class GuiGraphics
+    location: class RedstoneGolemScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/RedstoneGolemScreen.java:165: error: cannot find symbol
+      public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+                         ^
+    symbol:   class GuiGraphics
+    location: class RedstoneGolemScreen
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/RedstoneGolemMenu.java:20: error: cannot find symbol
+          super(UGInit.REDSTONE_GOLEM_SCREEN_HANDLER, syncId);
+                      ^
+    symbol:   variable REDSTONE_GOLEM_SCREEN_HANDLER
+    location: class UGInit
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:95: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> XP_SCORE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                  ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:139: error: cannot find symbol
+      private static final EntityDataAccessor<Optional<BlockPos>> FISHING_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+                                                                                   ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:140: error: cannot find symbol
+      private static final EntityDataAccessor<Optional<BlockPos>> DEBUG_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+                                                                                 ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:141: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> SELECTED_PATTERN = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                          ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:142: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> WALL_WIDTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                    ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:143: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> WALL_LENGTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                     ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:144: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> BUILDING_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                          ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:145: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> LAMP_ON = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                 ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:146: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> STRIPPED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                  ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:148: error: cannot find symbol
+      private static final EntityDataAccessor<ItemStack> SELECTED_BUY_ITEM = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.ITEM_STACK);
+                                                                             ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:149: error: cannot find symbol
+      private static final EntityDataAccessor<String> SCHEMATIC_NAME = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+                                                                       ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:150: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> MINING_DIRECTION = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                          ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:151: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> SMELTING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                  ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:152: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> JUKEBOX_PLAYING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                         ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:153: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> JUKEBOX_SHUFFLE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                         ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:154: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> JUKEBOX_REPEAT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                        ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:157: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> ANIMATION_ID = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                      ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:158: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> ANIMATION_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                         ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:159: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> ANIMATION_START_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                               ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:160: error: cannot find symbol
+      private static final EntityDataAccessor<Boolean> REDSTONE_PROGRAM_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+                                                                                  ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:161: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> DELETED_ITEMS_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                             ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:162: error: cannot find symbol
+      private static final EntityDataAccessor<Integer> GOLD_TRADE_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+                                                                          ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:163: error: cannot find symbol
+      private static final EntityDataAccessor<String> OWNER_UUID_STRING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+                                                                          ^
+    symbol:   variable SyncedEntityData
+    location: class UtilityGolem
+  Note: Recompile with -Xlint:unchecked for details.
+  Note: Some input files use or override a deprecated API.
+  Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderer.java:16: error: cannot find symbol
+  public class UtilityGolemRenderer extends PathfinderMobRenderer {
+                                            ^
+    symbol: class PathfinderMobRenderer
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/client/UtilityGolemRenderState.java:6: error: cannot find symbol
+  public class UtilityGolemRenderState extends PathfinderMobRenderState {
+                                               ^
+    symbol: class PathfinderMobRenderState
+  Note: Some input files use unchecked or unsafe operations.
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:177: error: cannot find symbol
+          if (currentInteractionIndex >= this.redstoneProgram.getContainerSize()) {
+                                                             ^
+    symbol:   method getContainerSize()
+    location: variable redstoneProgram of type List<RedstoneInteraction>
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:353: error: cannot find symbol
+                          player.displayClientMessage(Component.literal("[DEBUG] " + message), false);
+                                ^
+    symbol:   method displayClientMessage(MutableComponent,boolean)
+    location: variable player of type Player
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:474: error: cannot find symbol
+              if (ItemStack.areItemsAndComponentsEqual(s, stack)) return;
+                           ^
+    symbol:   method areItemsAndComponentsEqual(ItemStack,ItemStack)
+    location: class ItemStack
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:5: error: package net.fabricmc.fabric.api.screenhandler.v1 does not exist
+  import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+                                                 ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:6: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.AbstractHorse;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:7: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.Llama;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:11: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.Horse;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:12: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.Donkey;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:13: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.Mule;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:21: error: package net.minecraft.world.entity.animal.snowgolem does not exist
+  import net.minecraft.world.entity.animal.snowgolem.SnowGolem;
+                                                    ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:32: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.ZombieHorse;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:33: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.SkeletonHorse;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UtilityGolem.java:266: error: package SyncedEntityData does not exist
+      protected void defineSynchedData(SyncedEntityData.Builder builder) {
+                                                       ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:15: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.AbstractHorse;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:16: error: package net.minecraft.world.entity.animal.horse does not exist
+  import net.minecraft.world.entity.animal.horse.Llama;
+                                                ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/GolemAI.java:17: error: package net.minecraft.world.entity.animal.cat does not exist
+  import net.minecraft.world.entity.animal.cat.Cat;
+                                              ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:6: error: package net.fabricmc.fabric.api.itemgroup.v1 does not exist
+  import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+                                             ^
+  /Users/colin/Documents/Utility-Golems/src/main/java/rehdpanda/utilitygolems/UGInit.java:11: error: package net.fabricmc.fabric.api.screenhandler.v1 does not exist
+  import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+                                                 ^
+  100 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 805ms
+1 actionable task: 1 executed

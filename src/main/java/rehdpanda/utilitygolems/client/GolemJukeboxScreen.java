@@ -6,22 +6,22 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import rehdpanda.utilitygolems.GolemJukeboxScreenHandler;
+import net.minecraft.resources.Identifier;
+import rehdpanda.utilitygolems.GolemJukeboxMenu;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
-public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxScreenHandler> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/dispenser.png");
-    private static final ResourceLocation GENERIC_54_TEXTURE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
+public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu> {
+    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/dispenser.png");
+    private static final Identifier GENERIC_54_TEXTURE = new Identifier("minecraft", "textures/gui/container/generic_54.png");
     private Button shuffleButton;
     private Button repeatButton;
     private Button playStopButton;
 
-    public GolemJukeboxScreen(GolemJukeboxScreenHandler handler, Inventory inventory, Component title) {
-        super(handler, inventory, title);
+    public GolemJukeboxScreen(GolemJukeboxMenu handler, Inventory inventory, Component title) {
+        super(handler, getInventory(), title);
         this.imageHeight = 166 + 48;
-        this.inventoryLabelY = 75 + 48;
+        this.inventory.abelY = 75 + 48;
     }
 
     @Override
@@ -52,18 +52,18 @@ public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxScre
         int j = (this.height - this.imageHeight) / 2;
         
         // Draw top part (title and first row) from generic_54.png
-        context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, GENERIC_54_TEXTURE, i, j, 0.0f, 0.0f, this.imageWidth, 35, 256, 256);
+        context.blit(GENERIC_54_TEXTURE, i, j, 0.0f, 0.0f, this.imageWidth, 35, 256, 256);
         
         // Filler for buttons and extra height (now 88 to compensate for smaller top part)
         int extraHeight = 88;
         for (int k = 0; k < extraHeight; k += 5) {
             int h = Math.min(5, extraHeight - k);
-            context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + 35 + k, 0.0f, 7.0f, this.imageWidth, h, 256, 256);
+            context.blit(TEXTURE, i, j + 35 + k, 0.0f, 7.0f, this.imageWidth, h, 256, 256);
         }
         
-        // Draw the player inventory part from dispenser.png (starts at 75 in texture)
+        // Draw the player getInventory() part from dispenser.png (starts at 75 in texture)
         // Its absolute position remains the same: j + 35 + 88 = j + 123
-        context.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + 35 + extraHeight, 0.0f, 75.0f, this.imageWidth, 91, 256, 256);
+        context.blit(TEXTURE, i, j + 35 + extraHeight, 0.0f, 75.0f, this.imageWidth, 91, 256, 256);
     }
 
     @Override

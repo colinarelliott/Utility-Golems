@@ -43,8 +43,8 @@ public class RedstoneGolemStatueBlockEntity extends BlockEntity {
     }
 
     @Override
-    public net.minecraft.network.protocol.game.ClientboundBlockSynchedEntityDataPacket getUpdatePacket() {
-        return net.minecraft.network.protocol.game.ClientboundBlockSynchedEntityDataPacket.create(this);
+    public net.minecraft.network.protocol.game.ClientboundBlockSyncedEntityDataPacket getUpdatePacket() {
+        return net.minecraft.network.protocol.game.ClientboundBlockSyncedEntityDataPacket.create(this);
     }
 
     @Override

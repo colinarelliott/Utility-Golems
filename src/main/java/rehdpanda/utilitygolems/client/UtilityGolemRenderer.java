@@ -2,12 +2,12 @@ package rehdpanda.utilitygolems.client;
 
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.UtilityGolemRenderer;
+import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
 import net.minecraft.client.renderer.state.CameraRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import rehdpanda.utilitygolems.GolemAnimation;
 import rehdpanda.utilitygolems.GolemType;
@@ -22,16 +22,16 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
     }
 
     @Override
-    public ResourceLocation getComponentureLocation(UtilityGolemRenderState state) {
+    public Identifier getComponentureLocation(UtilityGolemRenderState state) {
         if (state instanceof UtilityGolemRenderState renderState) {
             if (renderState.isLampOn && type == GolemType.LAMP) {
-                return ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/lamp_golem_illuminated.png");
+                return new Identifier("utility-golems", "textures/entity/lamp_golem_illuminated.png");
             }
             if (renderState.isSmelting && (type == GolemType.FURNACE || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE)) {
-                return ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/" + type.getName() + "_illuminated.png");
+                return new Identifier("utility-golems", "textures/entity/" + type.getName() + "_illuminated.png");
             }
             if (renderState.isStripped && type == GolemType.BAMBOO) {
-                return ResourceLocation.fromNamespaceAndPath("utility-golems", "textures/entity/stripped_bamboo_golem.png");
+                return new Identifier("utility-golems", "textures/entity/stripped_bamboo_golem.png");
             }
         }
         return type.getComponenture();
@@ -43,7 +43,7 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
     }
 
     @Override
-    public void extractRenderState(net.minecraft.world.entity.animal.golem.UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
+    public void extractRenderState(UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
         super.extractRenderState(entity, state, tickDelta);
         if (entity instanceof UtilityGolem utilityGolem && state instanceof UtilityGolemRenderState renderState) {
             renderState.chestPos = utilityGolem.getChestPos();

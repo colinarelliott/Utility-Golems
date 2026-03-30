@@ -1,6 +1,6 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+import net.minecraft.client.renderer.entity.state.PathfinderMobRenderState;
 import net.minecraft.core.BlockPos;
 
 public class UtilityGolemRenderState extends PathfinderMobRenderState {

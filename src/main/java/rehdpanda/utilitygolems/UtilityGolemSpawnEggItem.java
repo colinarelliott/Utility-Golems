@@ -1,7 +1,7 @@
 package rehdpanda.utilitygolems;
 
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EntityMobSpawnType;
+import net.minecraft.world.entity.SpawnReason;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Item.Properties;
@@ -50,7 +50,7 @@ public class UtilityGolemSpawnEggItem extends Item {
         golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.random.nextFloat() * 360.0F, 0.0F);
         boolean spawned = world.addFreshEntity(golem);
         if (spawned) {
-            ItemStack stack = context.getItemInHand();
+            ItemStack stack = context.getItemInInteractionHand();
             if (player == null || !player.isCreative()) {
                 stack.shrink(1);
             }

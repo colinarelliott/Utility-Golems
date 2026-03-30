@@ -1,0 +1,89 @@
+package rehdpanda.utilitygolems;
+
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+
+public class GolemInventoryMenu extends AbstractContainerMenu {
+    private final Container inventory;
+    private final UtilityGolem golem;
+
+    public GolemInventoryMenu(int syncId, Inventory playerInventory) {
+        this(syncId, playerInventory, new SimpleContainer(27), null);
+    }
+
+    public GolemInventoryMenu(
+            int syncId,
+            Inventory playerInventory,
+            Container inventory,
+            UtilityGolem golem
+    ) {
+        super(UGInit.GOLEM_SCREEN_HANDLER_TYPE, syncId);
+        this.inventory = inventory;
+        this.golem = golem;
+        checkContainerSize(inventory, 27);
+        inventory.startOpen(playerInventory.player);
+
+        int i;
+        int j;
+        for (i = 0; i < 3; ++i) {
+            for (j = 0; j < 9; ++j) {
+                this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
+            }
+        }
+
+        for (i = 0; i < 3; ++i) {
+            for (j = 0; j < 9; ++j) {
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+            }
+        }
+
+        for (i = 0; i < 9; ++i) {
+            this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142));
+        }
+    }
+
+    @Override
+    public boolean stillValid(Player player) {
+        return golem == null || (golem.isAlive() && golem.distanceTo(player) < 8.0F);
+    }
+
+    @Override
+    public ItemStack quickMoveStack(Player player, int index) {
+        ItemStack itemStack = ItemStack.EMPTY;
+        Slot slot = (Slot)this.slots.get(index);
+        if (slot != null && slot.hasItem()) {
+            ItemStack itemStack2 = slot.getItem();
+            itemStack = itemStack2.copy();
+            if (index < 27) {
+                if (!this.moveItemStackTo(itemStack2, 27, this.slots.size(), true)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (!this.moveItemStackTo(itemStack2, 0, 27, false)) {
+                return ItemStack.EMPTY;
+            }
+
+            if (itemStack2.isEmpty()) {
+                slot.setByPlayer(ItemStack.EMPTY);
+            } else {
+                slot.setChanged();
+            }
+        }
+
+        return itemStack;
+    }
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        this.inventory.stopOpen(player);
+    }
+
+    public UtilityGolem getGolem() {
+        return golem;
+    }
+}
