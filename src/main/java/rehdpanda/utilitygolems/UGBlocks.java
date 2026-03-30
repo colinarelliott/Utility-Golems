@@ -26,7 +26,7 @@ public class UGBlocks {
     public static Block LIGHT_BLOCK;
 
     public static void register() {
-        Identifier statueId = new Identifier(UGInit.MOD_ID, "redstone_golem_statue");
+        Identifier statueId = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "redstone_golem_statue");
         REDSTONE_GOLEM_STATUE = Registry.register(
                 BuiltInRegistries.BLOCK,
                 statueId,
@@ -48,7 +48,7 @@ public class UGBlocks {
                 FabricBlockEntityTypeBuilder.create(RedstoneGolemStatueBlockEntity::new, REDSTONE_GOLEM_STATUE).build()
         );
 
-        Identifier lightId = new Identifier(UGInit.MOD_ID, "light_block");
+        Identifier lightId = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "light_block");
         LIGHT_BLOCK = Registry.register(
                 BuiltInRegistries.BLOCK,
                 lightId,
@@ -89,7 +89,7 @@ public class UGBlocks {
             float hardness = materialBlock.defaultDestroyTime();
             float resistance = materialBlock.getExplosionResistance();
 
-            Identifier id = new Identifier(UGInit.MOD_ID, name);
+            Identifier id = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, name);
             BlockBehaviour.Properties settings = BlockBehaviour.Properties.ofFullCopy(materialBlock)
                     .setId(ResourceKey.create(Registries.BLOCK, id))
                     .strength(hardness, resistance)
@@ -113,14 +113,14 @@ public class UGBlocks {
 
             Registry.register(
                     BuiltInRegistries.ITEM,
-                    new Identifier(UGInit.MOD_ID, name),
-                    new BlockItem(block, new net.minecraft.world.item.Item.Properties().setId(ResourceKey.create(Registries.ITEM, new Identifier(UGInit.MOD_ID, name))))
+                    Identifier.fromNamespaceAndPath(UGInit.MOD_ID, name),
+                    new BlockItem(block, new net.minecraft.world.item.Item.Properties().setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(UGInit.MOD_ID, name))))
             );
         }
 
         GOLEM_CHEST_BLOCK_ENTITY = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
-                new Identifier(UGInit.MOD_ID, "golem_chest"),
+                Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "golem_chest"),
                 FabricBlockEntityTypeBuilder.create(GolemChestBlockEntity::new, chestBlocks.toArray(new Block[0])).build()
         );
     }

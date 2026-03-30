@@ -5,6 +5,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.pattern.BlockPattern;
 import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -49,7 +50,7 @@ public class GolemPatterns {
                         golem.setStripped(isStripped);
                         golem.setChestPos(belowPos);
                         golem.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, facing.toYRot(), 0);
-                        golem.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(pos), net.minecraft.world.entity.SpawnReason.MOB_SUMMONED, null);
+                        golem.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(pos), EntitySpawnReason.MOB_SUMMONED, null);
                         serverLevel.addFreshEntity(golem);
 
                         chestEntity.setGolemDead(false);
@@ -133,7 +134,7 @@ public class GolemPatterns {
         }
         golem.setStripped(isStripped);
         golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, facing.toYRot(), 0);
-        golem.finalizeSpawn(world, world.getCurrentDifficultyAt(spawnPos), net.minecraft.world.entity.SpawnReason.MOB_SUMMONED, null);
+        golem.finalizeSpawn(world, world.getCurrentDifficultyAt(spawnPos), EntitySpawnReason.MOB_SUMMONED, null);
         world.addFreshEntity(golem);
 
         // Remove blocks used in the pattern

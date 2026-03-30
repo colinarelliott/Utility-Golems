@@ -18,7 +18,7 @@ public class UGItems {
     public static final Map<GolemType, Item> GOLEM_SPAWN_EGGS = new HashMap<>();
 
     public static void register() {
-        Identifier wrenchId = new Identifier(UGInit.MOD_ID, "wrench");
+        Identifier wrenchId = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "wrench");
         UGInit.LOGGER.info("Registering wrench item with ID: " + wrenchId);
         WRENCH_ITEM = Registry.register(
                 BuiltInRegistries.ITEM,
@@ -33,7 +33,7 @@ public class UGItems {
 
     public static void registerSpawnEggs() {
         for (GolemType type : GolemType.values()) {
-            Identifier eggId = new Identifier(UGInit.MOD_ID, type.getName() + "_spawn_egg");
+            Identifier eggId = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, type.getName() + "_spawn_egg");
             Item.Properties settings = new Item.Properties()
                     .setId(ResourceKey.create(Registries.ITEM, eggId));
             Item egg = new UtilityGolemSpawnEggItem(settings, type);

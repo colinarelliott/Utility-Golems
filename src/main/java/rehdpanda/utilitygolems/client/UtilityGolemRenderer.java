@@ -25,13 +25,13 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
     public Identifier getComponentureLocation(UtilityGolemRenderState state) {
         if (state instanceof UtilityGolemRenderState renderState) {
             if (renderState.isLampOn && type == GolemType.LAMP) {
-                return new Identifier("utility-golems", "textures/entity/lamp_golem_illuminated.png");
+                return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/lamp_golem_illuminated.png");
             }
             if (renderState.isSmelting && (type == GolemType.FURNACE || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE)) {
-                return new Identifier("utility-golems", "textures/entity/" + type.getName() + "_illuminated.png");
+                return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/" + type.getName() + "_illuminated.png");
             }
             if (renderState.isStripped && type == GolemType.BAMBOO) {
-                return new Identifier("utility-golems", "textures/entity/stripped_bamboo_golem.png");
+                return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/stripped_bamboo_golem.png");
             }
         }
         return type.getComponenture();

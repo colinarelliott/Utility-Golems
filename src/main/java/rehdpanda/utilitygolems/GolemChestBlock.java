@@ -273,12 +273,7 @@ public class GolemChestBlock extends Block implements EntityBlock {
                 }
                 
                 final boolean finalIsDead = isDead;
-                player.openMenu(new net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory<UGInit.GolemChestPayload>() {
-                    @Override
-                    public UGInit.GolemChestPayload getScreenOpeningData(net.minecraft.server.level.ServerPlayer player) {
-                        return new UGInit.GolemChestPayload(pos, finalIsDead, inventory.getContainerSize());
-                    }
-
+                player.openMenu(new net.minecraft.world.MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return inventory instanceof CompoundContainer

@@ -3,14 +3,14 @@
 package rehdpanda.utilitygolems;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
-import net.minecraft.world.entity.animal.horse.Llama;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.Llama;
 import net.minecraft.world.entity.animal.feline.Cat;
 import net.minecraft.world.entity.animal.panda.Panda;
 import net.minecraft.world.entity.animal.wolf.Wolf;
-import net.minecraft.world.entity.animal.horse.Horse;
-import net.minecraft.world.entity.animal.horse.Donkey;
-import net.minecraft.world.entity.animal.horse.Mule;
+import net.minecraft.world.entity.animal.equine.Horse;
+import net.minecraft.world.entity.animal.equine.Donkey;
+import net.minecraft.world.entity.animal.equine.Mule;
 import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.animal.cow.Cow;
@@ -18,7 +18,7 @@ import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.animal.cow.MushroomCow;
 import net.minecraft.world.entity.animal.polarbear.PolarBear;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
-import net.minecraft.world.entity.animal.snowgolem.SnowGolem;
+import net.minecraft.world.entity.animal.golem.SnowGolem;
 import net.minecraft.world.entity.animal.turtle.Turtle;
 import net.minecraft.world.entity.animal.feline.Ocelot;
 import net.minecraft.world.entity.animal.fox.Fox;
@@ -29,8 +29,8 @@ import net.minecraft.world.entity.animal.camel.Camel;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.goat.Goat;
 import net.minecraft.world.entity.animal.sniffer.Sniffer;
-import net.minecraft.world.entity.animal.horse.ZombieHorse;
-import net.minecraft.world.entity.animal.horse.SkeletonHorse;
+import net.minecraft.world.entity.animal.equine.ZombieHorse;
+import net.minecraft.world.entity.animal.equine.SkeletonHorse;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -51,7 +51,7 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.network.syncher.SyncedEntityData;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -79,20 +79,23 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.DifficultyInstance;
-import net.minecraft.world.level.ServerLevelAccess;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelEvent;
+import net.minecraft.world.level.block.LevelEvent;
+import net.minecraft.world.entity.ai.Brain;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 // Base class for Utility Golems
-import net.minecraft.world.entity.PathfinderMob;
-public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.animal.golem.CopperGolem;
+public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     private final GolemType golemType;
-    private static final EntityDataAccessor<Integer> XP_SCORE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> XP_SCORE = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleContainer inventory = new SimpleContainer(9);
     private final SimpleContainer furnaceInventory = new SimpleContainer(3);
@@ -136,31 +139,31 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         }
     };
 
-    private static final EntityDataAccessor<Optional<BlockPos>> FISHING_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
-    private static final EntityDataAccessor<Optional<BlockPos>> DEBUG_TARGET = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
-    private static final EntityDataAccessor<Integer> SELECTED_PATTERN = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> WALL_WIDTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> WALL_LENGTH = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Boolean> BUILDING_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> LAMP_ON = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> STRIPPED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Optional<BlockPos>> FISHING_TARGET = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Optional<BlockPos>> DEBUG_TARGET = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<Integer> SELECTED_PATTERN = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> WALL_WIDTH = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> WALL_LENGTH = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> BUILDING_STARTED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> LAMP_ON = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> STRIPPED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
     private int attackCooldown = 0;
-    private static final EntityDataAccessor<ItemStack> SELECTED_BUY_ITEM = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.ITEM_STACK);
-    private static final EntityDataAccessor<String> SCHEMATIC_NAME = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
-    private static final EntityDataAccessor<Integer> MINING_DIRECTION = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Boolean> SMELTING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> JUKEBOX_PLAYING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> JUKEBOX_SHUFFLE = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> JUKEBOX_REPEAT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<ItemStack> SELECTED_BUY_ITEM = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.ITEM_STACK);
+    private static final EntityDataAccessor<String> SCHEMATIC_NAME = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> MINING_DIRECTION = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> SMELTING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_PLAYING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_SHUFFLE = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> JUKEBOX_REPEAT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
 
     // Animation state syncing (server -> client)
-    private static final EntityDataAccessor<Integer> ANIMATION_ID = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ANIMATION_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ANIMATION_START_TICKS = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Boolean> REDSTONE_PROGRAM_STARTED = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Integer> DELETED_ITEMS_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> GOLD_TRADE_COUNT = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<String> OWNER_UUID_STRING = SyncedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> ANIMATION_ID = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ANIMATION_TICKS = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ANIMATION_START_TICKS = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> REDSTONE_PROGRAM_STARTED = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DELETED_ITEMS_COUNT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> GOLD_TRADE_COUNT = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> OWNER_UUID_STRING = SynchedEntityData.defineId(UtilityGolem.class, EntityDataSerializers.STRING);
 
     public record RedstoneInteraction(BlockPos pos, int interval) {}
     private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
@@ -174,7 +177,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     public void setRedstoneProgram(List<RedstoneInteraction> program) {
         this.redstoneProgram.clear();
         this.redstoneProgram.addAll(program);
-        if (currentInteractionIndex >= this.redstoneProgram.getContainerSize()) {
+        if (currentInteractionIndex >= this.redstoneProgram.size()) {
             currentInteractionIndex = 0;
         }
     }
@@ -263,7 +266,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     }
 
     @Override
-    protected void defineSynchedData(SyncedEntityData.Builder builder) {
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(XP_SCORE, 0);
         builder.define(FISHING_TARGET, Optional.empty());
@@ -350,7 +353,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                 if (!world.isClientSide()) {
                     List<Player> players = world.getEntitiesOfClass(Player.class, this.getBoundingBox().inflate(16.0D), player -> true);
                     for (Player player : players) {
-                        player.displayClientMessage(Component.literal("[DEBUG] " + message), false);
+                        player.sendOverlayMessage(Component.literal("[DEBUG] " + message));
                     }
                 }
             }
@@ -471,7 +474,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
     public void addDiscoveredTrade(ItemStack stack) {
         for (ItemStack s : discoveredTrades) {
-            if (ItemStack.areItemsAndComponentsEqual(s, stack)) return;
+            if (ItemStack.isSameItemSameComponents(s, stack)) return;
         }
         discoveredTrades.add(stack.copy());
         if (!this.level().isClientSide()) {
@@ -486,21 +489,21 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     }
 
     public void setFishingTarget(@Nullable BlockPos pos) {
-        this.getSyncedEntityData().set(FISHING_TARGET, Optional.ofNullable(pos));
+        this.getEntityData().set(FISHING_TARGET, Optional.ofNullable(pos));
     }
 
     @Nullable
     public BlockPos getFishingTarget() {
-        return this.getSyncedEntityData().get(FISHING_TARGET).orElse(null);
+        return this.getEntityData().get(FISHING_TARGET).orElse(null);
     }
 
     public void setDebugTarget(@Nullable BlockPos pos) {
-        this.getSyncedEntityData().set(DEBUG_TARGET, Optional.ofNullable(pos));
+        this.getEntityData().set(DEBUG_TARGET, Optional.ofNullable(pos));
     }
 
     @Nullable
     public BlockPos getDebugTarget() {
-        return this.getSyncedEntityData().get(DEBUG_TARGET).orElse(null);
+        return this.getEntityData().get(DEBUG_TARGET).orElse(null);
     }
 
     public boolean isBlacklisted(BlockPos pos) {
@@ -528,7 +531,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
     @Override
     public void die(net.minecraft.world.damagesource.DamageSource source) {
-        super.onDeath(source);
+        super.die(source);
         if (!this.level().isClientSide()) {
             removeLight();
 
@@ -541,9 +544,9 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
             if (this.golemType == GolemType.JUKEBOX) {
                 BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.blockPosition();
-                this.level().syncLevelEvent(null, 1010, stopPos, 0); // LevelEvent.JUKEBOX_STOPS_PLAYING is 1010
+                this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
                 if (!this.currentlyPlayingStack.isEmpty()) {
-                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
+                    JukeboxPlayable playable = this.currentlyPlayingStack.getComponents().get(DataComponents.JUKEBOX_PLAYABLE);
                     if (playable != null) {
                         playable.song().resolveEntry(this.level().registryAccess()).ifPresent(songEntry -> {
                             stopMusicSound();
@@ -560,21 +563,21 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
             // uses HELD_ITEM_SLOT (MAINHAND). We must drop it manually.
             ItemStack heldItem = this.getHeldItem();
             if (!heldItem.isEmpty()) {
-                net.minecraft.world.level.block.Block.dropStack(this.level(), this.blockPosition(), heldItem.copy());
+                this.spawnAtLocation((ServerLevel)this.level(), heldItem.copy());
                 this.setHeldItem(ItemStack.EMPTY);
             }
             
             for (int i = 0; i < this.getInventory().getContainerSize(); i++) {
                 ItemStack stack = this.getInventory().getItem(i);
                 if (!stack.isEmpty()) {
-                    net.minecraft.world.level.block.Block.dropStack(this.level(), this.blockPosition(), stack.copy());
+                    this.spawnAtLocation((ServerLevel)this.level(), stack.copy());
                     this.inventory.setItem(i, ItemStack.EMPTY);
                 }
             }
             for (int i = 0; i < this.furnaceInventory.getContainerSize(); i++) {
                 ItemStack stack = this.furnaceInventory.getItem(i);
                 if (!stack.isEmpty()) {
-                    net.minecraft.world.level.block.Block.dropStack(this.level(), this.blockPosition(), stack.copy());
+                    this.spawnAtLocation((ServerLevel)this.level(), stack.copy());
                     this.furnaceInventory.setItem(i, ItemStack.EMPTY);
                 }
             }
@@ -583,57 +586,54 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
     @Override
     protected void customServerAiStep(net.minecraft.server.level.ServerLevel world) {
-        // Skip UtilityGolemEntity.mobTick which triggers brain.tick and UtilityGolemBrain.updateActivity
-        // but call super.mobTick in Mob to ensure target management and other base behaviors work correctly.
-        super.mobTick(world);
+        // Skip UtilityGolemEntity.customServerAiStep which triggers brain.tick and UtilityGolemBrain.updateActivity
+        // but call super.customServerAiStep in Mob to ensure target management and other base behaviors work correctly.
+        super.customServerAiStep(world);
         
-        // Proactively clear target if dead or removed, as super.mobTick might be slow or skip it in some conditions.
+        // Proactively clear target if dead or removed, as super.customServerAiStep might be slow or skip it in some conditions.
         net.minecraft.world.entity.LivingEntity target = this.getTarget();
-        if (target != null && (target.isDead() || target.isRemoved())) {
+        if (target != null && (target.isDeadOrDying() || target.isRemoved())) {
             this.setTarget(null);
         }
 
-        // Proactively prevent any vanilla UtilityGolem container targeting each tick
-        this.resetTargetContainerPos();
+        // Connection to the library's CopperGolem AI logic
+        net.minecraft.world.entity.animal.golem.CopperGolemAi.updateActivity(this);
     }
 
     @Override
-    protected net.minecraft.world.entity.ai.Brain.Profile<UtilityGolem> brainProvider() {
-        // Return an empty brain profile to ensure the copper golem brain is never initialized
-        return net.minecraft.world.entity.ai.Brain.createProfile(java.util.Collections.emptyList(), java.util.Collections.emptyList());
+    protected Brain.Provider<? extends UtilityGolem> brainProvider() {
+        return Brain.provider(java.util.Collections.emptyList());
     }
 
     @Override
-    protected net.minecraft.world.entity.ai.Brain<?> makeBrain(com.mojang.serialization.Dynamic<?> dynamic) {
-        // Return an empty brain to bypass any brain-based AI from UtilityGolemEntity
-        return this.brainProvider().deserialize(dynamic);
+    protected net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem> makeBrain(Brain.Packed packed) {
+        return (net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem>)(Object)this.brainProvider().makeBrain((UtilityGolem)(Object)this, packed);
     }
 
     @Override
-    public net.minecraft.world.entity.ai.Brain<UtilityGolem> getBrain() {
-        return (net.minecraft.world.entity.ai.Brain<UtilityGolem>) super.getBrain();
+    public net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem> getBrain() {
+        return (net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem>) super.getBrain();
     }
 
-    @Override
     public void tick() {
         if (this.golemType == GolemType.BAMBOO && !this.level().isClientSide()) {
-            ItemStack boots = this.getEquippedStack(EquipmentSlot.FEET);
+            ItemStack boots = this.getItemBySlot(EquipmentSlot.FEET);
             if (!boots.isEmpty()) {
                 // In 1.21.1, Enchantments are handled via Registry. 
                 // We need to check if the boots have the soul speed enchantment.
-                int soulSpeedLevel = EnchantmentHelper.getLevel(this.level().registryAccess().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.SOUL_SPEED), boots);
+                int soulSpeedLevel = EnchantmentHelper.getEnchantmentLevel(this.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SOUL_SPEED), this);
                 if (soulSpeedLevel > 0) {
-                    BlockState standingOn = this.level().getBlockState(this.blockPosition().down());
+                    BlockState standingOn = this.level().getBlockState(this.blockPosition().below());
                     if (standingOn.is(Blocks.SOUL_SAND) || standingOn.is(Blocks.SOUL_SOIL)) {
-                        this.getAttributeInstance(Attributes.MOVEMENT_SPEED).addTemporaryModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(new Identifier("utility-golems", "soul_speed_boost"), 0.05D + 0.01D * (double)soulSpeedLevel, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+                        this.getAttribute(Attributes.MOVEMENT_SPEED).addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(Identifier.fromNamespaceAndPath("utility-golems", "soul_speed_boost"), 0.05D + 0.01D * (double)soulSpeedLevel, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
                     } else {
-                        this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(new Identifier("utility-golems", "soul_speed_boost"));
+                        this.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(Identifier.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
                     }
                 } else {
-                    this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(new Identifier("utility-golems", "soul_speed_boost"));
+                    this.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(Identifier.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
                 }
-            } else {
-                this.getAttributeInstance(Attributes.MOVEMENT_SPEED).removeModifier(new Identifier("utility-golems", "soul_speed_boost"));
+            } else if (this.golemType == GolemType.BAMBOO) {
+                this.getAttribute(Attributes.MOVEMENT_SPEED).removeModifier(Identifier.fromNamespaceAndPath("utility-golems", "soul_speed_boost"));
             }
         }
 
@@ -643,7 +643,9 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         }
         // Proactively prevent any vanilla UtilityGolem container targeting each tick (server-side)
         if (!this.level().isClientSide()) {
-            this.resetTargetContainerPos();
+            if (this instanceof net.minecraft.world.entity.animal.golem.CopperGolem copper) {
+                copper.clearOpenedChestPos();
+            }
         }
 
         super.tick();
@@ -655,8 +657,8 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (!this.level().isClientSide()) {
             Component customName = this.getCustomName();
             boolean isDebug = this.hasCustomName() && customName != null && customName.getString().equalsIgnoreCase("debug");
-            if (this.isGlowing() != isDebug) {
-                this.setGlowing(isDebug);
+            if (this.isCurrentlyGlowing() != isDebug) {
+                this.setGlowingTag(isDebug);
             }
         }
 
@@ -665,10 +667,10 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
             if (this.jukeboxCooldown == 0 && !this.currentlyPlayingStack.isEmpty()) {
                 if (!this.level().isClientSide()) {
                     BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.blockPosition();
-                    this.level().syncLevelEvent(null, LevelEvent.JUKEBOX_STOPS_PLAYING, stopPos, 0);
+                    this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
                     
                     // Stop the music sound if it was playing via playSound
-                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
+                    JukeboxPlayable playable = this.currentlyPlayingStack.getComponents().get(DataComponents.JUKEBOX_PLAYABLE);
                     if (playable != null) {
                         playable.song().resolveEntry(this.level().registryAccess()).ifPresent(songEntry -> {
                             stopMusicSound();
@@ -676,9 +678,9 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                     }
 
                     if (this.golemType == GolemType.JUKEBOX) {
-                        Player player = this.level().getClosestPlayer(this, 10.0D);
+                        Player player = this.level().getNearestPlayer(this, 10.0D);
                         if (player != null) {
-                            player.dropItem(this.currentlyPlayingStack.copy(), false);
+                            player.drop(this.currentlyPlayingStack.copy(), false);
                         } else {
                             this.level().addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), this.currentlyPlayingStack.copy()));
                         }
@@ -690,14 +692,14 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                 }
             }
             if (!this.level().isClientSide() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
-                ((net.minecraft.server.level.ServerLevel)this.level()).spawnParticles(ParticleTypes.NOTE, this.getParticleX(0.5D), this.getRandomBodyY() + 0.5D, this.getParticleZ(0.5D), 1, 0, 0, 0, (double)this.getRandom().nextInt(24) / 24.0D);
+                ((net.minecraft.server.level.ServerLevel)this.level()).sendParticles(ParticleTypes.NOTE, this.getRandomX(0.5D), this.getRandomY() + 0.5D, this.getRandomZ(0.5D), 1, 0, 0, 0, (double)this.getRandom().nextInt(24) / 24.0D);
             }
         }
         if (!this.level().isClientSide()) {
             // Update animation timer server-side
-            int t = this.syncedEntityData.get(ANIMATION_TICKS);
+            int t = this.getEntityData().get(ANIMATION_TICKS);
             if (t > 0) {
-                this.syncedEntityData.set(ANIMATION_TICKS, t - 1);
+                this.getEntityData().set(ANIMATION_TICKS, t - 1);
                 if (t - 1 == 0) {
                     // Reset to idle when finished
                     this.setAnimation(GolemAnimation.IDLE, 0);
@@ -722,8 +724,8 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
             }
 
             // Cleanup old chorus planting data every 1 minute
-            if (this.level().getTime() % 1200 == 0) {
-                long currentTime = this.level().getTime();
+            if (this.level().getGameTime() % 1200 == 0) {
+                long currentTime = this.level().getGameTime();
                 this.plantedChorusFlowers.entrySet().removeIf(entry -> (currentTime - entry.getValue()) > 4800); // 4 minutes
             }
 
@@ -746,11 +748,11 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     }
 
     private void updateLightEmission(int lightLevel) {
-        BlockPos currentPos = this.blockPosition().up();
-        if (lastLightPos == null || !lastLightPos.equals(currentPos) || !this.level().getBlockState(lastLightPos).is(UGBlocks.LIGHT_BLOCK) || this.level().getBlockState(lastLightPos).get(LightBlock.LEVEL) != lightLevel) {
+        BlockPos currentPos = this.blockPosition().above();
+        if (lastLightPos == null || !lastLightPos.equals(currentPos) || !this.level().getBlockState(lastLightPos).is(UGBlocks.LIGHT_BLOCK) || this.level().getBlockState(lastLightPos).getValue(LightBlock.LEVEL) != lightLevel) {
             removeLight();
-            if (this.level().getBlockState(currentPos).isReplaceable()) {
-                this.level().setBlockState(currentPos, UGBlocks.LIGHT_BLOCK.getDefaultState().with(LightBlock.LEVEL, lightLevel));
+            if (this.level().getBlockState(currentPos).canBeReplaced()) {
+                this.level().setBlock(currentPos, UGBlocks.LIGHT_BLOCK.defaultBlockState().setValue(LightBlock.LEVEL, lightLevel), 3);
                 lastLightPos = currentPos;
             }
         }
@@ -764,7 +766,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     private void removeLight() {
         if (lastLightPos != null) {
             if (this.level().getBlockState(lastLightPos).is(UGBlocks.LIGHT_BLOCK)) {
-                this.level().setBlockState(lastLightPos, net.minecraft.world.level.block.Blocks.AIR.getDefaultState());
+                this.level().setBlock(lastLightPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
             }
             lastLightPos = null;
         }
@@ -781,7 +783,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
 
     @Override
     public boolean onClimbable() {
-        return super.isClimbing() || this.level().getBlockState(this.blockPosition()).isIn(net.minecraft.registry.tag.BlockTags.CLIMBABLE);
+        return super.isClimbing() || this.level().getBlockState(this.blockPosition()).isIn(net.minecraft.tags.BlockTags.CLIMBABLE);
     }
 
     private void tickFurnace() {
@@ -807,7 +809,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                         Item item = fuelStack.getItem();
                         fuelStack.shrink(1);
                         if (fuelStack.isEmpty()) {
-                            ItemStack itemRemainder = item.getRecipeRemainder();
+                            ItemStack itemRemainder = item.getCraftingRemainder().create();
                             this.furnaceInventory.setItem(1, itemRemainder);
                         }
                     }
@@ -830,7 +832,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         }
 
         if (wasBurning != this.burnTime > 0) {
-            this.syncedEntityData.set(SMELTING, this.burnTime > 0);
+            this.getEntityData().set(SMELTING, this.burnTime > 0);
         }
 
         if (this.burnTime > 0 && !getSmeltingResult(this.furnaceInventory.getItem(0)).isEmpty()) {
@@ -857,8 +859,8 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (output.isEmpty()) {
             this.furnaceInventory.setItem(2, result.copy());
             input.shrink(1);
-        } else if (ItemStack.areItemsAndComponentsEqual(output, result) && output.getCount() < output.getMaxCount()) {
-            output.increment(1);
+        } else if (ItemStack.isSameItemSameComponents(output, result) && output.getCount() < output.getMaxStackSize()) {
+            output.grow(1);
             input.shrink(1);
         }
     }
@@ -917,7 +919,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (input.is(Items.COBBLESTONE)) return new ItemStack(Items.STONE);
         if (input.is(Items.STONE)) return new ItemStack(Items.SMOOTH_STONE);
         if (input.is(Items.SAND) || input.is(Items.RED_SAND)) return new ItemStack(Items.GLASS);
-        if (input.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || input.is(Items.BAMBOO_BLOCK)) return new ItemStack(Items.CHARCOAL);
+        if (input.is(net.minecraft.tags.ItemTags.LOGS) || input.is(Items.BAMBOO_BLOCK)) return new ItemStack(Items.CHARCOAL);
         if (input.is(Items.PORKCHOP)) return new ItemStack(Items.COOKED_PORKCHOP);
         if (input.is(Items.BEEF)) return new ItemStack(Items.COOKED_BEEF);
         if (input.is(Items.CHICKEN)) return new ItemStack(Items.COOKED_CHICKEN);
@@ -944,7 +946,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (input.is(Items.COAL_ORE) || input.is(Items.DEEPSLATE_COAL_ORE)) return new ItemStack(Items.COAL);
         if (input.is(Items.NETHER_QUARTZ_ORE)) return new ItemStack(Items.QUARTZ);
         // Miscellaneous
-        if (input.isIn(net.minecraft.registry.tag.ItemTags.SAND)) return new ItemStack(Items.GLASS);
+        if (input.is(net.minecraft.tags.ItemTags.SAND)) return new ItemStack(Items.GLASS);
         if (input.is(Items.SEA_PICKLE)) return new ItemStack(Items.LIME_DYE);
 
         return ItemStack.EMPTY;
@@ -954,12 +956,12 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (stack.isEmpty()) return false;
         if (stack.is(Items.COAL) || stack.is(Items.CHARCOAL) || stack.is(Items.BLAZE_ROD) || stack.is(Items.LAVA_BUCKET)) return true;
         if (stack.is(Items.COAL_BLOCK) || stack.is(Items.DRIED_KELP_BLOCK)) return true;
-        if (stack.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || stack.isIn(net.minecraft.registry.tag.ItemTags.PLANKS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_SLABS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_STAIRS)) return true;
-        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_BUTTONS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_PRESSURE_PLATES) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_DOORS) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_TRAPDOORS)) return true;
-        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_FENCES) || stack.isIn(net.minecraft.registry.tag.ItemTags.FENCE_GATES)) return true;
+        if (stack.is(net.minecraft.tags.ItemTags.LOGS) || stack.is(net.minecraft.tags.ItemTags.PLANKS) || stack.is(net.minecraft.tags.ItemTags.WOODEN_SLABS) || stack.is(net.minecraft.tags.ItemTags.WOODEN_STAIRS)) return true;
+        if (stack.is(net.minecraft.tags.ItemTags.WOODEN_BUTTONS) || stack.is(net.minecraft.tags.ItemTags.WOODEN_PRESSURE_PLATES) || stack.is(net.minecraft.tags.ItemTags.WOODEN_DOORS) || stack.is(net.minecraft.tags.ItemTags.WOODEN_TRAPDOORS)) return true;
+        if (stack.is(net.minecraft.tags.ItemTags.WOODEN_FENCES) || stack.is(net.minecraft.tags.ItemTags.FENCE_GATES)) return true;
         if (stack.is(Items.STICK) || stack.is(Items.BOWL) || stack.is(Items.LADDER) || stack.is(Items.CRAFTING_TABLE) || stack.is(Items.BOOKSHELF) || stack.is(Items.CHEST) || stack.is(Items.TRAPPED_CHEST) || stack.is(Items.JUKEBOX) || stack.is(Items.DAYLIGHT_DETECTOR)) return true;
         if (stack.is(Items.BAMBOO) || stack.is(Items.SCAFFOLDING) || stack.is(Items.MANGROVE_PROPAGULE)) return true;
-        if (stack.isIn(net.minecraft.registry.tag.ItemTags.WOOL) || stack.isIn(net.minecraft.registry.tag.ItemTags.WOOL_CARPETS) || stack.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS) || stack.isIn(net.minecraft.registry.tag.ItemTags.BANNERS)) return true;
+        if (stack.is(net.minecraft.tags.ItemTags.WOOL) || stack.is(net.minecraft.tags.ItemTags.WOOL_CARPETS) || stack.is(net.minecraft.tags.ItemTags.SAPLINGS) || stack.is(net.minecraft.tags.ItemTags.BANNERS)) return true;
         return false;
     }
 
@@ -970,12 +972,12 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (fuel.is(Items.LAVA_BUCKET)) return 20000;
         if (fuel.is(Items.COAL_BLOCK)) return 16000;
         if (fuel.is(Items.DRIED_KELP_BLOCK)) return 4000;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.LOGS) || fuel.isIn(net.minecraft.registry.tag.ItemTags.PLANKS)) return 300;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_SLABS)) return 150;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_STAIRS)) return 300;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_FENCES) || fuel.isIn(net.minecraft.registry.tag.ItemTags.FENCE_GATES)) return 300;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_PRESSURE_PLATES)) return 300;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_TRAPDOORS)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.LOGS) || fuel.is(net.minecraft.tags.ItemTags.PLANKS)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_SLABS)) return 150;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_STAIRS)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_FENCES) || fuel.is(net.minecraft.tags.ItemTags.FENCE_GATES)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_PRESSURE_PLATES)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_TRAPDOORS)) return 300;
         if (fuel.is(Items.STICK)) return 100;
         if (fuel.is(Items.BOWL)) return 100;
         if (fuel.is(Items.LADDER)) return 300;
@@ -987,19 +989,19 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (fuel.is(Items.BAMBOO)) return 100;
         if (fuel.is(Items.SCAFFOLDING)) return 400;
         if (fuel.is(Items.MANGROVE_PROPAGULE)) return 100;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOODEN_BUTTONS)) return 100;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOOL)) return 100;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.WOOL_CARPETS)) return 67;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.SAPLINGS)) return 100;
-        if (fuel.isIn(net.minecraft.registry.tag.ItemTags.BANNERS)) return 300;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOODEN_BUTTONS)) return 100;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOOL)) return 100;
+        if (fuel.is(net.minecraft.tags.ItemTags.WOOL_CARPETS)) return 67;
+        if (fuel.is(net.minecraft.tags.ItemTags.SAPLINGS)) return 100;
+        if (fuel.is(net.minecraft.tags.ItemTags.BANNERS)) return 300;
         return 0;
     }
 
     public void stopMusicSound() {
-        if (!this.level().isClientSide() && this.level() instanceof net.minecraft.server.level.ServerLevel) {
-            StopSoundS2CPacket stopPacket = new StopSoundS2CPacket(null, SoundCategory.RECORDS);
+        if (!this.level().isClientSide() && this.level() instanceof net.minecraft.server.level.ServerLevel world) {
+            net.minecraft.network.protocol.game.ClientboundStopSoundPacket stopPacket = new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(null, net.minecraft.sounds.SoundSource.RECORDS);
             for (ServerPlayer player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(this)) {
-                player.connection.sendPacket(stopPacket);
+                player.connection.send(stopPacket);
             }
         }
     }
@@ -1007,7 +1009,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     public void stopJukebox() {
         this.stopMusicSound();
         if (this.jukeboxStartPos != null) {
-            this.level().syncLevelEvent(null, net.minecraft.world.level.LevelEvent.JUKEBOX_STOPS_PLAYING, this.jukeboxStartPos, 0);
+            this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, this.jukeboxStartPos, 0);
         }
         this.currentlyPlayingStack = ItemStack.EMPTY;
         this.jukeboxCooldown = 0;
@@ -1093,8 +1095,8 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                     
                     if (!this.level().isClientSide()) {
                         this.jukeboxStartPos = this.blockPosition();
-                        this.level().syncLevelEvent(null, net.minecraft.world.level.LevelEvent.JUKEBOX_STARTS_PLAYING, this.jukeboxStartPos, Item.getRawId(this.currentlyPlayingStack.getItem()));
-                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.value().soundEvent().value(), SoundCategory.RECORDS, 3.0F, 1.0F);
+                        this.level().levelEvent(null, net.minecraft.world.level.block.LevelEvent.SOUND_PLAY_JUKEBOX_SONG, this.jukeboxStartPos, net.minecraft.core.registries.BuiltInRegistries.ITEM.getId(this.currentlyPlayingStack.getItem()));
+                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), songEntry.soundEvent().value(), SoundSource.RECORDS, 3.0F, 1.0F);
                         this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                     }
 
@@ -1174,7 +1176,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
             if (this.golemType == GolemType.LAMP) {
                 if (!player.level().isClientSide()) {
                     this.setLampOn(!this.isLampOn());
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundCategory.BLOCKS, 0.5F, 1.2F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BLOCK_DISPENSER_FAIL, SoundSource.BLOCKS, 0.5F, 1.2F);
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1193,7 +1195,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                             player.dropItem(wrench, false);
                         }
                         this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
+                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
                     }
                     return InteractionResult.SUCCESS;
                 }
@@ -1206,7 +1208,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                         player.dropItem(golemStack, false);
                     }
                     this.setHeldItem(ItemStack.EMPTY);
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, (this.getRandom().nextFloat() - this.getRandom().nextFloat()) * 0.7F + 1.0F);
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -1238,7 +1240,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                         statueBe.setCustomName(this.getCustomName());
                     }
                 }
-                this.level().playSound(null, pos, SoundEvents.ENTITY_COPPER_GOLEM_BECOME_STATUE, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                this.level().playSound(null, pos, SoundEvents.ENTITY_COPPER_GOLEM_BECOME_STATUE, SoundSource.BLOCKS, 1.0F, 1.0F);
                 this.discard();
             }
             return InteractionResult.SUCCESS;
@@ -1247,7 +1249,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (this.golemType == GolemType.BAMBOO && !this.isStripped() && isAxe(playerStack)) {
             if (!player.level().isClientSide()) {
                 this.setStripped(true);
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_AXE_STRIP, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_AXE_STRIP, SoundSource.NEUTRAL, 1.0F, 1.0F);
                 if (!player.getAbilities().creativeMode) {
                     playerStack.damage(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                 }
@@ -1339,7 +1341,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                     if (!player.getAbilities().creativeMode) {
                         playerStack.damage(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
                     }
-                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_IRON_GOLEM_REPAIR, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_IRON_GOLEM_REPAIR, SoundSource.NEUTRAL, 1.0F, 1.0F);
                     for (int i = 0; i < 7; ++i) {
                         double d = this.getRandom().nextGaussian() * 0.02;
                         double e = this.getRandom().nextGaussian() * 0.02;
@@ -1759,8 +1761,8 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     }
 
     @Override
-    public EntityData finalizeSpawn(ServerLevelAccess world, DifficultyInstance difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
-        EntityData data = super.finalizeSpawn(world, difficulty, spawnReason, entityData);
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor world, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData entityData) {
+        SpawnGroupData data = super.finalizeSpawn(world, difficulty, spawnReason, entityData);
 
         // Equip items based on type
         ItemStack item = ItemStack.EMPTY;
@@ -1862,14 +1864,14 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                 net.minecraft.world.phys.Vec3 vec3d = targetPos.subtract(myPos).normalize().multiply(1.5, 0.1, 1.5);
                 this.addVelocity(vec3d.x, vec3d.y + 0.2, vec3d.z);
                 this.attackCooldown = 40; // 2 seconds cooldown
-                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundCategory(), 1.0f, 1.0f);
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
             } else if (isAxe(heldItem)) {
                 this.attackCooldown = 30; // 1.5 seconds cooldown
             } else if (isMace(heldItem)) {
                 // Mace jump attack
                 this.addVelocity(0, 0.6, 0);
                 this.attackCooldown = 60; // 3 seconds cooldown
-                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundCategory(), 1.0f, 1.0f);
+                world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, this.getSoundSource(), 1.0f, 1.0f);
             }
         }
 
@@ -1901,14 +1903,14 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
         if (success) {
             if (target instanceof net.minecraft.world.entity.LivingEntity livingTarget) {
                 // Apply knockback enchantment
-                int knockbackLevel = EnchantmentHelper.getLevel(world.registryAccess().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
+                int knockbackLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
                 if (knockbackLevel > 0) {
-                    livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYaw() * (Math.PI / 180.0)), -Math.cos(this.getYaw() * (Math.PI / 180.0)));
-                    this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
+                    livingTarget.takeKnockback((float) knockbackLevel * 0.5f, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
+                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
                 }
 
                 // Apply fire aspect enchantment
-                int fireAspectLevel = EnchantmentHelper.getLevel(world.registryAccess().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), heldItem);
+                int fireAspectLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.FIRE_ASPECT), heldItem);
                 if (fireAspectLevel > 0) {
                     livingTarget.setOnFireFor(fireAspectLevel * 4);
                 }
@@ -1951,7 +1953,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
             livingEntity.damage(world, source, sweepingDamage);
         }
         
-        world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, this.getSoundCategory(), 1.0f, 1.0f);
+        world.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, this.getSoundSource(), 1.0f, 1.0f);
     }
 
     @Override
@@ -1961,7 +1963,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
                 this.debugLog("Targeting " + target.getType().getName().getString() + " at " + target.blockPosition().toShortString() + " (HP: " + (int)target.getHealth() + "/" + (int)target.getMaxHealth() + ")");
             } else if (this.getTarget() != null) {
                 net.minecraft.world.entity.LivingEntity oldTarget = this.getTarget();
-                this.debugLog("Target cleared (null). Was " + oldTarget.getType().getName().getString() + " (Dead: " + oldTarget.isDead() + ", Removed: " + oldTarget.isRemoved() + ")");
+                this.debugLog("Target cleared (null). Was " + oldTarget.getType().getName().getString() + " (Dead: " + oldTarget.isDeadOrDying() + ", Removed: " + oldTarget.isRemoved() + ")");
             }
         }
         super.setTarget(target);
@@ -1976,7 +1978,7 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     @Override
     public boolean canAttack(net.minecraft.world.entity.LivingEntity target) {
         if (target instanceof net.minecraft.entity.passive.AllayEntity) return false;
-        if (target.isDead() || target.isRemoved()) return false;
+        if (target.isDeadOrDying() || target.isRemoved()) return false;
         
         // Netherite and Ancient golems only target hostile mobs
         if (this.golemType == GolemType.NETHERITE || this.golemType == GolemType.ANCIENT) {
@@ -2011,12 +2013,11 @@ public class UtilityGolem extends PathfinderMob implements InventoryCarrier {
     }
 
     public ItemStack getHeldItem() {
-        return this.getEquippedStack(HELD_ITEM_SLOT);
+        return this.getItemBySlot(HELD_ITEM_SLOT);
     }
 
     public void setHeldItem(ItemStack stack) {
-        this.equipStack(HELD_ITEM_SLOT, stack);
-        updateAttackDamage();
+        this.setItemSlot(HELD_ITEM_SLOT, stack);
     }
 
     private void updateAttackDamage() {

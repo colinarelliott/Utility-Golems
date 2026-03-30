@@ -12,8 +12,8 @@ import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
 public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu> {
-    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/dispenser.png");
-    private static final Identifier GENERIC_54_TEXTURE = new Identifier("minecraft", "textures/gui/container/generic_54.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/dispenser.png");
+    private static final Identifier GENERIC_54_TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
     private Button shuffleButton;
     private Button repeatButton;
     private Button playStopButton;

@@ -50,12 +50,12 @@ public class GolemChestMenu extends AbstractContainerMenu {
     }
 
     public int getRows() {
-        return this.getInventory().getContainerSize() / 9;
+        return this.inventory.getContainerSize() / 9;
     }
 
     @Override
     public boolean stillValid(Player player) {
-        return this.inventory;stillValid(player);
+        return this.inventory.stillValid(player);
     }
 
     @Override

@@ -32,7 +32,7 @@ public class SpongeGolemEntityRenderer extends UtilityGolemRenderer {
     }
 
     @Override
-    public void extractRenderState(net.minecraft.world.entity.animal.golem.UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
+    public void extractRenderState(rehdpanda.utilitygolems.UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
         super.extractRenderState(entity, state, tickDelta);
         if (entity instanceof UtilityGolem utilityGolem && state instanceof SpongeGolemEntityRenderState spongeState) {
             spongeState.fishingTarget = utilityGolem.getFishingTarget();

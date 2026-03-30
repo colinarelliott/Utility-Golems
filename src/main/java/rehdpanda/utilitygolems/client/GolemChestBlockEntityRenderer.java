@@ -34,9 +34,9 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
 
     static {
         for (GolemType type : GolemType.values()) {
-            SINGLE_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
-            LEFT_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
-            RIGHT_TEXTURES.put(type, new Identifier("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
+            SINGLE_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
+            LEFT_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
+            RIGHT_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
         }
     }
 
@@ -75,13 +75,13 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
 
         Identifier identifier = switch (state.chestType) {
             case SINGLE -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
                     : SINGLE_TEXTURES.get(state.golemType);
             case LEFT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
                     : LEFT_TEXTURES.get(state.golemType);
             case RIGHT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? new Identifier("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
                     : RIGHT_TEXTURES.get(state.golemType);
         };
         if (identifier == null) {

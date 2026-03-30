@@ -111,7 +111,7 @@ public class SchematicLoader {
                     // InteractionHandle possible minecraft: prefix
                     if (!blockName.contains(":")) blockName = "minecraft:" + blockName;
 
-                    Identifier idf = new Identifier(blockName);
+                    Identifier idf = Identifier.parse(blockName);
                     if (idf != null) {
                         Block block = BuiltInRegistries.BLOCK.getValue(idf);
                         palette.put(id, block);

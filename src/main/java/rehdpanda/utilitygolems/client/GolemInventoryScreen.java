@@ -17,7 +17,7 @@ import rehdpanda.utilitygolems.UtilityGolem;
  * Draws the getInventory() screen for golems
  */
 public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventoryMenu> {
-    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/dispenser.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/dispenser.png");
 
     public GolemInventoryScreen(GolemInventoryMenu handler, Inventory inventory, Component title) {
         super(handler, getInventory(), title);
@@ -160,7 +160,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
         for (int i = 0; i < Math.min(maxTrades, trades.getContainerSize() - emeraldScrollOffset); i++) {
             final int index = i + emeraldScrollOffset;
             ItemStack stack = trades.get(index);
-            boolean isSelected = ItemStack.areItemsAndComponentsEqual(stack, golem.getSelectedBuyItem());
+            boolean isSelected = ItemStack.isSameItemSameComponents(stack, golem.getSelectedBuyItem());
             
             this.addRenderableWidget(Button.builder(Component.literal(""), button -> {
                 if (isSelected) {
@@ -298,7 +298,7 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
             int iconY = topPos + 79;
             context.renderFakeItem(stack, iconX, iconY);
             
-            if (ItemStack.areItemsAndComponentsEqual(stack, golem.getSelectedBuyItem())) {
+            if (ItemStack.isSameItemSameComponents(stack, golem.getSelectedBuyItem())) {
                 context.fill(iconX - 1, iconY - 1, iconX + 17, iconY + 17, 0x40FFFFFF);
             }
         }

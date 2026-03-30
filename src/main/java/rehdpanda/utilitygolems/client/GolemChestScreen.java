@@ -8,7 +8,7 @@ import net.minecraft.resources.Identifier;
 import rehdpanda.utilitygolems.GolemChestMenu;
 
 public class GolemChestScreen extends AbstractContainerScreen<GolemChestMenu> {
-    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/generic_54.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
 
     public GolemChestScreen(GolemChestMenu handler, Inventory inventory, Component title) {
         super(handler, getInventory(), title);

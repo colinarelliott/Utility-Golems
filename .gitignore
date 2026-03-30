@@ -56,3 +56,4 @@ replay_*.log
 /UtilityGolemsItems.bbmodel
 /radle-version/daemon/9.2.1/registry.bin
 /radle-version/daemon/9.2.1/registry.bin.lock
+/libs/

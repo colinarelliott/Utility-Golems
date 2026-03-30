@@ -40,7 +40,7 @@ public class UGClient implements ClientModInitializer {
 
         ClientPlayNetworking.registerGlobalReceiver(UGInit.SyncDiscoveredTradesPayload.ID, (payload, context) -> {
             context.client().execute(() -> {
-                Entity entity = context.client().level.getEntity(payload.entityId());
+                Entity entity = context.client().level().getEntity(payload.entityId());
                 if (entity instanceof UtilityGolem golem) {
                     golem.getDiscoveredTrades().clear();
                     golem.getDiscoveredTrades().addAll(payload.trades());

@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMenu> {
-    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/gui/container/generic_54.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
     private final List<BlockPos> nearbyInteractables = new ArrayList<>();
     private int scrollOffset = 0;
     private EditAABB intervalField;

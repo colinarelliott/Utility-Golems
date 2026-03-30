@@ -146,7 +146,7 @@ public enum GolemType implements StringRepresentable {
     }
 
     public Identifier getComponenture() {
-        return new Identifier("utility-golems", texturePath);
+        return Identifier.fromNamespaceAndPath("utility-golems", texturePath);
     }
 
     public Block getChestBlock() {
