@@ -1,35 +1,5 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.world.entity.animal.equine.AbstractHorse;
-import net.minecraft.world.entity.animal.equine.Llama;
-import net.minecraft.world.entity.animal.feline.Cat;
-import net.minecraft.world.entity.animal.panda.Panda;
-import net.minecraft.world.entity.animal.wolf.Wolf;
-import net.minecraft.world.entity.animal.equine.Horse;
-import net.minecraft.world.entity.animal.equine.Donkey;
-import net.minecraft.world.entity.animal.equine.Mule;
-import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.animal.chicken.Chicken;
-import net.minecraft.world.entity.animal.cow.Cow;
-import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.cow.MushroomCow;
-import net.minecraft.world.entity.animal.polarbear.PolarBear;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
-import net.minecraft.world.entity.animal.golem.SnowGolem;
-import net.minecraft.world.entity.animal.turtle.Turtle;
-import net.minecraft.world.entity.animal.feline.Ocelot;
-import net.minecraft.world.entity.animal.fox.Fox;
-import net.minecraft.world.entity.animal.bee.Bee;
-import net.minecraft.world.entity.monster.Strider;
-import net.minecraft.world.entity.animal.armadillo.Armadillo;
-import net.minecraft.world.entity.animal.camel.Camel;
-import net.minecraft.world.entity.animal.frog.Frog;
-import net.minecraft.world.entity.animal.goat.Goat;
-import net.minecraft.world.entity.animal.sniffer.Sniffer;
-import net.minecraft.world.entity.animal.equine.ZombieHorse;
-import net.minecraft.world.entity.animal.equine.SkeletonHorse;
-import net.minecraft.world.entity.monster.piglin.Piglin;
-import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.npc.InventoryCarrier;
 import net.minecraft.world.level.block.state.BlockState;
@@ -40,10 +10,8 @@ import net.minecraft.world.item.JukeboxPlayable;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -52,7 +20,6 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.world.effect.MobEffectInstance;
-import rehdpanda.utilitygolems.UtilityGolem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
@@ -63,10 +30,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
@@ -84,7 +49,6 @@ import net.minecraft.world.entity.ai.Brain;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 // Base class for Utility Golems
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -97,7 +61,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleContainer inventory = new SimpleContainer(9);
     private final SimpleContainer furnaceInventory = new SimpleContainer(3);
-    private final SimpleContainer jukeboxInventory = new SimpleContainer(9);
+    private final SimpleContainer jukeboxInventory = new SimpleContainer(1);
     private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
     private BlockPos jukeboxStartPos = null;
@@ -1421,17 +1385,19 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             return InteractionResult.SUCCESS;
         }
 
-        player.openMenu(new net.minecraft.world.MenuProvider() {
-            @Override
-            public Component getDisplayName() {
-                return UtilityGolem.this.getDisplayName();
-            }
+        if (!player.level().isClientSide()) {
+            player.openMenu(new net.minecraft.world.MenuProvider() {
+                @Override
+                public Component getDisplayName() {
+                    return UtilityGolem.this.getDisplayName();
+                }
 
-            @Override
-            public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
-                return new GolemInventoryMenu(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
-            }
-        });
+                @Override
+                public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
+                    return new GolemInventoryMenu(syncId, playerInventory, UtilityGolem.this.inventory, UtilityGolem.this);
+                }
+            });
+        }
         return InteractionResult.SUCCESS;
     }
 

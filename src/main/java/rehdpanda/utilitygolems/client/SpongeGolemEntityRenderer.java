@@ -2,8 +2,6 @@ package rehdpanda.utilitygolems.client;
 
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import rehdpanda.utilitygolems.client.UtilityGolemRenderState;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -14,10 +12,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import rehdpanda.utilitygolems.UtilityGolem;
 import rehdpanda.utilitygolems.GolemType;
-import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.phys.Vec3;
 
 public class SpongeGolemEntityRenderer extends UtilityGolemRenderer {
     private static final Identifier BOBBER_TEXTURE = Identifier.withDefaultNamespace("textures/entity/fishing_hook.png");

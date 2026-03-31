@@ -1,6 +1,5 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -18,7 +17,6 @@ import com.mojang.math.Axis;
 import net.minecraft.world.phys.Vec3;
 import rehdpanda.utilitygolems.GolemChestBlockEntity;
 import rehdpanda.utilitygolems.GolemType;
-import rehdpanda.utilitygolems.UGInit;
 
 import java.util.HashMap;
 import java.util.Map;

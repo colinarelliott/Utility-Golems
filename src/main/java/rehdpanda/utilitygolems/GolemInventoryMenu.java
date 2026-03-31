@@ -4,7 +4,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -14,7 +13,7 @@ public class GolemInventoryMenu extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
     public GolemInventoryMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(27), null);
+        this(syncId, playerInventory, new SimpleContainer(9), null);
     }
 
     public GolemInventoryMenu(
@@ -26,12 +25,12 @@ public class GolemInventoryMenu extends AbstractContainerMenu {
         super(UGInit.GOLEM_SCREEN_HANDLER_TYPE, syncId);
         this.inventory = inventory;
         this.golem = golem;
-        checkContainerSize(inventory, 27);
+        checkContainerSize(inventory, 9);
         inventory.startOpen(playerInventory.player);
 
         int i;
         int j;
-        for (i = 0; i < 3; ++i) {
+        for (i = 0; i < 1; ++i) {
             for (j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
             }
@@ -60,11 +59,11 @@ public class GolemInventoryMenu extends AbstractContainerMenu {
         if (slot != null && slot.hasItem()) {
             ItemStack itemStack2 = slot.getItem();
             itemStack = itemStack2.copy();
-            if (index < 27) {
-                if (!this.moveItemStackTo(itemStack2, 27, this.slots.size(), true)) {
+            if (index < 9) {
+                if (!this.moveItemStackTo(itemStack2, 9, this.slots.size(), true)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.moveItemStackTo(itemStack2, 0, 27, false)) {
+            } else if (!this.moveItemStackTo(itemStack2, 0, 9, false)) {
                 return ItemStack.EMPTY;
             }
 

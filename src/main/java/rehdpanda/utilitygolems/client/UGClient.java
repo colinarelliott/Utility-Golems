@@ -1,26 +1,22 @@
 package rehdpanda.utilitygolems.client;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.network.chat.Component;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import rehdpanda.utilitygolems.GolemType;
 import rehdpanda.utilitygolems.UGBlocks;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
+
 public class UGClient implements ClientModInitializer {
 
     public static class ClientFabricBridge {
@@ -55,7 +51,11 @@ public class UGClient implements ClientModInitializer {
                     }
                     return null;
                 });
-                findMethod(networkingClass, "registerGlobalReceiver", 2).invoke(null, id, proxy);
+                try {
+                    findMethod(networkingClass, "registerGlobalReceiver", 2).invoke(null, id, proxy);
+                } catch (Exception e) {
+                    // Try to find if it's named differently in some versions
+                }
             } catch (Exception e) { e.printStackTrace(); }
         }
 

@@ -2,6 +2,7 @@ package rehdpanda.utilitygolems.client;
 
 import net.minecraft.client.renderer.entity.CopperGolemRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -21,7 +22,7 @@ public class UtilityGolemRenderer extends CopperGolemRenderer {
         this.type = type;
     }
 
-    public Identifier getTextureLocation(UtilityGolemRenderState state) {
+    public Identifier getTextureLocation(CopperGolemRenderState state) {
         if (state instanceof UtilityGolemRenderState renderState) {
             if (renderState.isLampOn && type == GolemType.LAMP) {
                 return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/lamp_golem_illuminated.png");
@@ -58,10 +59,11 @@ public class UtilityGolemRenderer extends CopperGolemRenderer {
 
     @Override
     protected RenderType getRenderType(CopperGolemRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
+        Identifier texture = getTextureLocation(state);
         if (state instanceof UtilityGolemRenderState renderState && renderState.isTinted) {
-            return super.getRenderType(state, showBody, true, showOutline);
+            return RenderTypes.entityTranslucent(texture);
         }
-        return super.getRenderType(state, showBody, translucent, showOutline);
+        return translucent ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
     }
 
     @Override

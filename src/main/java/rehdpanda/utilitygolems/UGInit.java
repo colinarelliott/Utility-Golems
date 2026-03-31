@@ -1,27 +1,19 @@
 package rehdpanda.utilitygolems;
-import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
@@ -32,6 +24,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.BiFunction;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.CommandSourceStack;
 import org.slf4j.Logger;
@@ -183,10 +179,15 @@ public class UGInit implements ModInitializer {
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
     public static class FabricBridge {
+        @FunctionalInterface
+        public interface TriConsumer<T, U, V> {
+            void accept(T t, U u, V v);
+        }
+
         public static void registerC2S(Object id, Object codec) {
             try {
                 Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
-                Object playC2S = registryClass.getMethod("playC2S").invoke(null);
+                Object playC2S = findMethod(registryClass, "playC2S", 0).invoke(null);
                 findMethod(playC2S.getClass(), "register", 2).invoke(playC2S, id, codec);
             } catch (Exception e) { e.printStackTrace(); }
         }
@@ -194,12 +195,12 @@ public class UGInit implements ModInitializer {
         public static void registerS2C(Object id, Object codec) {
             try {
                 Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
-                Object playS2C = registryClass.getMethod("playS2C").invoke(null);
+                Object playS2C = findMethod(registryClass, "playS2C", 0).invoke(null);
                 findMethod(playS2C.getClass(), "register", 2).invoke(playS2C, id, codec);
             } catch (Exception e) { e.printStackTrace(); }
         }
 
-        public static void registerReceiver(Object id, java.util.function.BiConsumer<Object, Object> handler) {
+        public static void registerReceiver(Object id, BiConsumer<Object, Object> handler) {
             try {
                 Class<?> receiverClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking");
                 Class<?> handlerClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$PlayPayloadHandler");
@@ -209,14 +210,25 @@ public class UGInit implements ModInitializer {
                     }
                     return null;
                 });
-                findMethod(receiverClass, "registerGlobalReceiver", 2).invoke(null, id, proxy);
+                try {
+                    findMethod(receiverClass, "registerGlobalReceiver", 2).invoke(null, id, proxy);
+                } catch (Exception e) {
+                    // Try to find if it's named differently in some versions
+                }
             } catch (Exception e) { e.printStackTrace(); }
         }
 
-        public static void modifyEntries(ResourceKey<CreativeModeTab> tab, java.util.function.Consumer<Object> consumer) {
+        public static void modifyEntries(Object tab, Consumer<Object> consumer) {
             try {
                 Class<?> eventsClass = Class.forName("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents");
-                Object event = findMethod(eventsClass, "modifyEntriesEvent", 1).invoke(null, tab);
+                Method modifyEntriesEvent = null;
+                try {
+                    modifyEntriesEvent = findMethod(eventsClass, "modifyEntriesEvent", 1);
+                } catch (Exception e) {
+                    // Try to find if it's named differently or has different parameters in some versions
+                }
+                if (modifyEntriesEvent == null) return;
+                Object event = modifyEntriesEvent.invoke(null, tab);
                 Class<?> modifyEntriesClass = Class.forName("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents$ModifyEntries");
                 Object proxy = Proxy.newProxyInstance(modifyEntriesClass.getClassLoader(), new Class[]{modifyEntriesClass}, (p, method, args) -> {
                     if (method.getName().equals("modify")) {
@@ -225,10 +237,12 @@ public class UGInit implements ModInitializer {
                     return null;
                 });
                 findMethod(event.getClass(), "register", 1).invoke(event, proxy);
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) { 
+                // Silently fail for now if class is missing to allow the rest of the mod to load
+            }
         }
 
-        public static void sendToPlayer(ServerPlayer player, Object payload) {
+        public static void sendToPlayer(Object player, Object payload) {
             try {
                 Class<?> networkingClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking");
                 findMethod(networkingClass, "send", 2).invoke(null, player, payload);
@@ -249,7 +263,7 @@ public class UGInit implements ModInitializer {
             } catch (Exception e) { e.printStackTrace(); }
         }
 
-        public static <T extends net.minecraft.world.level.block.entity.BlockEntity> net.minecraft.world.level.block.entity.BlockEntityType<T> createBlockEntityType(java.util.function.BiFunction<BlockPos, BlockState, T> factory, net.minecraft.world.level.block.Block... blocks) {
+        public static <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, net.minecraft.world.level.block.Block... blocks) {
             try {
                 Class<?> builderClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder");
                 Class<?> factoryClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder$Factory");
@@ -260,8 +274,22 @@ public class UGInit implements ModInitializer {
                     return null;
                 });
                 Object builder = findMethod(builderClass, "create", 2).invoke(null, factoryProxy, blocks);
-                return (net.minecraft.world.level.block.entity.BlockEntityType<T>) findMethod(builderClass, "build", 0).invoke(builder);
+                return (BlockEntityType<T>) findMethod(builderClass, "build", 0).invoke(builder);
             } catch (Exception e) { e.printStackTrace(); return null; }
+        }
+
+        public static void registerCommand(TriConsumer<Object, Object, Object> handler) {
+            try {
+                Class<?> callbackClass = Class.forName("net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback");
+                Object event = callbackClass.getField("EVENT").get(null);
+                Object proxy = Proxy.newProxyInstance(callbackClass.getClassLoader(), new Class[]{callbackClass}, (p, method, args) -> {
+                    if (method.getName().equals("register")) {
+                        handler.accept(args[0], args[1], args[2]);
+                    }
+                    return null;
+                });
+                findMethod(event.getClass(), "register", 1).invoke(event, proxy);
+            } catch (Exception e) { e.printStackTrace(); }
         }
 
         private static Method findMethod(Class<?> clazz, String name, int paramCount) {
@@ -437,7 +465,7 @@ public class UGInit implements ModInitializer {
 
 
         /// REGISTER DEBUG COMMANDS
-        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+        FabricBridge.registerCommand((dispatcher, registryAccess, environment) -> {
             ((com.mojang.brigadier.CommandDispatcher) (Object) dispatcher).register(
                     Commands.literal("golem")
                             .then(Commands.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())

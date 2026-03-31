@@ -4,7 +4,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -14,7 +13,7 @@ public class RedstoneGolemMenu extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
     public RedstoneGolemMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(18), null);
+        this(syncId, playerInventory, new SimpleContainer(9), null);
     }
 
     public RedstoneGolemMenu(int syncId, Inventory playerInventory, UtilityGolem golem) {
@@ -25,12 +24,12 @@ public class RedstoneGolemMenu extends AbstractContainerMenu {
         super(UGInit.REDSTONE_GOLEM_HANDLER, syncId);
         this.inventory = inventory;
         this.golem = golem;
-        checkContainerSize(inventory, 18);
+        checkContainerSize(inventory, 9);
         inventory.startOpen(playerInventory.player);
 
         int i;
         int j;
-        for (i = 0; i < 2; ++i) {
+        for (i = 0; i < 1; ++i) {
             for (j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
             }
@@ -59,11 +58,11 @@ public class RedstoneGolemMenu extends AbstractContainerMenu {
         if (slot != null && slot.hasItem()) {
             ItemStack itemStack2 = slot.getItem();
             itemStack = itemStack2.copy();
-            if (index < 18) {
-                if (!this.moveItemStackTo(itemStack2, 18, this.slots.size(), true)) {
+            if (index < 9) {
+                if (!this.moveItemStackTo(itemStack2, 9, this.slots.size(), true)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.moveItemStackTo(itemStack2, 0, 18, false)) {
+            } else if (!this.moveItemStackTo(itemStack2, 0, 9, false)) {
                 return ItemStack.EMPTY;
             }
 
