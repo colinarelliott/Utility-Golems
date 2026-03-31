@@ -1,6 +1,6 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
+import rehdpanda.utilitygolems.client.UtilityGolemRenderState;
 import net.minecraft.core.BlockPos;
 
 public class SpongeGolemEntityRenderState extends UtilityGolemRenderState {

@@ -1,11 +1,11 @@
 package rehdpanda.utilitygolems.client;
 
+import net.minecraft.client.renderer.entity.CopperGolemRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.entity.PathfinderMobRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.state.UtilityGolemRenderState;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.entity.state.CopperGolemRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
@@ -13,7 +13,7 @@ import rehdpanda.utilitygolems.GolemAnimation;
 import rehdpanda.utilitygolems.GolemType;
 import rehdpanda.utilitygolems.UtilityGolem;
 
-public class UtilityGolemRenderer extends PathfinderMobRenderer {
+public class UtilityGolemRenderer extends CopperGolemRenderer {
     private final GolemType type;
 
     public UtilityGolemRenderer(EntityRendererProvider.Context ctx, GolemType type) {
@@ -21,8 +21,7 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
         this.type = type;
     }
 
-    @Override
-    public Identifier getComponentureLocation(UtilityGolemRenderState state) {
+    public Identifier getTextureLocation(UtilityGolemRenderState state) {
         if (state instanceof UtilityGolemRenderState renderState) {
             if (renderState.isLampOn && type == GolemType.LAMP) {
                 return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/lamp_golem_illuminated.png");
@@ -34,15 +33,13 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
                 return Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/stripped_bamboo_golem.png");
             }
         }
-        return type.getComponenture();
+        return type.getTexture();
     }
 
-    @Override
     public UtilityGolemRenderState createRenderState() {
         return new UtilityGolemRenderState();
     }
 
-    @Override
     public void extractRenderState(UtilityGolem entity, UtilityGolemRenderState state, float tickDelta) {
         super.extractRenderState(entity, state, tickDelta);
         if (entity instanceof UtilityGolem utilityGolem && state instanceof UtilityGolemRenderState renderState) {
@@ -60,7 +57,7 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
     }
 
     @Override
-    protected RenderType getRenderType(UtilityGolemRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
+    protected RenderType getRenderType(CopperGolemRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
         if (state instanceof UtilityGolemRenderState renderState && renderState.isTinted) {
             return super.getRenderType(state, showBody, true, showOutline);
         }
@@ -68,7 +65,7 @@ public class UtilityGolemRenderer extends PathfinderMobRenderer {
     }
 
     @Override
-    public void submit(UtilityGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+    public void submit(CopperGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
         // Apply simple whole-body pose offsets based on current animation
         if (state instanceof UtilityGolemRenderState renderState) {
             float p = renderState.animationProgress;

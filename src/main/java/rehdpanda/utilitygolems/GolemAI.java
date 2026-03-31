@@ -1,129 +1,53 @@
-// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package rehdpanda.utilitygolems;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Vec3i;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.goal.Goal.Flag;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.chicken.Chicken;
-import net.minecraft.world.entity.animal.cow.Cow;
-import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
-import net.minecraft.world.entity.animal.equine.Donkey;
-import net.minecraft.world.entity.animal.equine.Horse;
 import net.minecraft.world.entity.animal.equine.Llama;
 import net.minecraft.world.entity.animal.feline.Cat;
 import net.minecraft.world.entity.animal.panda.Panda;
 import net.minecraft.world.entity.animal.wolf.Wolf;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.JukeboxPlayable;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.CocoaBlock;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.world.level.block.PressurePlateBlock;
-import net.minecraft.world.level.block.TntBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
-import net.minecraft.world.entity.animal.goat.Goat;
-import net.minecraft.world.entity.animal.equine.AbstractHorse;
-import net.minecraft.world.entity.animal.equine.Donkey;
-import net.minecraft.world.entity.animal.equine.Horse;
-import net.minecraft.world.entity.animal.equine.Llama;
-import net.minecraft.world.entity.animal.camel.Camel;
-import net.minecraft.world.entity.animal.sniffer.Sniffer;
-import net.minecraft.world.entity.animal.frog.Frog;
-import net.minecraft.world.entity.animal.armadillo.Armadillo;
-import net.minecraft.world.entity.animal.allay.Allay;
-import net.minecraft.world.entity.animal.chicken.Chicken;
-import net.minecraft.world.entity.animal.cow.Cow;
-import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.feline.Cat;
-import net.minecraft.world.entity.animal.wolf.Wolf;
-import net.minecraft.world.entity.animal.panda.Panda;
-import net.minecraft.world.entity.animal.fish.Pufferfish;
-import net.minecraft.world.entity.animal.fish.Salmon;
-import net.minecraft.world.entity.animal.fish.TropicalFish;
-import net.minecraft.world.entity.animal.fish.Cod;
-import net.minecraft.world.entity.animal.rabbit.Rabbit;
 import java.util.*;
-import java.util.function.Predicate;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.core.Holder;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
-import net.minecraft.network.chat.Component;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -5455,7 +5379,7 @@ public class GolemAI {
                 
                 // If the tool is efficient against this block, apply efficiency enchantment
                 if (speed > 1.0f && golem.level() instanceof ServerLevel serverLevel) {
-                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
+                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), tool);
                     if (efficiencyLevel > 0) {
                         speed += (float)(efficiencyLevel * efficiencyLevel + 1);
                     }
@@ -7761,7 +7685,7 @@ public class GolemAI {
                 if (stack.is(net.minecraft.world.item.Items.REPEATER)) {
                     if (golem.level().getBlockState(pos).canBeReplaced()) {
                         // Direction should be facing towards endPos
-                        Direction facing = Direction.fromHorizontalDegrees(golem.getYRot());
+                        Direction facing = net.minecraft.core.Direction.fromYRot(golem.getYRot());
                         golem.level().setBlock(pos, net.minecraft.world.level.block.Blocks.REPEATER.defaultBlockState().setValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING, facing), 3);
                         stack.shrink(1);
                         golem.level().playSound(null, pos, net.minecraft.sounds.SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -7809,9 +7733,9 @@ public class GolemAI {
                             Animal.class,
                             golem.getBoundingBox().inflate(16.0),
                             a -> {
-                                boolean ok = a.isAlive() && a.getBreedingAge() == 0 && !a.isInLove() && a.canEat() && isReadyForBreeding(a);
+                                boolean ok = a.isAlive() && a.getAge() == 0 && !a.isInLove() && a.canFallInLove() && isReadyForBreeding(a);
                                 if (!ok && golem.getRandom().nextInt(100) == 0) {
-                                    golem.debugLog("BreedAnimalsGoal: Animal " + a.getType().getDescriptionId() + " at " + a.blockPosition().toShortString() + " NOT READY: alive=" + a.isAlive() + ", tickCount=" + a.getBreedingAge() + ", inLove=" + a.isInLove() + ", canEat=" + a.canEat() + ", isReady=" + isReadyForBreeding(a));
+                                    golem.debugLog("BreedAnimalsGoal: Animal " + a.getType().getDescriptionId() + " at " + a.blockPosition().toShortString() + " NOT READY: alive=" + a.isAlive() + ", tickCount=" + a.getAge() + ", inLove=" + a.isInLove() + ", canEat=" + a.canFallInLove() + ", isReady=" + isReadyForBreeding(a));
                                 }
                                 return ok;
                             }
@@ -7889,7 +7813,7 @@ public class GolemAI {
         private boolean hasEnoughBambooNearby(Panda panda) {
             BlockPos pos = panda.blockPosition();
             int bambooCount = 0;
-            for (BlockPos p : BlockPos.iterate(pos.add(-5, -2, -5), pos.add(5, 2, 5))) {
+            for (BlockPos p : net.minecraft.core.BlockPos.betweenClosed(pos.offset(-5, -2, -5), pos.offset(5, 2, 5))) {
                 if (golem.level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.BAMBOO)) {
                     if (++bambooCount >= 8) return true;
                 }
@@ -7953,24 +7877,21 @@ public class GolemAI {
             ItemStack food = getBreedingItemFor(animalA);
             if (food.isEmpty() || food.getCount() < 2) return;
 
-            golem.setItemSlot(EquipmentSlot.MAINHAND, food.copy());
-
-            boolean isAxolotl = animalA instanceof net.minecraft.world.entity.animal.axolotl.Axolotl;
-
             // Consume 2 items (one for each parent)
             food.shrink(2);
 
-            if (isAxolotl) {
-                // Return buckets
-                ItemStack bucket = new ItemStack(net.minecraft.world.item.Items.BUCKET, 2);
-                if (!golem.getInventory().addItem(bucket).isEmpty()) {
-                    net.minecraft.world.level.block.Block.popResource(golem.level(), golem.blockPosition(), bucket);
-                }
+            // Amethyst golem assists with breeding: trigger vanilla love on parents
+            if (golem.level() instanceof ServerLevel serverLevel) {
+                animalA.setInLove(null);
+                animalB.setInLove(null);
+                // Visuals
+                Vec3 center = new Vec3((animalA.getX() + animalB.getX()) * 0.5, (animalA.getY() + animalB.getY()) * 0.5, (animalA.getZ() + animalB.getZ()) * 0.5);
+                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.HEART, center.x, center.y + 0.5, center.z, 7, 0.5, 0.5, 0.5, 0.05);
+                serverLevel.playSound(null, center.x, center.y, center.z, net.minecraft.sounds.SoundEvents.CHORUS_FLOWER_GROW, SoundSource.NEUTRAL, 0.7F, 1.2F);
             }
 
-            // Trigger vanilla breeding
-            animalA.setInLove(null);
-            animalB.setInLove(null);
+            // Short cooldown before attempting another breed action to avoid spamming
+            this.delay = 0;
         }
 
         private ItemStack getAnyBreedingItem() {
@@ -8125,7 +8046,7 @@ public class GolemAI {
                 
                 // If the tool is efficient against this block, apply efficiency enchantment
                 if (speed > 1.0f && golem.level() instanceof ServerLevel serverLevel) {
-                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
+                    int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), tool);
                     if (efficiencyLevel > 0) {
                         speed += (float)(efficiencyLevel * efficiencyLevel + 1);
                     }
@@ -8210,7 +8131,7 @@ public class GolemAI {
                 // If it's NOT part of 2x2, we still want to go to the base.
                 if (treeBase == null || !isPartOf2x2(closest, treeBase)) {
                     BlockPos base = closest;
-                    while (isLog(base.below()) && base.getY() > golem.level().getBottomY()) {
+                    while (isLog(base.below()) && base.getY() > golem.level().getMinY()) {
                         base = base.below();
                     }
                     closest = base;
@@ -8752,7 +8673,7 @@ public class GolemAI {
                 
                 ItemStack saplingStack = getSaplingFromInventory();
                 if (!saplingStack.isEmpty()) {
-                    Block saplingBlock = Block.getBlockFromItem(saplingStack.getItem());
+                    Block saplingBlock = net.minecraft.world.level.block.Block.byItem(saplingStack.getItem());
                     if (saplingBlock != net.minecraft.world.level.block.Blocks.AIR) {
                         golem.level().setBlock(targetPos, saplingBlock.defaultBlockState(), 3);
                         if (saplingBlock == net.minecraft.world.level.block.Blocks.CHORUS_FLOWER) {
@@ -8962,8 +8883,8 @@ public class GolemAI {
             // Piglin is ready if it's not currently admiring a gold ingot or holding one to admire.
             // When admiring, they hold the item in their main hand and have a specific NBT or AI state.
             // However, simply checking if they are holding gold is a good start.
-            ItemStack mainInteractionHand = piglin.getMainInteractionHandItem();
-            ItemStack offInteractionHand = piglin.getOffhandItem();
+            ItemStack mainInteractionHand = piglin.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND);
+            ItemStack offInteractionHand = piglin.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND);
             return !mainInteractionHand.is(net.minecraft.world.item.Items.GOLD_INGOT) && !offInteractionHand.is(net.minecraft.world.item.Items.GOLD_INGOT);
         }
 
@@ -9321,7 +9242,7 @@ public class GolemAI {
             for (int i = 0; i < golemInv.getContainerSize(); i++) {
                 ItemStack golemStack = golemInv.getItem(i);
                 if (!golemStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, golemStack)) {
-                    if (golemStack.getCount() < golemStack.getMaxCount()) {
+                    if (golemStack.getCount() < golemStack.getMaxStackSize()) {
                         return true;
                     }
                 }
@@ -9436,7 +9357,7 @@ public class GolemAI {
                         double px = targetPos.getX() + 0.5 + (golem.level().getRandom().nextDouble() - 0.5);
                         double py = targetPos.getY() + 0.5 + (golem.level().getRandom().nextDouble() - 0.5);
                         double pz = targetPos.getZ() + 0.5 + (golem.level().getRandom().nextDouble() - 0.5);
-                        serverLevel.spawnParticles(net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE, px, py, pz, 1, 0, 0.07, 0, 0);
+                        serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE, px, py, pz, 1, 0, 0.07, 0, 0.0);
                     }
                 }
 
@@ -9477,10 +9398,10 @@ public class GolemAI {
         private BlockPos findTargetHive() {
             BlockPos pos = golem.blockPosition();
             Level world = golem.level();
-            for (BlockPos testPos : BlockPos.iterate(pos.add(-8, -4, -8), pos.add(8, 4, 8))) {
+            for (BlockPos testPos : net.minecraft.core.BlockPos.betweenClosed(pos.offset(-8, -4, -8), pos.offset(8, 4, 8))) {
                 BlockState state = world.getBlockState(testPos);
                 if (isHive(state) && getHoneyLevel(state) >= 5) {
-                    return testPos.toImmutable();
+                    return testPos;
                 }
             }
             return null;
@@ -9491,7 +9412,7 @@ public class GolemAI {
         }
 
         private int getHoneyLevel(BlockState state) {
-            if (state.contains(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY)) {
+            if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY)) {
                 return state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY);
             }
             return 0;
@@ -9520,13 +9441,13 @@ public class GolemAI {
             if (golem.level().isClientSide()) return;
             
             golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
-            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.BLOCK_BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
             
             // Reset honey level without angering bees (simulate silk touch/smoke behavior)
             if (world instanceof ServerLevel serverLevel) {
                 // In vanilla, bees are calmed by smoke. We simulate this by directly setting state
                 // and ensuring no angry bees are spawned.
-                world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0, 3), 3);
+                world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0), 3);
                 
                 ItemStack honeycombs = new ItemStack(net.minecraft.world.item.Items.HONEYCOMB, 3);
                 if (!golem.getInventory().addItem(honeycombs).isEmpty()) {
@@ -9544,10 +9465,10 @@ public class GolemAI {
             if (golem.level().isClientSide()) return;
 
             golem.setAnimation(GolemAnimation.WITHDRAWING, 20);
-            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.ITEM_BOTTLE_FILL_DRAGONBREATH, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.playSound(null, pos, net.minecraft.sounds.SoundEvents.BOTTLE_FILL_DRAGONBREATH, SoundSource.BLOCKS, 1.0F, 1.0F);
 
             // Reset honey level
-            world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0, 3), 3);
+            world.setBlock(pos, state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY, 0), 3);
 
             // Consume bottle
             golem.getInventory().getItem(slot).shrink(1);
@@ -9759,7 +9680,7 @@ public class GolemAI {
                 case REPLACE:
                     int rx = (patternProgress % 5) - 2;
                     int rz = (patternProgress / 5) - 2;
-                    return startPos.add(rx, 0, rz);
+                    return startPos.offset(rx, 0, rz);
                 case TOWER:
                     // Build directly under the golem
                     return golem.blockPosition().below();
@@ -9776,7 +9697,7 @@ public class GolemAI {
                         int sy = schematic.indexToY(i);
                         int sz = schematic.indexToZ(i);
                         BlockPos rel = translateByFacing(sx, sy, sz, facing);
-                        BlockPos worldPos = schematicOrigin.add(rel.getX(), rel.getY(), rel.getZ());
+                        BlockPos worldPos = schematicOrigin.offset(rel.getX(), rel.getY(), rel.getZ());
                         // Check if already correct
                         if (golem.level().getBlockState(worldPos).is(block)) continue;
                         if (seen == patternProgress) {
@@ -9872,7 +9793,7 @@ public class GolemAI {
                 int sy = schematic.indexToY(i);
                 int sz = schematic.indexToZ(i);
                 BlockPos rel = translateByFacing(sx, sy, sz, facing);
-                BlockPos worldPos = schematicOrigin.add(rel.getX(), rel.getY(), rel.getZ());
+                BlockPos worldPos = schematicOrigin.offset(rel.getX(), rel.getY(), rel.getZ());
                 if (golem.level().getBlockState(worldPos).is(block)) continue;
                 if (seen == patternProgress) {
                     needed = block;
@@ -10002,7 +9923,7 @@ public class GolemAI {
 
         @Override
         public boolean canUse() {
-            ItemStack mainInteractionHand = golem.getEquippedStack(EquipmentSlot.MAINHAND);
+            ItemStack mainInteractionHand = golem.getItemBySlot(EquipmentSlot.MAINHAND);
             if (!mainInteractionHand.isEmpty() && mainInteractionHand.is(UGItems.WRENCH_ITEM)) {
                 return false;
             }
@@ -10151,7 +10072,7 @@ public class GolemAI {
 
                     // Efficiency enchantment increases amount of health that's healed
                     if (golem.level() instanceof ServerLevel serverLevel) {
-                        int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY));
+                        int efficiencyLevel = EnchantmentHelper.getItemEnchantmentLevel(serverLevel.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), stack);
                         if (efficiencyLevel > 0) {
                             healAmount += (efficiencyLevel * 1.0F); // Add 1.0 (half heart) per efficiency level
                         }
@@ -10159,10 +10080,10 @@ public class GolemAI {
 
                     targetGolem.heal(healAmount);
                     golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
-                    targetGolem.world.playSound(null, targetGolem.blockPosition(), net.minecraft.sounds.SoundEvents.BLOCK_ANVIL_USE, SoundSource.NEUTRAL, 0.5F, 1.5F);
+                    targetGolem.level().playSound(null, targetGolem.blockPosition(), net.minecraft.sounds.SoundEvents.ANVIL_USE, SoundSource.NEUTRAL, 0.5F, 1.5F);
                     
                     if (golem.level() instanceof ServerLevel serverLevel) {
-                        serverLevel.spawnParticles(net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER, targetGolem.getX(), targetGolem.getY() + 1.0, targetGolem.getZ(), 5, 0.2, 0.2, 0.2, 0.05);
+                        serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER, targetGolem.getX(), targetGolem.getY() + 1.0, targetGolem.getZ(), 5, 0.2, 0.2, 0.2, 0.05);
                         
                         // Using the version of damage that handles Unbreaking/Mending
                         stack.hurtAndBreak(1, serverLevel, null, item -> {});

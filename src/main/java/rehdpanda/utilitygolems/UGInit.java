@@ -1,54 +1,60 @@
-// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiClass
 package rehdpanda.utilitygolems;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.core.BlockPos;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 
 public class UGInit implements ModInitializer {
+
+    // Helper: find entity by numeric id across all server levels (Mojang types only)
+    private static net.minecraft.world.entity.Entity findEntityById(net.minecraft.server.MinecraftServer server, int id) {
+        for (ServerLevel level : server.getAllLevels()) {
+            net.minecraft.world.entity.Entity e = level.getEntity(id);
+            if (e != null) return e;
+        }
+        return null;
+    }
+
 
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -70,6 +76,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPacketPayload {
@@ -84,6 +92,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPacketPayload {
@@ -98,6 +108,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record JukeboxActionPayload(int entityId, int actionId) implements CustomPacketPayload {
@@ -112,6 +124,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record RedstoneActionPayload(int entityId, int actionId) implements CustomPacketPayload {
@@ -126,6 +140,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record SyncRedstoneProgramPayload(int entityId, List<UtilityGolem.RedstoneInteraction> program) implements CustomPacketPayload {
@@ -144,6 +160,8 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public record ClearCactusSlotPayload(int entityId, int slotIndex) implements CustomPacketPayload {
@@ -158,12 +176,107 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+
+        public Object getId() { return ID; }
     }
 
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
 
+    public static class FabricBridge {
+        public static void registerC2S(Object id, Object codec) {
+            try {
+                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
+                Object playC2S = registryClass.getMethod("playC2S").invoke(null);
+                findMethod(playC2S.getClass(), "register", 2).invoke(playC2S, id, codec);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static void registerS2C(Object id, Object codec) {
+            try {
+                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
+                Object playS2C = registryClass.getMethod("playS2C").invoke(null);
+                findMethod(playS2C.getClass(), "register", 2).invoke(playS2C, id, codec);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static void registerReceiver(Object id, java.util.function.BiConsumer<Object, Object> handler) {
+            try {
+                Class<?> receiverClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking");
+                Class<?> handlerClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$PlayPayloadHandler");
+                Object proxy = Proxy.newProxyInstance(handlerClass.getClassLoader(), new Class[]{handlerClass}, (p, method, args) -> {
+                    if (method.getName().equals("receive")) {
+                        handler.accept(args[0], args[1]);
+                    }
+                    return null;
+                });
+                findMethod(receiverClass, "registerGlobalReceiver", 2).invoke(null, id, proxy);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static void modifyEntries(ResourceKey<CreativeModeTab> tab, java.util.function.Consumer<Object> consumer) {
+            try {
+                Class<?> eventsClass = Class.forName("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents");
+                Object event = findMethod(eventsClass, "modifyEntriesEvent", 1).invoke(null, tab);
+                Class<?> modifyEntriesClass = Class.forName("net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents$ModifyEntries");
+                Object proxy = Proxy.newProxyInstance(modifyEntriesClass.getClassLoader(), new Class[]{modifyEntriesClass}, (p, method, args) -> {
+                    if (method.getName().equals("modify")) {
+                        consumer.accept(args[0]);
+                    }
+                    return null;
+                });
+                findMethod(event.getClass(), "register", 1).invoke(event, proxy);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static void sendToPlayer(ServerPlayer player, Object payload) {
+            try {
+                Class<?> networkingClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking");
+                findMethod(networkingClass, "send", 2).invoke(null, player, payload);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static Collection<ServerPlayer> getTrackingPlayers(Entity entity) {
+            try {
+                Class<?> lookupClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PlayerLookup");
+                return (Collection<ServerPlayer>) findMethod(lookupClass, "tracking", 1).invoke(null, entity);
+            } catch (Exception e) { e.printStackTrace(); return java.util.Collections.emptyList(); }
+        }
+
+        public static void registerAttributes(EntityType<? extends LivingEntity> type, Object attributes) {
+            try {
+                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry");
+                findMethod(registryClass, "register", 2).invoke(null, type, attributes);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static <T extends net.minecraft.world.level.block.entity.BlockEntity> net.minecraft.world.level.block.entity.BlockEntityType<T> createBlockEntityType(java.util.function.BiFunction<BlockPos, BlockState, T> factory, net.minecraft.world.level.block.Block... blocks) {
+            try {
+                Class<?> builderClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder");
+                Class<?> factoryClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder$Factory");
+                Object factoryProxy = Proxy.newProxyInstance(factoryClass.getClassLoader(), new Class[]{factoryClass}, (p, method, args) -> {
+                    if (method.getName().equals("create")) {
+                        return factory.apply((BlockPos) args[0], (BlockState) args[1]);
+                    }
+                    return null;
+                });
+                Object builder = findMethod(builderClass, "create", 2).invoke(null, factoryProxy, blocks);
+                return (net.minecraft.world.level.block.entity.BlockEntityType<T>) findMethod(builderClass, "build", 0).invoke(builder);
+            } catch (Exception e) { e.printStackTrace(); return null; }
+        }
+
+        private static Method findMethod(Class<?> clazz, String name, int paramCount) {
+            for (Method m : clazz.getMethods()) {
+                if (m.getName().equals(name) && m.getParameterCount() == paramCount) {
+                    return m;
+                }
+            }
+            throw new RuntimeException("Method " + name + " with " + paramCount + " params not found in " + clazz.getName());
+        }
+    }
+
     public static final MenuType<GolemInventoryMenu> GOLEM_SCREEN_HANDLER_TYPE =
             Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(MOD_ID, "golem_inventory"), new MenuType<>(GolemInventoryMenu::new, FeatureFlags.VANILLA_SET));
+
     public static final MenuType<GolemFurnaceMenu> GOLEM_FURNACE_HANDLER =
             Registry.register(BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(MOD_ID, "golem_furnace"), new MenuType<>(GolemFurnaceMenu::new, FeatureFlags.VANILLA_SET));
 
@@ -205,121 +318,145 @@ public class UGInit implements ModInitializer {
         UGItems.register();
         UGItems.registerSpawnEggs();
 
-        PayloadTypeRegistry.playC2S().register(SyncPatternPayload.ID, (StreamCodec)SyncPatternPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(SelectBuyItemPayload.ID, (StreamCodec)SelectBuyItemPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(JukeboxActionPayload.ID, (StreamCodec)JukeboxActionPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(RedstoneActionPayload.ID, (StreamCodec)RedstoneActionPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(SyncRedstoneProgramPayload.ID, (StreamCodec)SyncRedstoneProgramPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ClearCactusSlotPayload.ID, (StreamCodec)ClearCactusSlotPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(SyncDiscoveredTradesPayload.ID, (StreamCodec)SyncDiscoveredTradesPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(GolemChestPayload.ID, (StreamCodec)GolemChestPayload.CODEC);
+        FabricBridge.registerC2S(SyncPatternPayload.ID, SyncPatternPayload.CODEC);
+        FabricBridge.registerC2S(SelectBuyItemPayload.ID, SelectBuyItemPayload.CODEC);
+        FabricBridge.registerC2S(JukeboxActionPayload.ID, JukeboxActionPayload.CODEC);
+        FabricBridge.registerC2S(RedstoneActionPayload.ID, RedstoneActionPayload.CODEC);
+        FabricBridge.registerC2S(SyncRedstoneProgramPayload.ID, SyncRedstoneProgramPayload.CODEC);
+        FabricBridge.registerC2S(ClearCactusSlotPayload.ID, ClearCactusSlotPayload.CODEC);
+        FabricBridge.registerS2C(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
+        FabricBridge.registerS2C(GolemChestPayload.ID, GolemChestPayload.CODEC);
 
-        ServerPlayNetworking.registerGlobalReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem) {
-                    golem.setSelectedBuyItem(payload.selectedItem());
-                }
-            });
+        FabricBridge.registerReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((SelectBuyItemPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem) {
+                        golem.setSelectedBuyItem(((SelectBuyItemPayload)payload).selectedItem());
+                    }
+                });
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(JukeboxActionPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem) {
-                    switch (payload.actionId()) {
-                        case 0 -> {
-                            boolean playing = !golem.isJukeboxPlaying();
-                            golem.setJukeboxPlaying(playing);
-                            if (!playing) {
-                                golem.stopJukebox();
+        FabricBridge.registerReceiver(JukeboxActionPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((JukeboxActionPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem) {
+                        switch (((JukeboxActionPayload)payload).actionId()) {
+                            case 0 -> {
+                                boolean playing = !golem.isJukeboxPlaying();
+                                golem.setJukeboxPlaying(playing);
+                                if (!playing) {
+                                    golem.stopJukebox();
+                                }
+                            }
+                            case 1 -> golem.setJukeboxShuffle(!golem.isJukeboxShuffle());
+                            case 2 -> golem.setJukeboxRepeat(!golem.isJukeboxRepeat());
+                        }
+                    }
+                });
+            } catch (Exception e) { e.printStackTrace(); }
+        });
+
+        FabricBridge.registerReceiver(RedstoneActionPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((RedstoneActionPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem) {
+                        switch (((RedstoneActionPayload)payload).actionId()) {
+                            case 0 -> golem.setRedstoneProgramStarted(!golem.isRedstoneProgramStarted());
+                            case 1 -> {
+                                golem.setRedstoneProgramStarted(false);
+                                golem.setCurrentInteractionIndex(0);
+                                golem.setRedstoneTickCounter(0);
                             }
                         }
-                        case 1 -> golem.setJukeboxShuffle(!golem.isJukeboxShuffle());
-                        case 2 -> golem.setJukeboxRepeat(!golem.isJukeboxRepeat());
                     }
-                }
-            });
+                });
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RedstoneActionPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem) {
-                    switch (payload.actionId()) {
-                        case 0 -> golem.setRedstoneProgramStarted(!golem.isRedstoneProgramStarted());
-                        case 1 -> {
-                            golem.setRedstoneProgramStarted(false);
-                            golem.setCurrentInteractionIndex(0);
-                            golem.setRedstoneTickCounter(0);
+        FabricBridge.registerReceiver(SyncRedstoneProgramPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((SyncRedstoneProgramPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem) {
+                        golem.setRedstoneProgram(((SyncRedstoneProgramPayload)payload).program());
+                    }
+                });
+            } catch (Exception e) { e.printStackTrace(); }
+        });
+
+        FabricBridge.registerReceiver(ClearCactusSlotPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((ClearCactusSlotPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem && golem.getGolemType() == GolemType.CACTUS) {
+                        if (((ClearCactusSlotPayload)payload).slotIndex() >= 0 && ((ClearCactusSlotPayload)payload).slotIndex() < golem.getInventory().getContainerSize()) {
+                            golem.getInventory().setItem(((ClearCactusSlotPayload)payload).slotIndex(), ItemStack.EMPTY);
                         }
                     }
-                }
-            });
+                });
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(SyncRedstoneProgramPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem) {
-                    golem.setRedstoneProgram(payload.program());
-                }
-            });
-        });
-
-        ServerPlayNetworking.registerGlobalReceiver(ClearCactusSlotPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem && golem.getGolemType() == GolemType.CACTUS) {
-                    if (payload.slotIndex() >= 0 && payload.slotIndex() < golem.inventory.getContainerSize()) {
-                        golem.inventory.setItem(payload.slotIndex(), ItemStack.EMPTY);
+        FabricBridge.registerReceiver(SyncPatternPayload.ID, (payload, context) -> {
+            try {
+                Method serverMethod = context.getClass().getMethod("server");
+                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                server.execute(() -> {
+                    Entity entity = findEntityById(server, ((SyncPatternPayload)payload).entityId());
+                    if (entity instanceof UtilityGolem golem) {
+                        SyncPatternPayload p = (SyncPatternPayload)payload;
+                        BuildPattern pattern = BuildPattern.values()[p.patternOrdinal()];
+                        golem.setBuildPattern(pattern);
+                        golem.setWallWidth(p.width());
+                        golem.setWallLength(p.length());
+                        golem.setBuildingStarted(p.started());
+                        if (!p.filter().isEmpty()) {
+                            golem.setHeldItem(p.filter());
+                        }
+                        if (p.schematicName() != null) {
+                            golem.setSchematicName(p.schematicName());
+                        }
                     }
-                }
-            });
-        });
-
-        ServerPlayNetworking.registerGlobalReceiver(SyncPatternPayload.ID, (payload, context) -> {
-            context.server().execute(() -> {
-                Entity entity = context.player().level().getEntity(payload.entityId());
-                if (entity instanceof UtilityGolem golem) {
-                    BuildPattern pattern = BuildPattern.values()[payload.patternOrdinal()];
-                    golem.setBuildPattern(pattern);
-                    golem.setWallWidth(payload.width());
-                    golem.setWallLength(payload.length());
-                    golem.setBuildingStarted(payload.started());
-                    if (!payload.filter().isEmpty()) {
-                        golem.setHeldItem(payload.filter());
-                    }
-                    if (payload.schematicName() != null) {
-                        golem.setSchematicName(payload.schematicName());
-                    }
-                    context.player().displayClientMessage(Component.literal("Golem mode set to: " + pattern.getDisplayName() + (payload.started() ? " (Started)" : " (Stopped)") + (golem.getSchematicName().isEmpty() ? "" : (" | Schematic: " + golem.getSchematicName()))), true);
-                }
-            });
+                });
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
 
         /// REGISTER DEBUG COMMANDS
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(
+        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            ((com.mojang.brigadier.CommandDispatcher) (Object) dispatcher).register(
                     Commands.literal("golem")
                             .then(Commands.argument("type", com.mojang.brigadier.arguments.StringArgumentType.word())
-                                    .suggests((context, builder) -> {
+                                    .suggests((c, builder) -> {
                                         for (GolemType gt : GolemType.values()) {
                                             builder.suggest(gt.getName());
                                         }
                                         return builder.buildFuture();
                                     })
-                                    .then(Commands.argument("equipped", BoolArgumentType.bool())
-                                            .executes(context -> {
-                                                CommandSourceStack source = (CommandSourceStack) context.getSource();
+                                    .then(Commands.argument("equipped", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                                            .executes(c -> {
+                                                CommandSourceStack source = (CommandSourceStack) (Object) c.getSource();
                                                 ServerPlayer player = source.getPlayer();
                                                 if (player == null) {
                                                     source.sendFailure(Component.literal("Command can only be used by players."));
                                                     return 0;
                                                 }
                                                 
-                                                String typeName = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "type");
+                                                String typeName = com.mojang.brigadier.arguments.StringArgumentType.getString(c, "type");
                                                 GolemType foundType = null;
                                                 for (GolemType gt : GolemType.values()) {
                                                     if (gt.getName().equalsIgnoreCase(typeName)) {
@@ -333,7 +470,7 @@ public class UGInit implements ModInitializer {
                                                 }
                                                 final GolemType type = foundType;
 
-                                                boolean equipped = BoolArgumentType.getBool(context, "equipped");
+                                                boolean equipped = com.mojang.brigadier.arguments.BoolArgumentType.getBool(c, "equipped");
 
                                                 ServerLevel world = source.getLevel();
                                                 EntityType<UtilityGolem> entityType = GOLEM_TYPES.get(type);
@@ -351,7 +488,7 @@ public class UGInit implements ModInitializer {
                                                         golem.setHeldItem(equipment);
                                                     }
                                                     // Give them some extra in getInventory() just in case
-                                                    golem.inventory.addItem(equipment.copy());
+                                                    golem.getInventory().addItem(equipment.copy());
                                                 }
                                                 world.addFreshEntity(golem);
                                                 source.sendSuccess(() -> Component.literal("Summoned " + type.getFriendlyName() + (equipped ? " (Equipped)" : "")), true);
@@ -362,58 +499,57 @@ public class UGInit implements ModInitializer {
             );
         });
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
-            for (GolemType type : GolemType.values()) {
-                entries.accept(UGItems.GOLEM_SPAWN_EGGS.get(type));
-            }
-        });
-
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
-            entries.accept(UGItems.WRENCH_ITEM);
-        });
-
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
-            for (GolemType type : GolemType.values()) {
-                if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE || type == GolemType.MEDIC || type == GolemType.CACTUS) continue;
-                net.minecraft.world.level.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
-                if (chest != null) {
-                    entries.accept(chest);
+        FabricBridge.modifyEntries(CreativeModeTabs.SPAWN_EGGS, entries -> {
+            try {
+                Method acceptMethod = entries.getClass().getMethod("accept", net.minecraft.world.level.ItemLike.class);
+                for (GolemType type : GolemType.values()) {
+                    acceptMethod.invoke(entries, UGItems.GOLEM_SPAWN_EGGS.get(type));
                 }
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
-        // Register all golem types
-        for (GolemType type : GolemType.values()) {
-            // Create the entity type
-            EntityType<UtilityGolem> entityType = FabricEntityTypeBuilder.create(
-                            MobCategory.CREATURE,
-                            (EntityType<UtilityGolem> et, net.minecraft.world.level.Level world) -> new UtilityGolem(et, world, type)
-                    )
-                    .dimensions(EntityDimensions.fixed(0.6F, 1.8F))
-                    .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(MOD_ID, type.getName())));
+        FabricBridge.modifyEntries(CreativeModeTabs.TOOLS_AND_UTILITIES, entries -> {
+            try {
+                Method acceptMethod = entries.getClass().getMethod("accept", net.minecraft.world.level.ItemLike.class);
+                acceptMethod.invoke(entries, UGItems.WRENCH_ITEM);
+            } catch (Exception e) { e.printStackTrace(); }
+        });
 
+        FabricBridge.modifyEntries(CreativeModeTabs.FUNCTIONAL_BLOCKS, entries -> {
+            try {
+                Method acceptMethod = entries.getClass().getMethod("accept", net.minecraft.world.level.ItemLike.class);
+                for (GolemType type : GolemType.values()) {
+                    if (type == GolemType.LAMP || type == GolemType.FURNACE || type == GolemType.JUKEBOX || type == GolemType.SMOKER || type == GolemType.BLAST_FURNACE || type == GolemType.MEDIC || type == GolemType.CACTUS) continue;
+                    net.minecraft.world.level.block.Block chest = UGBlocks.GOLEM_CHESTS.get(type);
+                    if (chest != null) {
+                        acceptMethod.invoke(entries, chest);
+                    }
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+        });
+
+        for (GolemType type : GolemType.values()) {
+            Identifier id = Identifier.fromNamespaceAndPath(MOD_ID, type.getName());
+            EntityType<UtilityGolem> entityType = EntityType.Builder.of(
+                            (EntityType.EntityFactory<UtilityGolem>) (Object) ((EntityType.EntityFactory<UtilityGolem>) (et, world) -> new UtilityGolem(et, world, type)),
+                            MobCategory.CREATURE
+                    )
+                    .sized(0.6F, 1.8F)
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE, id));
 
             GOLEM_TYPES.put(type, entityType);
-
-            // Register attributes
-            FabricDefaultAttributeRegistry.register(entityType, type.getAttributes());
-
-            // Register in the global registry
-            Registry.register(
-                    BuiltInRegistries.ENTITY_TYPE,
-                    Identifier.fromNamespaceAndPath(MOD_ID, type.getName()),
-                    entityType
-            );
+            FabricBridge.registerAttributes(entityType, type.getAttributes());
+            Registry.register(BuiltInRegistries.ENTITY_TYPE, id, entityType);
         }
         LOGGER.info("Utility Golems registered: " + GOLEM_TYPES.keySet());
     }
 
 
     public static void syncDiscoveredTrades(UtilityGolem golem) {
-        if (!golem.world.isClientSide() && golem.level instanceof ServerLevel) {
+        if (!golem.level().isClientSide() && golem.level() instanceof ServerLevel) {
             SyncDiscoveredTradesPayload payload = new SyncDiscoveredTradesPayload(golem.getId(), golem.getDiscoveredTrades());
-            for (ServerPlayer player : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(golem)) {
-                ServerPlayNetworking.send(player, payload);
+            for (ServerPlayer player : FabricBridge.getTrackingPlayers(golem)) {
+                FabricBridge.sendToPlayer(player, payload);
             }
         }
     }

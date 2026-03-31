@@ -20,7 +20,7 @@ public class GolemChestMenu extends AbstractContainerMenu {
     }
 
     public GolemChestMenu(int syncId, Inventory playerInventory, Container inventory, BlockPos pos, boolean golemDead) {
-        super(UGInit.GOLEM_CHEST_SCREEN_HANDLER, syncId);
+        super(UGInit.GOLEM_CHEST_HANDLER, syncId);
         this.inventory = inventory;
         this.pos = pos;
         this.golemDead = golemDead;

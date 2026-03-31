@@ -3,7 +3,7 @@ package rehdpanda.utilitygolems.client;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.model.object.chest.ChestModel;
@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.resources.Identifier;
 import com.mojang.math.Axis;
@@ -53,7 +53,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
     }
 
     @Override
-    public void extractRenderState(GolemChestBlockEntity entity, GolemChestBlockEntityRenderState state, float tickProgress, Vec3 cameraPos, float crumblingOverlay) {
+    public void extractRenderState(GolemChestBlockEntity entity, GolemChestBlockEntityRenderState state, float tickProgress, Vec3 cameraPos, ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
         BlockEntityRenderState.extractBase(entity, state, crumblingOverlay);
         state.yaw = entity.getBlockState().getValue(rehdpanda.utilitygolems.GolemChestBlock.FACING).toYRot();
         state.animationProgress = entity.getOpenNess(tickProgress);
@@ -63,7 +63,7 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
     }
 
     @Override
-    public void render(GolemChestBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+    public void submit(GolemChestBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
         matrices.pushPose();
         matrices.translate(0.5, 0.5, 0.5);
         matrices.mulPose(Axis.YP.rotationDegrees(-state.yaw));
@@ -88,8 +88,8 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
             identifier = SINGLE_TEXTURES.values().iterator().next();
         }
         RenderType renderLayer = state.golemType == GolemType.TINTED_GLASS
-                ? RenderType.entityTranslucent(identifier)
-                : RenderType.entityCutout(identifier);
+                ? RenderTypes.entityTranslucent(identifier)
+                : RenderTypes.entityCutout(identifier);
 
         ChestModel model = switch (state.chestType) {
             case SINGLE -> this.singleModel;

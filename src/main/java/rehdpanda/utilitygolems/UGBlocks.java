@@ -1,10 +1,10 @@
 package rehdpanda.utilitygolems;
-
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -45,7 +45,7 @@ public class UGBlocks {
         REDSTONE_GOLEM_STATUE_BLOCK_ENTITY = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 statueId,
-                FabricBlockEntityTypeBuilder.create(RedstoneGolemStatueBlockEntity::new, REDSTONE_GOLEM_STATUE).build()
+                UGInit.FabricBridge.createBlockEntityType(RedstoneGolemStatueBlockEntity::new, REDSTONE_GOLEM_STATUE)
         );
 
         Identifier lightId = Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "light_block");
@@ -121,7 +121,7 @@ public class UGBlocks {
         GOLEM_CHEST_BLOCK_ENTITY = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 Identifier.fromNamespaceAndPath(UGInit.MOD_ID, "golem_chest"),
-                FabricBlockEntityTypeBuilder.create(GolemChestBlockEntity::new, chestBlocks.toArray(new Block[0])).build()
+                UGInit.FabricBridge.createBlockEntityType(GolemChestBlockEntity::new, chestBlocks.toArray(new Block[0]))
         );
     }
 }

@@ -18,7 +18,7 @@ public class GolemJukeboxMenu extends AbstractContainerMenu {
     }
 
     public GolemJukeboxMenu(int syncId, Inventory playerInventory, Container inventory, UtilityGolem golem) {
-        super(UGInit.GOLEM_JUKEBOX_SCREEN_HANDLER, syncId);
+        super(UGInit.GOLEM_JUKEBOX_HANDLER, syncId);
         this.inventory = inventory;
         this.golem = golem;
         checkContainerSize(inventory, 1);

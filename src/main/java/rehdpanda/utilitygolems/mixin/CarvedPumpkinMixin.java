@@ -10,10 +10,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import rehdpanda.utilitygolems.GolemPatterns;
 
-// TODO(Ravel): can not resolve target class CarvedPumpkinBlock
 @Mixin(CarvedPumpkinBlock.class)
 public class CarvedPumpkinMixin {
-    // TODO(Ravel): no target class
     @Inject(method = "onPlace", at = @At("TAIL"))
     private void onAdded(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
         if (!oldState.is(state.getBlock())) {

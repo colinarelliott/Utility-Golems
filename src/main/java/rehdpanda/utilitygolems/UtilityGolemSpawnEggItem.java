@@ -47,10 +47,10 @@ public class UtilityGolemSpawnEggItem extends Item {
         if (player != null) {
             golem.setOwnerUuid(player.getUUID());
         }
-        golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.random.nextFloat() * 360.0F, 0.0F);
+        golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.getRandom().nextFloat() * 360.0F, 0.0F);
         boolean spawned = world.addFreshEntity(golem);
         if (spawned) {
-            ItemStack stack = context.getItemInInteractionHand();
+            ItemStack stack = context.getItemInHand();
             if (player == null || !player.isCreative()) {
                 stack.shrink(1);
             }

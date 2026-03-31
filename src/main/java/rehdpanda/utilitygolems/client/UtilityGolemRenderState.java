@@ -1,9 +1,9 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.renderer.entity.state.PathfinderMobRenderState;
+import net.minecraft.client.renderer.entity.state.CopperGolemRenderState;
 import net.minecraft.core.BlockPos;
 
-public class UtilityGolemRenderState extends PathfinderMobRenderState {
+public class UtilityGolemRenderState extends CopperGolemRenderState {
     public BlockPos chestPos;
     public BlockPos aiTarget;
     public boolean isDebug;

@@ -1,11 +1,14 @@
 package rehdpanda.utilitygolems.client;
 
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.world.level.block.*;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditAABB;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -27,25 +30,23 @@ import rehdpanda.utilitygolems.UtilityGolem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMenu> {
+public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMenu> implements MenuAccess<RedstoneGolemMenu> {
     private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
     private final List<BlockPos> nearbyInteractables = new ArrayList<>();
     private int scrollOffset = 0;
-    private EditAABB intervalField;
+    private EditBox intervalField;
 
     public RedstoneGolemScreen(RedstoneGolemMenu handler, Inventory inventory, Component title) {
-        super(handler, getInventory(), title);
-        this.imageWidth = 300;
-        this.imageHeight = 222;
-        this.inventory.abelY = this.imageHeight - 94;
-        this.inventory.abelX = (this.imageWidth - 176) / 2 + 8;
+        super(handler, inventory, title, 300, 222);
+        this.inventoryLabelY = this.imageHeight - 94;
+        this.inventoryLabelX = (this.imageWidth - 176) / 2 + 8;
     }
 
     @Override
     protected void init() {
         super.init();
         
-        intervalField = new EditAABB(this.font, this.leftPos + 230, this.topPos + 115, 30, 12, Component.literal("20"));
+        intervalField = new EditBox(this.font, this.leftPos + 230, this.topPos + 115, 30, 12, Component.literal("20"));
         intervalField.setValue("20");
         intervalField.setResponder(s -> {});
         
@@ -83,13 +84,17 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
         // Start/Stop button
         String startLabel = golem.isRedstoneProgramStarted() ? "§cStop" : "§aStart";
         this.addRenderableWidget(Button.builder(Component.literal(startLabel), button -> {
-            ClientPlayNetworking.send(new UGInit.RedstoneActionPayload(golem.getId(), 0));
+            if (Minecraft.getInstance().getConnection() != null) {
+                Minecraft.getInstance().getConnection().send(new ServerboundCustomPayloadPacket(new UGInit.RedstoneActionPayload(golem.getId(), 0)));
+            }
             refreshButtons();
         }).bounds(this.leftPos + 7, this.topPos + 17, 90, 20).build());
 
         // Reset button
         this.addRenderableWidget(Button.builder(Component.literal("Reset"), button -> {
-            ClientPlayNetworking.send(new UGInit.RedstoneActionPayload(golem.getId(), 1));
+            if (Minecraft.getInstance().getConnection() != null) {
+                Minecraft.getInstance().getConnection().send(new ServerboundCustomPayloadPacket(new UGInit.RedstoneActionPayload(golem.getId(), 1)));
+            }
             refreshButtons();
         }).bounds(this.leftPos + 105, this.topPos + 17, 90, 20).build());
 
@@ -101,7 +106,7 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
 
         // Program list (left side)
         List<UtilityGolem.RedstoneInteraction> program = golem.getRedstoneProgram();
-        for (int i = 0; i < 5 && i < program.getContainerSize(); i++) {
+        for (int i = 0; i < 5 && i < program.size(); i++) {
             final int index = i;
             UtilityGolem.RedstoneInteraction inter = program.get(index);
             BlockState state = golem.level().getBlockState(inter.pos());
@@ -122,7 +127,7 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
         }
 
         // Nearby list (right side)
-        for (int i = 0; i < 5 && (i + scrollOffset) < nearbyInteractables.getContainerSize(); i++) {
+        for (int i = 0; i < 5 && (i + scrollOffset) < nearbyInteractables.size(); i++) {
             final BlockPos p = nearbyInteractables.get(i + scrollOffset);
             BlockState state = golem.level().getBlockState(p);
             String blockName = state.getBlock().getDescriptionId();
@@ -137,13 +142,13 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
             this.addRenderableWidget(Button.builder(Component.literal(blockName), b -> {}).bounds(this.leftPos + 187, this.topPos + 40 + i * 18, 90, 15).build());
         }
         
-        if (nearbyInteractables.getContainerSize() > 5) {
+        if (nearbyInteractables.size() > 5) {
              this.addRenderableWidget(Button.builder(Component.literal("▲"), button -> {
                 scrollOffset = Math.max(0, scrollOffset - 1);
                 refreshButtons();
             }).bounds(this.leftPos + 281, this.topPos + 40, 12, 12).build());
              this.addRenderableWidget(Button.builder(Component.literal("▼"), button -> {
-                scrollOffset = Math.min(nearbyInteractables.getContainerSize() - 5, scrollOffset + 1);
+                scrollOffset = Math.min(nearbyInteractables.size() - 5, scrollOffset + 1);
                 refreshButtons();
             }).bounds(this.leftPos + 281, this.topPos + 40 + 4 * 18 + 3, 12, 12).build());
         }
@@ -152,50 +157,52 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
     private void sendUpdate() {
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
-            ClientPlayNetworking.send(new UGInit.SyncRedstoneProgramPayload(golem.getId(), new ArrayList<>(golem.getRedstoneProgram())));
+            if (Minecraft.getInstance().getConnection() != null) {
+                Minecraft.getInstance().getConnection().send(new ServerboundCustomPayloadPacket(new UGInit.SyncRedstoneProgramPayload(golem.getId(), new ArrayList<>(golem.getRedstoneProgram()))));
+            }
         }
     }
 
     @Override
-    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+    public void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         // No background
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
-        super.render(context, mouseX, mouseY, delta);
-        context.drawString(this.font, "Program", this.leftPos + 7, this.topPos + 38, 0xFFFFFF, false);
-        context.drawString(this.font, "Nearby", this.leftPos + 150, this.topPos + 38, 0xFFFFFF, false);
-        context.drawString(this.font, "Interval:", this.leftPos + 180, this.topPos + 117, 0xFFFFFF, false);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        this.extractTransparentBackground(context);
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        context.text(this.font, "Program", this.leftPos + 7, this.topPos + 38, 0xFFFFFF, false);
+        context.text(this.font, "Nearby", this.leftPos + 150, this.topPos + 38, 0xFFFFFF, false);
+        context.text(this.font, "Interval:", this.leftPos + 180, this.topPos + 117, 0xFFFFFF, false);
         
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
             // Draw item icons for program
             List<UtilityGolem.RedstoneInteraction> program = golem.getRedstoneProgram();
-            for (int i = 0; i < 5 && i < program.getContainerSize(); i++) {
+            for (int i = 0; i < 5 && i < program.size(); i++) {
                 BlockState state = golem.level().getBlockState(program.get(i).pos());
                 ItemStack stack = new ItemStack(state.getBlock());
                 int itemX = this.leftPos + 24;
                 int itemY = this.topPos + 40 + i * 18;
                 // Draw slot background (using the first slot in generic_54.png as a source)
-                context.blit(TEXTURE, itemX, itemY, 7, 17, 18, 18, 256, 256);
-                context.renderFakeItem(stack, itemX + 1, itemY + 1);
+                context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, itemX, itemY, 7, 17, 18, 18, 256, 256);
+                context.item(stack, itemX + 1, itemY + 1);
             }
 
             // Draw item icons for nearby
-            for (int i = 0; i < 5 && (i + scrollOffset) < nearbyInteractables.getContainerSize(); i++) {
+            for (int i = 0; i < 5 && (i + scrollOffset) < nearbyInteractables.size(); i++) {
                 BlockPos p = nearbyInteractables.get(i + scrollOffset);
                 BlockState state = golem.level().getBlockState(p);
                 ItemStack stack = new ItemStack(state.getBlock());
                 int itemX = this.leftPos + 167;
                 int itemY = this.topPos + 40 + i * 18;
-                context.blit(TEXTURE, itemX, itemY, 7, 17, 18, 18, 256, 256);
-                context.renderFakeItem(stack, itemX + 1, itemY + 1);
+                context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, itemX, itemY, 7, 17, 18, 18, 256, 256);
+                context.item(stack, itemX + 1, itemY + 1);
             }
         }
 
-        intervalField.render(context, mouseX, mouseY, delta);
-        this.renderTooltip(context, mouseX, mouseY);
+        intervalField.extractWidgetRenderState(context, mouseX, mouseY, delta);
+        this.extractTooltip(context, mouseX, mouseY);
     }
 }

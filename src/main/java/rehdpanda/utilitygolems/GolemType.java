@@ -1,14 +1,10 @@
 package rehdpanda.utilitygolems;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import rehdpanda.utilitygolems.UtilityGolem;
 import net.minecraft.resources.Identifier;
 
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
+
 import java.util.function.Consumer;
 
 import net.minecraft.world.level.block.Block;
@@ -145,7 +141,7 @@ public enum GolemType implements StringRepresentable {
         return this.friendlyName;
     }
 
-    public Identifier getComponenture() {
+    public Identifier getTexture() {
         return Identifier.fromNamespaceAndPath("utility-golems", texturePath);
     }
 

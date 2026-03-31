@@ -3,6 +3,7 @@ package rehdpanda.utilitygolems;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.WorldlyContainer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -174,7 +175,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     private static boolean canInsert(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
-        if (!getInventory().canPlaceItem(slot, stack)) {
+        if (!inventory.canPlaceItem(slot, stack)) {
             return false;
         }
         return !(inventory instanceof WorldlyContainer sidedInventory) || sidedInventory.canPlaceItemThroughFace(slot, stack, side);
@@ -191,16 +192,13 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     private static Container getInventoryAt(Level world, BlockPos pos) {
         BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
-        if (block instanceof WorldlyContainerHolder inventoryProvider) {
-            return inventoryProvider.getContainer(state, world, pos);
-        }
         if (state.hasBlockEntity()) {
             net.minecraft.world.level.block.entity.BlockEntity blockEntity = world.getBlockEntity(pos);
             if (blockEntity instanceof Container inventory) {
                 if (inventory instanceof ChestBlockEntity && block instanceof ChestBlock) {
                     return ChestBlock.getContainer((ChestBlock)block, state, world, pos, false);
                 }
-                return getInventory();
+                return inventory;
             }
         }
         return null;
@@ -209,8 +207,8 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     public void setGolemDead(boolean dead) {
         this.golemDead = dead;
         this.setChanged();
-        if (this.level() != null) {
-            this.level().sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+        if (this.level != null) {
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
 
             // If double chest, notify the other half
             BlockState state = this.getBlockState();
@@ -218,11 +216,11 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
                 ChestType type = state.getValue(GolemChestBlock.CHEST_TYPE);
                 if (type != ChestType.SINGLE) {
                     BlockPos otherPos = this.worldPosition.relative(GolemChestBlock.getFacing(state));
-                    net.minecraft.world.level.block.entity.BlockEntity otherBE = this.level().getBlockEntity(otherPos);
+                    net.minecraft.world.level.block.entity.BlockEntity otherBE = this.level.getBlockEntity(otherPos);
                     if (otherBE instanceof GolemChestBlockEntity otherGChest && otherGChest.golemDead != dead) {
                         otherGChest.golemDead = dead;
                         otherGChest.setChanged();
-                        this.level().sendBlockUpdated(otherPos, otherGChest.getBlockState(), otherGChest.getBlockState(), 3);
+                        this.level.sendBlockUpdated(otherPos, otherGChest.getBlockState(), otherGChest.getBlockState(), 3);
                     }
                 }
             }
@@ -234,17 +232,26 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     @Override
-    public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
-        super.loadAdditional(nbt, registries);
-        this.golemDead = nbt.getBoolean("golemDead");
-        this.transferCooldown = nbt.contains("transferCooldown") ? nbt.getInt("transferCooldown") : -1;
+    protected void loadAdditional(net.minecraft.world.level.storage.ValueInput input) {
+        super.loadAdditional(input);
+        this.golemDead = input.getBooleanOr("golemDead", false);
+        this.transferCooldown = input.getIntOr("transferCooldown", -1);
+        String typeName = input.getStringOr("golemType", "REGULAR");
+        try {
+            this.golemType = GolemType.valueOf(typeName);
+        } catch (IllegalArgumentException e) {
+            this.golemType = GolemType.LAPIS;
+        }
     }
 
     @Override
-    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
-        super.saveAdditional(nbt, registries);
-        nbt.putBoolean("golemDead", this.golemDead);
-        nbt.putInt("transferCooldown", this.transferCooldown);
+    protected void saveAdditional(net.minecraft.world.level.storage.ValueOutput output) {
+        super.saveAdditional(output);
+        output.putBoolean("golemDead", this.golemDead);
+        output.putInt("transferCooldown", this.transferCooldown);
+        if (this.golemType != null) {
+            output.putString("golemType", this.golemType.name());
+        }
     }
 
     @Override
@@ -253,7 +260,7 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
         return this.saveCustomOnly(registries);
     }
 
@@ -301,14 +308,14 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
     @Override
     public boolean triggerEvent(int type, int data) {
         if (type == 1) {
-            if (this.level() != null) {
+            if (this.level != null) {
                 // For double chests, only play sound from the LEFT half to avoid duplication
                 ChestType chestType = this.getBlockState().getValue(GolemChestBlock.CHEST_TYPE);
                 if (chestType == ChestType.SINGLE || chestType == ChestType.LEFT) {
                     if (data > 0) {
-                        this.level().playSound(null, this.worldPosition, SoundEvents.CHEST_OPEN, SoundSource.BLOCKS, 0.5f, this.level().random.nextFloat() * 0.1f + 0.9f);
+                        this.level.playSound(null, this.worldPosition, SoundEvents.CHEST_OPEN, SoundSource.BLOCKS, 0.5f, this.level.getRandom().nextFloat() * 0.1f + 0.9f);
                     } else {
-                        this.level().playSound(null, this.worldPosition, SoundEvents.CHEST_CLOSE, SoundSource.BLOCKS, 0.5f, this.level().random.nextFloat() * 0.1f + 0.9f);
+                        this.level.playSound(null, this.worldPosition, SoundEvents.CHEST_CLOSE, SoundSource.BLOCKS, 0.5f, this.level.getRandom().nextFloat() * 0.1f + 0.9f);
                     }
                 }
             }
@@ -322,8 +329,8 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
 
     @Override
     protected Component getDefaultName() {
-        if (this.level() != null) {
-            Container inventory = GolemChestBlockEntity.getInventory((GolemChestBlock) this.getBlockState().getBlock(), this.getBlockState(), this.level(), this.worldPosition, true);
+        if (this.level != null) {
+            Container inventory = GolemChestBlockEntity.getInventory((GolemChestBlock) this.getBlockState().getBlock(), this.getBlockState(), this.level, this.worldPosition, true);
             if (inventory instanceof CompoundContainer) {
                 return Component.translatable(this.getBlockState().getBlock().getDescriptionId().replace("block.", "container.") + "_double");
             }
