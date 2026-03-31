@@ -75,6 +75,8 @@ public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu
         // Draw the player inventory part from dispenser.png (starts at 75 in texture)
         // Its absolute position remains the same: j + 35 + 88 = j + 123
         context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + 35 + extraHeight, 0.0f, 75.0f, this.imageWidth, 91, 256, 256);
+        
+        super.extractContents(context, mouseX, mouseY, delta);
     }
 
     @Override

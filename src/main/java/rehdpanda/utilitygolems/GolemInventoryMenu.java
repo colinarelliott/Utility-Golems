@@ -37,20 +37,22 @@ public class GolemInventoryMenu extends AbstractContainerMenu {
 
         int i;
         int j;
-        for (i = 0; i < 1; ++i) {
-            for (j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
+        int yOffset = (golem != null && (golem.getGolemType() == GolemType.DIAMOND || golem.getGolemType() == GolemType.EMERALD)) ? 40 : 0;
+
+        for (i = 0; i < 3; ++i) {
+            for (j = 0; j < 3; ++j) {
+                this.addSlot(new Slot(inventory, j + i * 3, 62 + j * 18, 17 + i * 18));
             }
         }
 
         for (i = 0; i < 3; ++i) {
             for (j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18 + yOffset));
             }
         }
 
         for (i = 0; i < 9; ++i) {
-            this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142));
+            this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 142 + yOffset));
         }
     }
 

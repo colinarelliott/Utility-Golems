@@ -162,7 +162,7 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
 
     @Override
     public void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        // No background
+        super.extractContents(context, mouseX, mouseY, delta);
     }
 
     @Override

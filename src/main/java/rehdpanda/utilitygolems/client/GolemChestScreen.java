@@ -48,5 +48,7 @@ public class GolemChestScreen extends AbstractContainerScreen<GolemChestMenu> im
         int rows = this.menu.getRows();
         context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, i, j, 0, 0, this.imageWidth, rows * 18 + 17, 256, 256);
         context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + rows * 18 + 17, 0, 126, this.imageWidth, 96, 256, 256);
+        
+        super.extractContents(context, mouseX, mouseY, delta);
     }
 }

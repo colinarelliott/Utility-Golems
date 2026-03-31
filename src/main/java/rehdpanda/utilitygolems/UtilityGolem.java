@@ -1125,7 +1125,9 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
-        if (!player.level().isClientSide() && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+        if (player.level().isClientSide()) {
+            UGInit.lastInteractedGolemId = this.getId();
+        } else if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             UGInit.FabricBridge.sendToPlayer(serverPlayer, new UGInit.OpenGolemInventoryPayload(this.getId()));
         }
         

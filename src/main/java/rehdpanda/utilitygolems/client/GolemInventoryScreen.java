@@ -23,12 +23,10 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
     private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/dispenser.png");
 
     public GolemInventoryScreen(GolemInventoryMenu handler, Inventory inventory, Component title) {
-        super(handler, inventory, title, 176, 166);
+        super(handler, inventory, title, 176, (handler.getGolem() != null && (handler.getGolem().getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || handler.getGolem().getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) ? 206 : 166);
         
         UtilityGolem golem = handler.getGolem();
         if (golem != null && (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) {
-            // imageHeight is final, so it must be set in super constructor.
-            // But we already did that with the 5-arg version.
             this.inventoryLabelY = 75 + 40;
         }
     }
@@ -234,6 +232,9 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
 
         // Draw held item slot background
         context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x + 133, y + 34, 61.0f, 16.0f, 18, 18, 256, 256);
+        
+        // DRAW SLOTS ON TOP OF BACKGROUND
+        super.extractContents(context, mouseX, mouseY, delta);
     }
 
     @Override
@@ -249,6 +250,15 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
         
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
+            // Draw label for held item
+            context.text(this.font, Component.literal("Holding"), this.leftPos + 125, this.topPos + 24, 0xFF404040, false);
+            
+            // Draw the held item itself
+            ItemStack heldItem = golem.getHeldItem();
+            if (!heldItem.isEmpty()) {
+                context.item(heldItem, this.leftPos + 134, this.topPos + 35);
+            }
+
             if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD) {
                 drawEmeraldTradeIcons(context, mouseX, mouseY, golem);
             } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.CACTUS || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.HOPPER) {
@@ -256,13 +266,9 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
             } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.TINTED_GLASS) {
                 drawTintedGlassUI(context, mouseX, mouseY, golem);
             }
-        }
 
-        // Draw tooltip for held item slot if hovered
-        if (mouseX >= leftPos + 133 && mouseX < leftPos + 151 && mouseY >= topPos + 34 && mouseY < topPos + 52) {
-            this.extractTooltip(context, mouseX, mouseY); // Helper would render tooltip
         }
-
+        
         this.extractTooltip(context, mouseX, mouseY);
     }
 

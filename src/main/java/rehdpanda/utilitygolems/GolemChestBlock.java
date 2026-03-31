@@ -205,6 +205,7 @@ public class GolemChestBlock extends Block implements EntityBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
         if (world.isClientSide()) {
+            UGInit.lastInteractedChestPos = pos;
             return InteractionResult.SUCCESS;
         } else {
             Container inventory = GolemChestBlockEntity.getInventory(this, state, world, pos, false);

@@ -55,6 +55,12 @@ public class UGInit implements ModInitializer {
     public static final String MOD_ID = "utility-golems";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    // Interaction state for client-side menu initialization
+    public static int lastInteractedGolemId = -1;
+    public static net.minecraft.core.BlockPos lastInteractedChestPos = net.minecraft.core.BlockPos.ZERO;
+    public static boolean lastInteractedChestDead = false;
+    public static int lastInteractedChestSize = 27;
+
     public record SyncPatternPayload(int entityId, int patternOrdinal, int width, int length, ItemStack filter, boolean started, String schematicName) implements CustomPacketPayload {
         public static final Type<SyncPatternPayload> ID = new Type<>(Identifier.fromNamespaceAndPath(MOD_ID, "sync_pattern"));
         public static final StreamCodec<RegistryFriendlyByteBuf, SyncPatternPayload> CODEC = StreamCodec.composite(
