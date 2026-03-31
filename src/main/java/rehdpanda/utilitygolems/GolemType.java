@@ -1,21 +1,17 @@
 package rehdpanda.utilitygolems;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.passive.CopperGolemEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.resources.Identifier;
 
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
+import net.minecraft.util.StringRepresentable;
+
 import java.util.function.Consumer;
 
-import net.minecraft.block.Block;
+import net.minecraft.world.level.block.Block;
 
 /// DESCRIBES THE VARIOUS TYPES OF GOLEM
 
-public enum GolemType implements StringIdentifiable {
+public enum GolemType implements StringRepresentable {
     LAPIS("lapis_golem", "Lapis Golem", "textures/entity/lapis_golem.png",
             GolemAI::initLapisGoals,
             null),
@@ -118,23 +114,23 @@ public enum GolemType implements StringIdentifiable {
     }
 
     @Override
-    public String asString() {
+    public String getSerializedName() {
         return this.name;
     }
 
-    public DefaultAttributeContainer.Builder getAttributes() {
+    public AttributeSupplier.Builder getAttributes() {
         ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(this.name);
-        return CopperGolemEntity.createCopperGolemAttributes()
-                .add(EntityAttributes.TEMPT_RANGE, 10.0)
-                .add(EntityAttributes.MAX_HEALTH, stats.maxHealth)
-                .add(EntityAttributes.MOVEMENT_SPEED, stats.movementSpeed)
-                .add(EntityAttributes.ATTACK_DAMAGE, stats.attackDamage)
-                .add(EntityAttributes.FOLLOW_RANGE, stats.followRange)
-                .add(EntityAttributes.KNOCKBACK_RESISTANCE, stats.knockbackResistance)
-                .add(EntityAttributes.ARMOR, stats.armor)
-                .add(EntityAttributes.ARMOR_TOUGHNESS, stats.armorToughness)
-                .add(EntityAttributes.ATTACK_SPEED, stats.attackSpeed)
-                .add(EntityAttributes.ATTACK_KNOCKBACK, stats.attackKnockback);
+        return UtilityGolem.createAttributes()
+                .add(Attributes.TEMPT_RANGE, 10.0)
+                .add(Attributes.MAX_HEALTH, stats.maxHealth)
+                .add(Attributes.MOVEMENT_SPEED, stats.movementSpeed)
+                .add(Attributes.ATTACK_DAMAGE, stats.attackDamage)
+                .add(Attributes.FOLLOW_RANGE, stats.followRange)
+                .add(Attributes.KNOCKBACK_RESISTANCE, stats.knockbackResistance)
+                .add(Attributes.ARMOR, stats.armor)
+                .add(Attributes.ARMOR_TOUGHNESS, stats.armorToughness)
+                .add(Attributes.ATTACK_SPEED, stats.attackSpeed)
+                .add(Attributes.ATTACK_KNOCKBACK, stats.attackKnockback);
     }
 
     public String getName() {
@@ -146,7 +142,7 @@ public enum GolemType implements StringIdentifiable {
     }
 
     public Identifier getTexture() {
-        return Identifier.of("utility-golems", texturePath);
+        return Identifier.fromNamespaceAndPath("utility-golems", texturePath);
     }
 
     public Block getChestBlock() {

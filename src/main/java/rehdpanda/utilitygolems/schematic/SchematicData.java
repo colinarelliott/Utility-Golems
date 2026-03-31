@@ -1,6 +1,6 @@
 package rehdpanda.utilitygolems.schematic;
 
-import net.minecraft.block.Block;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Map;
 

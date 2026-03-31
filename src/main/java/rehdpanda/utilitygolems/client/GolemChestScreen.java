@@ -1,54 +1,52 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import rehdpanda.utilitygolems.GolemChestScreenHandler;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import rehdpanda.utilitygolems.GolemChestMenu;
 
-public class GolemChestScreen extends HandledScreen<GolemChestScreenHandler> {
-    private static final Identifier TEXTURE = Identifier.of("minecraft", "textures/gui/container/generic_54.png");
+public class GolemChestScreen extends AbstractContainerScreen<GolemChestMenu> implements MenuAccess<GolemChestMenu> {
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/generic_54.png");
 
-    public GolemChestScreen(GolemChestScreenHandler handler, PlayerInventory inventory, Text title) {
-        super(handler, inventory, title);
+    public GolemChestScreen(GolemChestMenu handler, Inventory inventory, Component title) {
+        super(handler, inventory, title, 176, 114 + handler.getRows() * 18);
         int rows = handler.getRows();
-        this.backgroundHeight = 114 + rows * 18;
-        this.playerInventoryTitleY = this.backgroundHeight - 94;
+        this.inventoryLabelY = this.imageHeight - 94;
+        this.titleLabelX = 8;
+        this.titleLabelY = 6;
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
-        super.render(context, mouseX, mouseY, delta);
-        this.drawMouseoverTooltip(context, mouseX, mouseY);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        this.extractTransparentBackground(context);
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        
+        // Draw the title
+        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
 
-        if (this.handler.isGolemDead()) {
-            int xPos = this.x + this.backgroundWidth - 20;
-            int yPos = this.y + 6;
-            if (mouseX >= xPos && mouseX < xPos + 9 && mouseY >= yPos && mouseY < yPos + 9) {
-                context.drawTooltip(this.textRenderer, Text.translatable("gui.utility-golems.golem_dead"), mouseX, mouseY);
-            }
-        }
-    }
+        // Draw the inventory label
+        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
 
-    @Override
-    protected void drawForeground(DrawContext context, int mouseX, int mouseY) {
-        super.drawForeground(context, mouseX, mouseY);
-        if (this.handler.isGolemDead()) {
-            // Position it to the right of the title
-            int xPos = this.backgroundWidth - 20;
+        if (this.menu.isGolemDead()) {
+            int xPos = this.leftPos + this.imageWidth - 20;
+            int yPos = this.topPos + 6;
             // Skull icon using Unicode
-            context.drawText(this.textRenderer, "☠", xPos, 6, 0xFFAA0000, false);
+            context.text(this.font, "☠", xPos, yPos, 0xFFAA0000, false);
         }
+        
+        this.extractTooltip(context, mouseX, mouseY);
     }
 
     @Override
-    protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
-        int i = (this.width - this.backgroundWidth) / 2;
-        int j = (this.height - this.backgroundHeight) / 2;
-        int rows = this.handler.getRows();
-        context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, i, j, 0, 0, this.backgroundWidth, rows * 18 + 17, 256, 256);
-        context.drawTexture(net.minecraft.client.gl.RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + rows * 18 + 17, 0, 126, this.backgroundWidth, 96, 256, 256);
+    public void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        int i = (this.width - this.imageWidth) / 2;
+        int j = (this.height - this.imageHeight) / 2;
+        int rows = this.menu.getRows();
+        context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, i, j, 0, 0, this.imageWidth, rows * 18 + 17, 256, 256);
+        context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, i, j + rows * 18 + 17, 0, 126, this.imageWidth, 96, 256, 256);
     }
 }
