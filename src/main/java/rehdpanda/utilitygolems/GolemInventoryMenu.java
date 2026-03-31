@@ -13,7 +13,14 @@ public class GolemInventoryMenu extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
     public GolemInventoryMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(9), null);
+        this(syncId, playerInventory, new SimpleContainer(9), findGolem(playerInventory));
+    }
+
+    private static UtilityGolem findGolem(Inventory inventory) {
+        if (UGInit.golemFinder != null) {
+            return UGInit.golemFinder.apply(inventory.player.level(), 0);
+        }
+        return null;
     }
 
     public GolemInventoryMenu(

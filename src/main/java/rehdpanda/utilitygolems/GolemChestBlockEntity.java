@@ -235,11 +235,13 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
         super.loadAdditional(input);
         this.golemDead = input.getBooleanOr("golemDead", false);
         this.transferCooldown = input.getIntOr("transferCooldown", -1);
-        String typeName = input.getStringOr("golemType", "REGULAR");
-        try {
-            this.golemType = GolemType.valueOf(typeName);
-        } catch (IllegalArgumentException e) {
-            this.golemType = GolemType.LAPIS;
+        String typeName = input.getStringOr("golemType", "");
+        if (!typeName.isEmpty()) {
+            try {
+                this.golemType = GolemType.valueOf(typeName);
+            } catch (IllegalArgumentException e) {
+                // Keep current or let getGolemType() handle it
+            }
         }
     }
 
@@ -260,7 +262,18 @@ public class GolemChestBlockEntity extends ChestBlockEntity {
 
     @Override
     public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
-        return this.saveCustomOnly(registries);
+        net.minecraft.nbt.CompoundTag tag = super.getUpdateTag(registries);
+        tag.putBoolean("golemDead", this.golemDead);
+        if (this.golemType != null) {
+            tag.putString("golemType", this.golemType.name());
+        } else {
+            // Force inference if not set, so it's definitely synced
+            GolemType inferred = getGolemType();
+            if (inferred != null) {
+                tag.putString("golemType", inferred.name());
+            }
+        }
+        return tag;
     }
 
     public static Container getInventory(GolemChestBlock block, BlockState state, net.minecraft.world.level.Level world, BlockPos pos, boolean ignoreBlocked) {

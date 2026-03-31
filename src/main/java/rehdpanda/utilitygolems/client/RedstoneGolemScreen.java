@@ -169,9 +169,16 @@ public class RedstoneGolemScreen extends AbstractContainerScreen<RedstoneGolemMe
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         this.extractTransparentBackground(context);
         super.extractRenderState(context, mouseX, mouseY, delta);
-        context.text(this.font, "Program", this.leftPos + 7, this.topPos + 38, 0xFFFFFF, false);
-        context.text(this.font, "Nearby", this.leftPos + 150, this.topPos + 38, 0xFFFFFF, false);
-        context.text(this.font, "Interval:", this.leftPos + 180, this.topPos + 117, 0xFFFFFF, false);
+        
+        // Draw the container title
+        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
+        
+        // Draw the player inventory title
+        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
+        
+        context.text(this.font, "Program", this.leftPos + 7, this.topPos + 38, 0xFFFFFFFF, false);
+        context.text(this.font, "Nearby", this.leftPos + 150, this.topPos + 38, 0xFFFFFFFF, false);
+        context.text(this.font, "Interval:", this.leftPos + 180, this.topPos + 117, 0xFFFFFFFF, false);
         
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {

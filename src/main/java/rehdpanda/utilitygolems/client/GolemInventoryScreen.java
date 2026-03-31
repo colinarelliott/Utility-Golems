@@ -51,7 +51,8 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
     protected void init() {
         super.init();
         this.titleLabelX = (imageWidth - font.width(title)) / 2;
-
+        this.titleLabelY = 6;
+        
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
             if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND) {
@@ -239,6 +240,12 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         this.extractTransparentBackground(context);
         super.extractRenderState(context, mouseX, mouseY, delta);
+        
+        // Draw the container title
+        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
+        
+        // Draw the player inventory title
+        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
         
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {

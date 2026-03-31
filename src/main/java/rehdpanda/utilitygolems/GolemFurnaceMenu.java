@@ -14,7 +14,14 @@ public class GolemFurnaceMenu extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
     public GolemFurnaceMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(3), new net.minecraft.world.inventory.SimpleContainerData(4), null);
+        this(syncId, playerInventory, new SimpleContainer(3), new net.minecraft.world.inventory.SimpleContainerData(4), findGolem(playerInventory));
+    }
+
+    private static UtilityGolem findGolem(Inventory inventory) {
+        if (UGInit.golemFinder != null) {
+            return UGInit.golemFinder.apply(inventory.player.level(), 0);
+        }
+        return null;
     }
 
     public GolemFurnaceMenu(int syncId, Inventory playerInventory, Container inventory, net.minecraft.world.inventory.ContainerData propertyDelegate, UtilityGolem golem) {

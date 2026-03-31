@@ -72,8 +72,6 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public record SyncDiscoveredTradesPayload(int entityId, List<ItemStack> trades) implements CustomPacketPayload {
@@ -88,8 +86,19 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
+    }
 
-        public Object getId() { return ID; }
+    public record OpenGolemInventoryPayload(int entityId) implements CustomPacketPayload {
+        public static final Type<OpenGolemInventoryPayload> ID = new Type<>(Identifier.fromNamespaceAndPath(MOD_ID, "open_golem_inventory"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OpenGolemInventoryPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, OpenGolemInventoryPayload::entityId,
+                OpenGolemInventoryPayload::new
+        );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return ID;
+        }
     }
 
     public record SelectBuyItemPayload(int entityId, ItemStack selectedItem) implements CustomPacketPayload {
@@ -104,8 +113,6 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public record JukeboxActionPayload(int entityId, int actionId) implements CustomPacketPayload {
@@ -120,8 +127,6 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public record RedstoneActionPayload(int entityId, int actionId) implements CustomPacketPayload {
@@ -136,8 +141,6 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public record SyncRedstoneProgramPayload(int entityId, List<UtilityGolem.RedstoneInteraction> program) implements CustomPacketPayload {
@@ -156,8 +159,6 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public record ClearCactusSlotPayload(int entityId, int slotIndex) implements CustomPacketPayload {
@@ -172,11 +173,10 @@ public class UGInit implements ModInitializer {
         public Type<? extends CustomPacketPayload> type() {
             return ID;
         }
-
-        public Object getId() { return ID; }
     }
 
     public static final Map<GolemType, EntityType<UtilityGolem>> GOLEM_TYPES = new HashMap<>();
+    public static java.util.function.BiFunction<net.minecraft.world.level.Level, Integer, UtilityGolem> golemFinder;
 
     public static class FabricBridge {
         @FunctionalInterface
@@ -187,16 +187,28 @@ public class UGInit implements ModInitializer {
         public static void registerC2S(Object id, Object codec) {
             try {
                 Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
-                Object playC2S = findMethod(registryClass, "playC2S", 0).invoke(null);
-                findMethod(playC2S.getClass(), "register", 2).invoke(playC2S, id, codec);
+                Method playC2S;
+                try {
+                    playC2S = findMethod(registryClass, "playC2S", 0);
+                } catch (Exception e) {
+                    playC2S = findMethod(registryClass, "serverboundPlay", 0);
+                }
+                Object playC2SObj = playC2S.invoke(null);
+                findMethod(playC2SObj.getClass(), "register", 2).invoke(playC2SObj, id, codec);
             } catch (Exception e) { e.printStackTrace(); }
         }
 
         public static void registerS2C(Object id, Object codec) {
             try {
                 Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
-                Object playS2C = findMethod(registryClass, "playS2C", 0).invoke(null);
-                findMethod(playS2C.getClass(), "register", 2).invoke(playS2C, id, codec);
+                Method playS2C;
+                try {
+                    playS2C = findMethod(registryClass, "playS2C", 0);
+                } catch (Exception e) {
+                    playS2C = findMethod(registryClass, "clientboundPlay", 0);
+                }
+                Object playS2CObj = playS2C.invoke(null);
+                findMethod(playS2CObj.getClass(), "register", 2).invoke(playS2CObj, id, codec);
             } catch (Exception e) { e.printStackTrace(); }
         }
 
@@ -353,6 +365,7 @@ public class UGInit implements ModInitializer {
         FabricBridge.registerC2S(SyncRedstoneProgramPayload.ID, SyncRedstoneProgramPayload.CODEC);
         FabricBridge.registerC2S(ClearCactusSlotPayload.ID, ClearCactusSlotPayload.CODEC);
         FabricBridge.registerS2C(SyncDiscoveredTradesPayload.ID, SyncDiscoveredTradesPayload.CODEC);
+        FabricBridge.registerS2C(OpenGolemInventoryPayload.ID, OpenGolemInventoryPayload.CODEC);
         FabricBridge.registerS2C(GolemChestPayload.ID, GolemChestPayload.CODEC);
 
         FabricBridge.registerReceiver(SelectBuyItemPayload.ID, (payload, context) -> {

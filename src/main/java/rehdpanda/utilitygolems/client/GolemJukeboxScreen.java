@@ -29,6 +29,9 @@ public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu
     @Override
     protected void init() {
         super.init();
+        this.titleLabelX = (imageWidth - font.width(title)) / 2;
+        this.titleLabelY = 6;
+        
         UtilityGolem golem = menu.getGolem();
         if (golem == null) return;
 
@@ -78,6 +81,12 @@ public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         this.extractTransparentBackground(context);
         super.extractRenderState(context, mouseX, mouseY, delta);
+        
+        // Draw the container title
+        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
+        
+        // Draw the player inventory title
+        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
 
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
@@ -92,9 +101,9 @@ public class GolemJukeboxScreen extends AbstractContainerScreen<GolemJukeboxMenu
                 drawButtonHighlight(context, this.repeatButton);
             }
 
-            context.text(this.font, "Play: " + (golem.isJukeboxPlaying() ? "ON" : "OFF"), this.leftPos + 8, this.topPos + 102, 0x404040, false);
-            context.text(this.font, "Shuffle: " + (golem.isJukeboxShuffle() ? "ON" : "OFF"), this.leftPos + 140, this.topPos + 75, 0x404040, false);
-            context.text(this.font, "Repeat: " + (golem.isJukeboxRepeat() ? "ON" : "OFF"), this.leftPos + 140, this.topPos + 90, 0x404040, false);
+            context.text(this.font, "Play: " + (golem.isJukeboxPlaying() ? "ON" : "OFF"), this.leftPos + 8, this.topPos + 102, 0xFF404040, false);
+            context.text(this.font, "Shuffle: " + (golem.isJukeboxShuffle() ? "ON" : "OFF"), this.leftPos + 140, this.topPos + 75, 0xFF404040, false);
+            context.text(this.font, "Repeat: " + (golem.isJukeboxRepeat() ? "ON" : "OFF"), this.leftPos + 140, this.topPos + 90, 0xFF404040, false);
         }
         this.extractTooltip(context, mouseX, mouseY);
     }

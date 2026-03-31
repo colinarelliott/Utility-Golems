@@ -18,6 +18,10 @@ import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
 public class UGClient implements ClientModInitializer {
+    public static int lastInteractedGolemId = -1;
+    public static net.minecraft.core.BlockPos lastInteractedChestPos = net.minecraft.core.BlockPos.ZERO;
+    public static boolean lastInteractedChestDead = false;
+    public static int lastInteractedChestSize = 27;
 
     public static class ClientFabricBridge {
         public static void registerScreen(MenuType<?> type, Object factory) {
@@ -38,6 +42,20 @@ public class UGClient implements ClientModInitializer {
             try {
                 Class<?> registryClass = Class.forName("net.minecraft.client.renderer.blockentity.BlockEntityRenderers");
                 findMethod(registryClass, "register", 2).invoke(null, type, provider);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        public static void registerS2C(Object id, Object codec) {
+            try {
+                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry");
+                Method playS2C;
+                try {
+                    playS2C = findMethod(registryClass, "playS2C", 0);
+                } catch (Exception e) {
+                    playS2C = findMethod(registryClass, "clientboundPlay", 0);
+                }
+                Object playS2CObj = playS2C.invoke(null);
+                findMethod(playS2CObj.getClass(), "register", 2).invoke(playS2CObj, id, codec);
             } catch (Exception e) { e.printStackTrace(); }
         }
 
@@ -71,6 +89,12 @@ public class UGClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        UGInit.golemFinder = (world, id) -> (UtilityGolem) world.getEntity(lastInteractedGolemId);
+        
+        ClientFabricBridge.registerS2C(UGInit.SyncDiscoveredTradesPayload.ID, UGInit.SyncDiscoveredTradesPayload.CODEC);
+        ClientFabricBridge.registerS2C(UGInit.OpenGolemInventoryPayload.ID, UGInit.OpenGolemInventoryPayload.CODEC);
+        ClientFabricBridge.registerS2C(UGInit.GolemChestPayload.ID, UGInit.GolemChestPayload.CODEC);
+
         ClientFabricBridge.registerScreen(UGInit.GOLEM_SCREEN_HANDLER_TYPE, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemInventoryMenu, GolemInventoryScreen>)((handler, inventory, title) -> new GolemInventoryScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.GOLEM_FURNACE_HANDLER, (Object)(MenuScreens.ScreenConstructor<net.minecraft.world.inventory.FurnaceMenu, FurnaceScreen>)((handler, inventory, title) -> new FurnaceScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.GOLEM_JUKEBOX_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemJukeboxMenu, GolemJukeboxScreen>)((handler, inventory, title) -> new GolemJukeboxScreen(handler, inventory, title)));
@@ -87,6 +111,17 @@ public class UGClient implements ClientModInitializer {
             }
             ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new UtilityGolemRenderer(ctx, type)));
         }
+
+        ClientFabricBridge.registerReceiver(UGInit.OpenGolemInventoryPayload.ID, (payload, context) -> {
+            lastInteractedGolemId = ((UGInit.OpenGolemInventoryPayload)payload).entityId();
+        });
+
+        ClientFabricBridge.registerReceiver(UGInit.GolemChestPayload.ID, (payload, context) -> {
+            UGInit.GolemChestPayload p = (UGInit.GolemChestPayload)payload;
+            lastInteractedChestPos = p.pos();
+            lastInteractedChestDead = p.golemDead();
+            lastInteractedChestSize = p.inventorySize();
+        });
 
         ClientFabricBridge.registerReceiver(UGInit.SyncDiscoveredTradesPayload.ID, (payload, context) -> {
             Minecraft.getInstance().execute(() -> {

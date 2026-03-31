@@ -16,32 +16,29 @@ public class GolemChestScreen extends AbstractContainerScreen<GolemChestMenu> im
         super(handler, inventory, title, 176, 114 + handler.getRows() * 18);
         int rows = handler.getRows();
         this.inventoryLabelY = this.imageHeight - 94;
+        this.titleLabelX = 8;
+        this.titleLabelY = 6;
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         this.extractTransparentBackground(context);
         super.extractRenderState(context, mouseX, mouseY, delta);
-        this.extractTooltip(context, mouseX, mouseY);
+        
+        // Draw the title
+        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
+
+        // Draw the inventory label
+        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
 
         if (this.menu.isGolemDead()) {
             int xPos = this.leftPos + this.imageWidth - 20;
             int yPos = this.topPos + 6;
-            if (mouseX >= xPos && mouseX < xPos + 9 && mouseY >= yPos && mouseY < yPos + 9) {
-                this.extractTooltip(context, mouseX, mouseY); // Standard way to handle tooltips in 26.1
-            }
-        }
-    }
-
-    @Override
-    protected void extractLabels(GuiGraphicsExtractor context, int mouseX, int mouseY) {
-        super.extractLabels(context, mouseX, mouseY);
-        if (this.menu.isGolemDead()) {
-            // Position it to the right of the title
-            int xPos = this.imageWidth - 20;
             // Skull icon using Unicode
-            context.text(this.font, "☠", xPos, 6, 0xFFAA0000, false);
+            context.text(this.font, "☠", xPos, yPos, 0xFFAA0000, false);
         }
+        
+        this.extractTooltip(context, mouseX, mouseY);
     }
 
     @Override

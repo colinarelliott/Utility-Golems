@@ -13,7 +13,14 @@ public class GolemJukeboxMenu extends AbstractContainerMenu {
     private final UtilityGolem golem;
 
     public GolemJukeboxMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(1), null);
+        this(syncId, playerInventory, new SimpleContainer(9), findGolem(playerInventory));
+    }
+
+    private static UtilityGolem findGolem(Inventory inventory) {
+        if (UGInit.golemFinder != null) {
+            return UGInit.golemFinder.apply(inventory.player.level(), 0);
+        }
+        return null;
     }
 
     public GolemJukeboxMenu(int syncId, Inventory playerInventory, Container inventory, UtilityGolem golem) {

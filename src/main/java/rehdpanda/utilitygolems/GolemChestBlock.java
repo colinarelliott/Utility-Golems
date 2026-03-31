@@ -226,6 +226,9 @@ public class GolemChestBlock extends Block implements EntityBlock {
                 }
                 
                 final boolean finalIsDead = isDead;
+                final int finalSize = inventory.getContainerSize();
+                UGInit.FabricBridge.sendToPlayer(player, new UGInit.GolemChestPayload(pos, finalIsDead, finalSize));
+                
                 player.openMenu(new net.minecraft.world.MenuProvider() {
                     @Override
                     public Component getDisplayName() {

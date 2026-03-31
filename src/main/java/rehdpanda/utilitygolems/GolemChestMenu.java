@@ -15,7 +15,7 @@ public class GolemChestMenu extends AbstractContainerMenu {
     private boolean golemDead;
 
     public GolemChestMenu(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(54), BlockPos.ZERO, false);
+        this(syncId, playerInventory, new SimpleContainer(rehdpanda.utilitygolems.client.UGClient.lastInteractedChestSize), rehdpanda.utilitygolems.client.UGClient.lastInteractedChestPos, rehdpanda.utilitygolems.client.UGClient.lastInteractedChestDead);
     }
 
     public GolemChestMenu(int syncId, Inventory playerInventory, Container inventory, BlockPos pos, boolean golemDead) {

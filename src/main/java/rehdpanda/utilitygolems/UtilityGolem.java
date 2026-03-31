@@ -549,17 +549,12 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     @Override
     protected void customServerAiStep(net.minecraft.server.level.ServerLevel world) {
         // Skip UtilityGolemEntity.customServerAiStep which triggers brain.tick and UtilityGolemBrain.updateActivity
-        // but call super.customServerAiStep in Mob to ensure target management and other base behaviors work correctly.
-        super.customServerAiStep(world);
-        
-        // Proactively clear target if dead or removed, as super.customServerAiStep might be slow or skip it in some conditions.
+        // but ensure Mob-level target management works.
+        // Proactively clear target if dead or removed.
         net.minecraft.world.entity.LivingEntity target = this.getTarget();
         if (target != null && (target.isDeadOrDying() || target.isRemoved())) {
             this.setTarget(null);
         }
-
-        // Connection to the library's CopperGolem AI logic
-        net.minecraft.world.entity.animal.golem.CopperGolemAi.updateActivity(this);
     }
 
     protected Brain.Provider<UtilityGolem> brainProvider() {
@@ -1130,6 +1125,10 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (!player.level().isClientSide() && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            UGInit.FabricBridge.sendToPlayer(serverPlayer, new UGInit.OpenGolemInventoryPayload(this.getId()));
+        }
+        
         ItemStack playerStack = player.getItemInHand(hand);
 
         // SHIFT+RIGHT CLICK to take item back or toggle lamp
