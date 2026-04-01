@@ -18,6 +18,7 @@ public class BambooGolemEntityRenderer extends UtilityGolemRenderer {
     public BambooGolemEntityRenderer(EntityRendererProvider.Context ctx) {
         super(ctx, GolemType.BAMBOO);
         this.model = new BambooGolemModel(ctx.bakeLayer(UGModelLayers.BAMBOO_GOLEM));
+        this.layers.clear();
         this.addLayer(new ItemInHandLayer<>(this));
     }
 

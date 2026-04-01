@@ -60,3 +60,5 @@ replay_*.log
 /src/main/java/rehdpanda/utilitygolems/client/model/BambooGolemEntity.bbmodel
 /UtilityGolem-bamboo.bbmodel
 /UtilityGolem-experimental.bbmodel
+/src/main/java/rehdpanda/utilitygolems/client/model/NetheriteGolem.bbmodel
+/src/main/java/rehdpanda/utilitygolems/client/model/NetheriteGolemModel.bbmodel

@@ -18,6 +18,7 @@ import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
 import rehdpanda.utilitygolems.client.model.BambooGolemModel;
+import rehdpanda.utilitygolems.client.model.NetheriteGolemModel;
 import rehdpanda.utilitygolems.client.model.UGModelLayers;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import java.util.function.Supplier;
@@ -134,6 +135,7 @@ public class UGClient implements ClientModInitializer {
         ClientFabricBridge.registerBlockEntityRenderer(UGBlocks.REDSTONE_GOLEM_STATUE_BLOCK_ENTITY, (Object)(net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider<rehdpanda.utilitygolems.RedstoneGolemStatueBlockEntity, RedstoneGolemStatueBlockEntityRenderState>)((ctx) -> new RedstoneGolemStatueBlockEntityRenderer(ctx)));
 
         ClientFabricBridge.registerLayerDefinition(UGModelLayers.BAMBOO_GOLEM, (Supplier<LayerDefinition>) BambooGolemModel::createBodyLayer);
+        ClientFabricBridge.registerLayerDefinition(UGModelLayers.NETHERITE_GOLEM, (Supplier<LayerDefinition>) NetheriteGolemModel::createBodyLayer);
 
         for (GolemType type : GolemType.values()) {
             if (type == GolemType.SPONGE) {
@@ -142,6 +144,10 @@ public class UGClient implements ClientModInitializer {
             }
             if (type == GolemType.BAMBOO) {
                 ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new BambooGolemEntityRenderer(ctx)));
+                continue;
+            }
+            if (type == GolemType.NETHERITE || type == GolemType.ANCIENT) {
+                ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new NetheriteGolemEntityRenderer(ctx, type)));
                 continue;
             }
             ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new UtilityGolemRenderer(ctx, type)));
