@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Unit;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -34,6 +35,7 @@ public class RedstoneGolemStatueBlockEntityRenderer implements BlockEntityRender
     public void extractRenderState(RedstoneGolemStatueBlockEntity entity, RedstoneGolemStatueBlockEntityRenderState state, float tickProgress, Vec3 cameraPos, ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
         BlockEntityRenderer.super.extractRenderState(entity, state, tickProgress, cameraPos, crumblingOverlay);
         state.facing = entity.getBlockState().getValue(RedstoneGolemStatueBlock.FACING);
+        state.isDebug = entity.getCustomName() != null && "debug".equalsIgnoreCase(entity.getCustomName().getString());
     }
 
     @Override
@@ -41,9 +43,11 @@ public class RedstoneGolemStatueBlockEntityRenderer implements BlockEntityRender
         matrices.pushPose();
         matrices.translate(0.5, 0.0, 0.5);
         matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()));
-        RenderType renderLayer = RenderTypes.entityCutout(GolemType.REDSTONE.getTexture());
+        Identifier texture = GolemType.REDSTONE.getTexture();
+        RenderType renderLayer = RenderTypes.entityCutout(texture);
         
-        // Use 0 for color if that's what vanilla used.
+        int outlineColor = state.isDebug ? 0xFFFFFFFF : 0;
+
         queue.submitModel(
                 this.model,
                 Unit.INSTANCE,
@@ -51,7 +55,9 @@ public class RedstoneGolemStatueBlockEntityRenderer implements BlockEntityRender
                 renderLayer,
                 state.lightCoords,
                 OverlayTexture.NO_OVERLAY,
-                0xFFFFFFFF, // color (white)
+                -1, // tintedColor (white)
+                null, // sprite
+                outlineColor,
                 state.breakProgress
         );
         matrices.popPose();

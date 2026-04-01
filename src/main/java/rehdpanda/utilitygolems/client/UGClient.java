@@ -17,6 +17,11 @@ import rehdpanda.utilitygolems.UGBlocks;
 import rehdpanda.utilitygolems.UGInit;
 import rehdpanda.utilitygolems.UtilityGolem;
 
+import rehdpanda.utilitygolems.client.model.BambooGolemModel;
+import rehdpanda.utilitygolems.client.model.UGModelLayers;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import java.util.function.Supplier;
+
 public class UGClient implements ClientModInitializer {
 
     public static class ClientFabricBridge {
@@ -28,10 +33,17 @@ public class UGClient implements ClientModInitializer {
         }
 
         public static void registerEntityRenderer(EntityType<?> type, EntityRendererProvider<?> provider) {
-            try {
-                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry");
-                findMethod(registryClass, "register", 2).invoke(null, type, provider);
-            } catch (Exception e) { e.printStackTrace(); }
+            String[] classNames = {
+                "net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry",
+                "net.fabricmc.fabric.api.rendering.v1.EntityRendererRegistry"
+            };
+            for (String className : classNames) {
+                try {
+                    Class<?> registryClass = Class.forName(className);
+                    findMethod(registryClass, "register", 2).invoke(null, type, provider);
+                    return;
+                } catch (Exception e) {}
+            }
         }
 
         public static void registerBlockEntityRenderer(BlockEntityType<?> type, Object provider) {
@@ -73,6 +85,31 @@ public class UGClient implements ClientModInitializer {
             } catch (Exception e) { e.printStackTrace(); }
         }
 
+        public static void registerLayerDefinition(Object layer, Supplier<LayerDefinition> provider) {
+            String[] classNames = {
+                "net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry",
+                "net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry",
+                "net.fabricmc.fabric.api.rendering.v1.EntityModelLayerRegistry",
+                "net.fabricmc.fabric.api.client.render.v1.EntityModelLayerRegistry"
+            };
+            for (String className : classNames) {
+                try {
+                    Class<?> registryClass = Class.forName(className);
+                    Method registerMethod = findMethod(registryClass, "registerModelLayer", 2);
+                    Class<?> providerClass = registerMethod.getParameterTypes()[1];
+                    Object proxy = Proxy.newProxyInstance(providerClass.getClassLoader(), new Class[]{providerClass}, (p, m, args) -> {
+                        if (m.getName().equals("equals")) return p == args[0];
+                        if (m.getName().equals("hashCode")) return System.identityHashCode(p);
+                        if (m.getName().equals("toString")) return "ModelLayerProviderProxy";
+                        return provider.get();
+                    });
+                    registerMethod.invoke(null, layer, proxy);
+                    return;
+                } catch (Exception e) {}
+            }
+            System.err.println("[Utility Golems] Failed to register model layer: " + layer);
+        }
+
         private static Method findMethod(Class<?> clazz, String name, int paramCount) {
             for (Method m : clazz.getMethods()) {
                 if (m.getName().equals(name) && m.getParameterCount() == paramCount) {
@@ -96,9 +133,15 @@ public class UGClient implements ClientModInitializer {
         ClientFabricBridge.registerBlockEntityRenderer(UGBlocks.GOLEM_CHEST_BLOCK_ENTITY, (Object)(net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider<rehdpanda.utilitygolems.GolemChestBlockEntity, GolemChestBlockEntityRenderState>)((ctx) -> new GolemChestBlockEntityRenderer(ctx)));
         ClientFabricBridge.registerBlockEntityRenderer(UGBlocks.REDSTONE_GOLEM_STATUE_BLOCK_ENTITY, (Object)(net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider<rehdpanda.utilitygolems.RedstoneGolemStatueBlockEntity, RedstoneGolemStatueBlockEntityRenderState>)((ctx) -> new RedstoneGolemStatueBlockEntityRenderer(ctx)));
 
+        ClientFabricBridge.registerLayerDefinition(UGModelLayers.BAMBOO_GOLEM, (Supplier<LayerDefinition>) BambooGolemModel::createBodyLayer);
+
         for (GolemType type : GolemType.values()) {
             if (type == GolemType.SPONGE) {
                 ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new SpongeGolemEntityRenderer(ctx)));
+                continue;
+            }
+            if (type == GolemType.BAMBOO) {
+                ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new BambooGolemEntityRenderer(ctx)));
                 continue;
             }
             ClientFabricBridge.registerEntityRenderer(UGInit.GOLEM_TYPES.get(type), (EntityRendererProvider)(ctx -> (net.minecraft.client.renderer.entity.EntityRenderer)(Object)new UtilityGolemRenderer(ctx, type)));

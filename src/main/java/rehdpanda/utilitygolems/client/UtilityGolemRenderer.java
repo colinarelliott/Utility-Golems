@@ -1,5 +1,7 @@
 package rehdpanda.utilitygolems.client;
 
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.entity.CopperGolemRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -52,168 +54,121 @@ public class UtilityGolemRenderer extends CopperGolemRenderer {
             renderState.isSmelting = utilityGolem.isSmelting();
             renderState.isTinted = utilityGolem.getGolemType() == GolemType.TINTED_GLASS;
             renderState.yawDegrees = utilityGolem.getYRot();
+            renderState.headYaw = utilityGolem.getYHeadRot();
+            renderState.headPitch = utilityGolem.getXRot();
             renderState.animationId = utilityGolem.getAnimation().ordinal();
             renderState.animationProgress = utilityGolem.getAnimationProgress(tickDelta);
+            renderState.mainHandItem = utilityGolem.getMainHandItem().copy();
         }
     }
 
-    @Override
-    protected RenderType getRenderType(CopperGolemRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
+    protected RenderType getRenderTypeForModel(CopperGolemRenderState state, boolean translucent, boolean showOutline) {
         Identifier texture = getTextureLocation(state);
+        if (showOutline) {
+            if (state instanceof UtilityGolemRenderState renderState && renderState.isDebug) {
+                return translucent ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
+            }
+            return null;
+        }
         if (state instanceof UtilityGolemRenderState renderState && renderState.isTinted) {
             return RenderTypes.entityTranslucent(texture);
         }
         return translucent ? RenderTypes.entityTranslucent(texture) : RenderTypes.entityCutout(texture);
     }
 
+    private boolean isOutlinePass = false;
+
+    @Override
+    protected RenderType getRenderType(CopperGolemRenderState state, boolean showBody, boolean translucent, boolean showOutline) {
+        this.isOutlinePass = showOutline;
+        if (showOutline) {
+            boolean isDebug = state instanceof UtilityGolemRenderState rs && rs.isDebug;
+            if (!isDebug) return null;
+        }
+        return getRenderTypeForModel(state, translucent, showOutline);
+    }
+
     @Override
     public void submit(CopperGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
-        // Apply simple whole-body pose offsets based on current animation
-        if (state instanceof UtilityGolemRenderState renderState) {
-            float p = renderState.animationProgress;
-            GolemAnimation anim = renderState.getAnimation();
-            float yawDegrees = renderState.yawDegrees;
-            
-            // Tinted Glass Golem's held items should be rendered
-            // UtilityGolemEntityRenderer usually doesn't render held items as the base model doesn't have an arm that supports it in vanilla?
-            // Wait, UtilityGolem is from a mod or specific version. 
-            // If the model doesn't support it, we'd need a feature renderer.
-            
-            // If debug mode is on, we might see it chat or console
-            if (renderState.isDebug && anim != GolemAnimation.IDLE) {
-                // System.out.println("[DEBUG] Rendering Golem " + type + " with animation: " + anim + " at progress " + p);
-            }
+        boolean isDebug = state instanceof UtilityGolemRenderState rs && rs.isDebug;
+        
+        matrices.pushPose();
+        
+        // Apply animations to the PoseStack so both body and features follow them
+        applyAnimations(state, matrices);
 
-            switch (anim) {
-                // Lean in and out (forward/backward) while digging/chopping/farming
-                case DIGGING, CHOPPING, FARMING -> {
-                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // Leaning in and out
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
+        // Let vanilla handle the rest (rotations, standard flip, model rendering, layers)
+        super.submit(state, matrices, queue, cameraState);
+
+        matrices.popPose();
+
+        if (this.isOutlinePass && isDebug) {
+            if (state instanceof UtilityGolemRenderState renderState) {
+                if (renderState.chestPos != null) {
+                    renderDebugLine(renderState, renderState.chestPos, 0, 255, 0, matrices, queue); // Green for chest
                 }
-                case FISHING -> {
-                    // No more bobbing for fishing
-                }
-                // Forward thrust/shaking for attacking
-                case ATTACKING -> {
-                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
-                    float angle = (float) Math.sin(p * Math.PI * 10.0) * 5.0f; // Rapid vibration
-                    matrices.pushPose();
-                    matrices.translate(0.0, 0.0, z);
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // High-frequency vibration for redstone connecting
-                case CONNECTING -> {
-                    float dx = (float) Math.sin(p * Math.PI * 20.0) * 0.05f;
-                    float dz = (float) Math.cos(p * Math.PI * 20.0) * 0.05f;
-                    matrices.pushPose();
-                    matrices.translate(dx, 0.0, dz);
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // Energetic head-nodding for trading/giving items
-                case NODDING, TRADING -> {
-                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0); // 2 nods, reduced angle
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // Quick forward reach for lighting/placing
-                case LIGHTING, PLACING -> {
-                    float z = (float) Math.sin(p * Math.PI) * 0.3f;
-                    float angle = -15.0f * (float) Math.sin(p * Math.PI);
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.translate(0.0, 0.0, z);
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // Slow "breathing" bob for smelting
-                case SMELTING -> {
-                    float y = (float) Math.sin(p * Math.PI * 2.0) * 0.05f;
-                    matrices.pushPose();
-                    matrices.translate(0.0, y, 0.0);
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // Lean forward a bit when working redstone/breeding
-                case REDSTONE, BREEDING -> {
-                    float angle = -15.0f * (float) Math.sin(p * Math.PI); // Sinusoidal lean for smoother motion
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                // Sway side-to-side when playing music
-                case PLAYING_MUSIC -> {
-                    float angle = (float) Math.sin(p * Math.PI * 4.0) * 15.0f; // More energetic sway
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                case SEARCHING -> {
-                    // Nod side to side and tilt forward a bit
-                    float tiltAngle = -10.0f * (float) Math.sin(p * Math.PI);
-                    float swayAngle = 15.0f * (float) Math.sin(p * Math.PI * 2.0);
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(tiltAngle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(swayAngle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                case DEPOSITING, WITHDRAWING, SPINNING_HEAD -> {
-                    // These are now handled by UtilityGolemEntity's AnimationStates
-                    // which are processed by the superclass's model/renderer.
-                }
-                case PRESSING_BUTTON -> {
-                    // Quick forward lean for button pressing
-                    float angle = -25.0f * (float) Math.sin(p * Math.PI);
-                    matrices.pushPose();
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-yawDegrees));
-                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
-                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDegrees));
-                    super.submit(state, matrices, queue, cameraState);
-                    matrices.popPose();
-                    return;
-                }
-                default -> {
+                if (renderState.aiTarget != null) {
+                    renderDebugLine(renderState, renderState.aiTarget, 255, 0, 0, matrices, queue); // Red for AI target
                 }
             }
         }
-        
-        super.submit(state, matrices, queue, cameraState);
+    }
 
-        if (state instanceof UtilityGolemRenderState renderState && renderState.isDebug) {
-            if (renderState.chestPos != null) {
-                renderDebugLine(renderState, renderState.chestPos, 0, 255, 0, matrices, queue); // Green for chest
-            }
-            if (renderState.aiTarget != null) {
-                renderDebugLine(renderState, renderState.aiTarget, 255, 0, 0, matrices, queue); // Red for AI target
+    protected void applyAnimations(CopperGolemRenderState state, PoseStack matrices) {
+        if (state instanceof UtilityGolemRenderState renderState) {
+            float p = renderState.animationProgress;
+            GolemAnimation anim = renderState.getAnimation();
+
+            switch (anim) {
+                case DIGGING, CHOPPING, FARMING -> {
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
+                }
+                case ATTACKING -> {
+                    float z = (float) Math.sin(p * Math.PI) * 0.4f;
+                    float angle = (float) Math.sin(p * Math.PI * 10.0) * 5.0f;
+                    matrices.translate(0.0, 0.0, z);
+                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
+                }
+                case CONNECTING -> {
+                    float dx = (float) Math.sin(p * Math.PI * 20.0) * 0.05f;
+                    float dz = (float) Math.cos(p * Math.PI * 20.0) * 0.05f;
+                    matrices.translate(dx, 0.0, dz);
+                }
+                case NODDING, TRADING -> {
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI * 2.0);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
+                }
+                case LIGHTING, PLACING -> {
+                    float z = (float) Math.sin(p * Math.PI) * 0.3f;
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI);
+                    matrices.translate(0.0, 0.0, z);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
+                }
+                case SMELTING -> {
+                    float y = (float) Math.sin(p * Math.PI * 2.0) * 0.05f;
+                    matrices.translate(0.0, y, 0.0);
+                }
+                case REDSTONE, BREEDING -> {
+                    float angle = -15.0f * (float) Math.sin(p * Math.PI);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
+                }
+                case PLAYING_MUSIC -> {
+                    float angle = (float) Math.sin(p * Math.PI * 4.0) * 15.0f;
+                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
+                }
+                case SEARCHING -> {
+                    float tiltAngle = -10.0f * (float) Math.sin(p * Math.PI);
+                    float swayAngle = 15.0f * (float) Math.sin(p * Math.PI * 2.0);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(tiltAngle));
+                    matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(swayAngle));
+                }
+                case PRESSING_BUTTON -> {
+                    float angle = -25.0f * (float) Math.sin(p * Math.PI);
+                    matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(angle));
+                }
+                default -> {
+                }
             }
         }
     }

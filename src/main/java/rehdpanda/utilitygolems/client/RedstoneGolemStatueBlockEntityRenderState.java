@@ -5,4 +5,5 @@ import net.minecraft.core.Direction;
 
 public class RedstoneGolemStatueBlockEntityRenderState extends BlockEntityRenderState {
     public Direction facing;
+    public boolean isDebug;
 }

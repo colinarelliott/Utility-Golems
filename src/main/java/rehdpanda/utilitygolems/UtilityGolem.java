@@ -572,6 +572,20 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         return (net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.animal.golem.CopperGolem>) super.getBrain();
     }
 
+    @Override
+    public void travel(net.minecraft.world.phys.Vec3 movementInput) {
+        if (this.isAlive() && !this.level().isClientSide() && this.moveControl.hasWanted()) {
+            double d0 = this.moveControl.getWantedX() - this.getX();
+            double d1 = this.moveControl.getWantedZ() - this.getZ();
+            float targetYaw = (float)(net.minecraft.util.Mth.atan2(d1, d0) * (double)(180F / (float)Math.PI)) - 90.0F;
+            float yawDelta = net.minecraft.util.Mth.degreesDifference(this.getYRot(), targetYaw);
+            if (Math.abs(yawDelta) > 45.0F) {
+                movementInput = new net.minecraft.world.phys.Vec3(0, movementInput.y, 0);
+            }
+        }
+        super.travel(movementInput);
+    }
+
     public void tick() {
         if (this.golemType == GolemType.BAMBOO && !this.level().isClientSide()) {
             ItemStack boots = this.getItemBySlot(EquipmentSlot.FEET);

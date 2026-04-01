@@ -254,7 +254,9 @@ public class UGInit implements ModInitializer {
                     }
                     return null;
                 });
-                findMethod(event.getClass(), "register", 1).invoke(event, proxy);
+                Method registerMethod = findMethod(event.getClass(), "register", 1);
+                registerMethod.setAccessible(true);
+                registerMethod.invoke(event, proxy);
             } catch (Exception e) { 
                 // Silently fail for now if class is missing to allow the rest of the mod to load
             }
@@ -306,7 +308,9 @@ public class UGInit implements ModInitializer {
                     }
                     return null;
                 });
-                findMethod(event.getClass(), "register", 1).invoke(event, proxy);
+                Method registerMethod = findMethod(event.getClass(), "register", 1);
+                registerMethod.setAccessible(true);
+                registerMethod.invoke(event, proxy);
             } catch (Exception e) { e.printStackTrace(); }
         }
 

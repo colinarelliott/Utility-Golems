@@ -57,3 +57,6 @@ replay_*.log
 /radle-version/daemon/9.2.1/registry.bin
 /radle-version/daemon/9.2.1/registry.bin.lock
 /libs/
+/src/main/java/rehdpanda/utilitygolems/client/model/BambooGolemEntity.bbmodel
+/UtilityGolem-bamboo.bbmodel
+/UtilityGolem-experimental.bbmodel
