@@ -13,25 +13,66 @@ import java.util.Map;
 
 public class ConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final File CONFIG_FILE = FabricLoader.getInstance().getGameDir().resolve("utility_golems.json").toFile();
+    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("utility-golems.json").toFile();
+    private static final File OLD_CONFIG_FILE = FabricLoader.getInstance().getGameDir().resolve("utility_golems.json").toFile();
     private static GolemConfig config;
 
     public static class GolemStats {
+        /**
+         * Max health of the golem.
+         */
         public double maxHealth;
+        /**
+         * Movement speed of the golem.
+         */
         public double movementSpeed;
+        /**
+         * Base attack damage of the golem.
+         */
         public double attackDamage = 0.5;
+        /**
+         * Distance at which the golem will follow its target.
+         */
         public double followRange = 16.0;
+        /**
+         * Resistance to knockback (0.0 to 1.0).
+         */
         public double knockbackResistance = 0.0;
+        /**
+         * Base armor value of the golem.
+         */
         public double armor = 0.0;
+        /**
+         * Base armor toughness of the golem.
+         */
         public double armorToughness = 0.0;
+        /**
+         * Attack speed of the golem.
+         */
         public double attackSpeed = 1.0;
+        /**
+         * Strength of the golem's attack knockback.
+         */
         public double attackKnockback = 0.0;
+        /**
+         * Radius in blocks within which the golem performs its primary work tasks.
+         */
+        public int workRadius = 16;
+        /**
+         * Radius in blocks within which the golem searches for chests to interact with.
+         */
+        public int chestSearchRadius = 16;
 
         public GolemStats() {}
 
         public GolemStats(double maxHealth, double movementSpeed) {
             this.maxHealth = maxHealth;
             this.movementSpeed = movementSpeed;
+        }
+
+        public GolemStats(double maxHealth, double movementSpeed, int workRadius) {
+            this(maxHealth, movementSpeed);
+            this.workRadius = workRadius;
         }
 
         public GolemStats(double maxHealth, double movementSpeed, double attackDamage) {
@@ -44,7 +85,7 @@ public class ConfigManager {
         public Map<String, GolemStats> golems = new HashMap<>();
 
         public void initDefaults() {
-            golems.put("lapis_golem", new GolemStats(20.0, 0.25));
+            golems.put("lapis_golem", new GolemStats(20.0, 0.25, 32));
             golems.put("redstone_golem", new GolemStats(5.0, 0.3));
             
             GolemStats emerald = new GolemStats(30.0, 0.3, 2.0);
@@ -58,21 +99,44 @@ public class ConfigManager {
             
             golems.put("gold_golem", new GolemStats(20.0, 0.3));
             golems.put("amethyst_golem", new GolemStats(15.0, 0.3));
-            golems.put("netherite_golem", new GolemStats(80.0, 0.3, 0.5));
+            GolemStats netherite = new GolemStats(80.0, 0.3, 0.5);
+            netherite.workRadius = 32;
+            netherite.chestSearchRadius = 32;
+            golems.put("netherite_golem", netherite);
             
             GolemStats ancient = new GolemStats(80.0, 0.3, 0.5);
             ancient.armor = 1.0;
             ancient.armorToughness = 0.5;
+            ancient.workRadius = 32;
+            ancient.chestSearchRadius = 32;
             golems.put("ancient_golem", ancient);
             
             golems.put("furnace_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("bamboo_golem", new GolemStats(40.0, 0.3, 0.5));
+            
+            GolemStats bamboo = new GolemStats(40.0, 0.3, 0.5);
+            bamboo.workRadius = 8;
+            bamboo.chestSearchRadius = 32;
+            golems.put("bamboo_golem", bamboo);
+            
             golems.put("diamond_golem", new GolemStats(40.0, 0.2, 0.5));
-            golems.put("sponge_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("deepslate_golem", new GolemStats(40.0, 0.3, 0.5));
+            
+            GolemStats sponge = new GolemStats(40.0, 0.3, 0.5);
+            sponge.workRadius = 32;
+            sponge.chestSearchRadius = 32;
+            golems.put("sponge_golem", sponge);
+            
+            GolemStats deepslate = new GolemStats(40.0, 0.3, 0.5);
+            deepslate.workRadius = 32;
+            deepslate.chestSearchRadius = 32;
+            golems.put("deepslate_golem", deepslate);
+            
             golems.put("jukebox_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("lamp_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("nether_wart_golem", new GolemStats(40.0, 0.3, 0.5));
+            
+            GolemStats netherWart = new GolemStats(40.0, 0.3, 0.5);
+            netherWart.workRadius = 32;
+            netherWart.chestSearchRadius = 32;
+            golems.put("nether_wart_golem", netherWart);
             golems.put("smoker_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("blast_furnace_golem", new GolemStats(40.0, 0.3, 0.5));
             golems.put("medic_golem", new GolemStats(40.0, 0.3, 0.5));
@@ -84,10 +148,19 @@ public class ConfigManager {
     }
 
     public static void load() {
+        if (!CONFIG_FILE.exists() && OLD_CONFIG_FILE.exists()) {
+            UGInit.LOGGER.info("Migrating old config file to new location");
+            if (OLD_CONFIG_FILE.renameTo(CONFIG_FILE)) {
+                UGInit.LOGGER.info("Successfully migrated config file");
+            } else {
+                UGInit.LOGGER.error("Failed to migrate config file");
+            }
+        }
+
         if (CONFIG_FILE.exists()) {
             try (FileReader reader = new FileReader(CONFIG_FILE)) {
                 config = GSON.fromJson(reader, GolemConfig.class);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 UGInit.LOGGER.error("Failed to load config, using defaults", e);
                 config = new GolemConfig();
                 config.initDefaults();
@@ -114,6 +187,10 @@ public class ConfigManager {
     }
 
     public static void save() {
+        File configDir = CONFIG_FILE.getParentFile();
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
             GSON.toJson(config, writer);
         } catch (IOException e) {

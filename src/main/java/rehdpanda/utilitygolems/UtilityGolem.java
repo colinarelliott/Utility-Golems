@@ -1679,7 +1679,8 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         }
 
         BlockPos pos = this.blockPosition();
-        int range = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 32 : 16;
+        ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(this.getGolemType().getName());
+        int range = stats != null ? stats.chestSearchRadius : 16;
         int verticalRange = (this.getGolemType() == GolemType.DEEPSLATE || this.getGolemType() == GolemType.LAPIS || this.getGolemType() == GolemType.BAMBOO) ? 15 : 4;
         
         for (int x = -range; x <= range; x++) {

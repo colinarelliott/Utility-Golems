@@ -1936,10 +1936,12 @@ public class GolemAI {
 
         private BlockPos findNearbyWater(BlockPos center) {
             Level world = golem.level();
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? stats.workRadius : 12;
             
             // Collect all water positions currently being fished by other golems
             List<BlockPos> occupiedWater = new ArrayList<>();
-            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(32.0), g -> g != golem && g.getGolemType() == GolemType.SPONGE);
+            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(range), g -> g != golem && g.getGolemType() == GolemType.SPONGE);
             for (UtilityGolem other : golems) {
                 BlockPos target = other.getFishingTarget();
                 if (target != null) {
@@ -1949,7 +1951,6 @@ public class GolemAI {
 
             BlockPos best = null;
             double bestScore = Double.MAX_VALUE;
-            int range = 12;
             for (int x = -range; x <= range; x++) {
                 for (int y = -5; y <= 5; y++) {
                     for (int z = -range; z <= range; z++) {
@@ -3295,7 +3296,7 @@ public class GolemAI {
                     itemCount += stack.getCount();
                 }
             }
-            if (itemCount >= 16) return true;
+            if (itemCount >= 4) return true;
             if (isInventoryFull() && itemCount > 0) return true;
             return false;
         }
@@ -3389,9 +3390,9 @@ public class GolemAI {
                     if (golem.getGolemType() == GolemType.BAMBOO) {
                         if (stack.is(net.minecraft.world.item.Items.MELON_SLICE)) return true; // Always deposit melon slices
                         if (isSeed(stack) || stack.is(net.minecraft.world.item.Items.PUMPKIN_SEEDS) || stack.is(net.minecraft.world.item.Items.MELON_SEEDS) || stack.is(net.minecraft.world.item.Items.CARROT) || stack.is(net.minecraft.world.item.Items.POTATO)) {
-                            // Only deposit seeds/carrots/potatoes if we have more than 16 (keep some for planting)
+                            // Only deposit seeds/carrots/potatoes if we have more than 8 (keep some for planting)
                             // However, if the golem.getInventory() is full, we should still deposit them to make room.
-                            if (getSeedCount(stack.getItem()) > 16 || isInventoryFull()) return true;
+                            if (getSeedCount(stack.getItem()) > 8 || isInventoryFull()) return true;
                             continue;
                         }
                     }
@@ -5397,8 +5398,11 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             Level world = golem.level();
 
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? stats.workRadius : 12;
+
             // 1. Prioritize Visible Ores
-            int oreRange = 12;
+            int oreRange = range;
             BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
             double minOreDistSq = Double.MAX_VALUE;
             BlockPos bestOre = null;
@@ -5463,7 +5467,6 @@ public class GolemAI {
             }
 
             // 3. General digging for other types
-            int range = 15;
             double minTargetDistSq = Double.MAX_VALUE;
             BlockPos bestTarget = null;
 
@@ -6347,15 +6350,18 @@ public class GolemAI {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return null;
 
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? stats.workRadius : 16;
+            
             // Search radius: 32 blocks (covers a large area).
             // A standard 9x9 field has 81 blocks.
-            // We search for tasks within the 32x32 area around the chest.
+            // We search for tasks within the range around the chest.
             List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
             
             // Priority 1: Harvest mature crops
             for (int y = -3; y <= 3; y++) {
-                for (int x = -16; x <= 16; x++) {
-                    for (int z = -16; z <= 16; z++) {
+                for (int x = -range; x <= range; x++) {
+                    for (int z = -range; z <= range; z++) {
                         BlockPos p = chestPos.offset(x, y, z);
                         if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
                         if (shouldHarvest(p, null)) {
@@ -6369,12 +6375,12 @@ public class GolemAI {
             // Priority 2: Pick up dropped items in the field
             List<net.minecraft.world.entity.item.ItemEntity> items = golem.level().getEntitiesOfClass(
                     net.minecraft.world.entity.item.ItemEntity.class,
-                    new net.minecraft.world.phys.AABB(chestPos).inflate(32.0),
+                    new net.minecraft.world.phys.AABB(chestPos).inflate(range),
                     item -> !item.hasPickUpDelay() && isFamiliarItem(item.getItem()) && canSee(item.blockPosition())
             );
             if (!items.isEmpty()) {
                 net.minecraft.world.entity.item.ItemEntity closest = items.stream()
-                        .filter(item -> item.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(chestPos)) <= 32.0 * 32.0)
+                        .filter(item -> item.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(chestPos)) <= (double)range * range)
                         .min(Comparator.comparingDouble(golem::distanceToSqr))
                         .orElse(null);
                 if (closest != null) {
@@ -6384,8 +6390,9 @@ public class GolemAI {
 
             // Priority 2.5: Nether Wart Farm Construction (if we have shovel, soul sand, and nether wart)
             if (hasNetherWart() && hasItem(net.minecraft.world.item.Items.SOUL_SAND) && hasShovel()) {
-                for (int x = -4; x <= 4; x++) {
-                    for (int z = -4; z <= 4; z++) {
+                int constructionRange = Math.min(range, 4);
+                for (int x = -constructionRange; x <= constructionRange; x++) {
+                    for (int z = -constructionRange; z <= constructionRange; z++) {
                         for (int y = -1; y <= 1; y++) {
                             BlockPos p = chestPos.offset(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
@@ -6484,8 +6491,10 @@ public class GolemAI {
         }
 
         private List<BlockPos> getOtherGolemsTargets() {
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? stats.workRadius : 16;
             List<BlockPos> targets = new ArrayList<>();
-            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(32.0), g -> g != golem && g.getGolemType() == GolemType.BAMBOO);
+            List<UtilityGolem> golems = golem.level().getEntitiesOfClass(UtilityGolem.class, golem.getBoundingBox().inflate(range), g -> g != golem && g.getGolemType() == GolemType.BAMBOO);
             for (UtilityGolem g : golems) {
                 BlockPos target = g.getFarmTarget();
                 if (target != null) {
@@ -6500,7 +6509,8 @@ public class GolemAI {
         }
 
         private BlockPos findWaterCenter(BlockPos chestPos) {
-            int range = 10;
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? Math.min(stats.workRadius, 16) : 10;
             // Search for existing water. We want the one closest to the chest if there are multiple,
             // but ideally there is only one.
             BlockPos bestWater = null;
@@ -6524,9 +6534,10 @@ public class GolemAI {
         }
 
         private BlockPos findPlaceForWater(BlockPos chestPos) {
+            ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
+            int range = stats != null ? Math.min(stats.workRadius, 10) : 5;
             // Find a spot near the chest. We want it to be consistently the same spot
             // if we are searching multiple times.
-            int range = 5;
             // Iterate Y from 1 down to -1 to find a spot at surface level or slightly below
             for (int y = 1; y >= -1; y--) {
                 for (int x = -range; x <= range; x++) {

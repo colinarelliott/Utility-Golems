@@ -87,7 +87,7 @@ public class BambooGolemModel extends net.minecraft.client.model.animal.golem.Co
 
         // Basic head rotation
         if (state instanceof UtilityGolemRenderState rs) {
-            float relativeHeadYaw = state.yRot - rs.headYaw;
+            float relativeHeadYaw = rs.headYaw - state.yRot;
             this.head.yRot = relativeHeadYaw * ((float)Math.PI / 180F);
             this.head.xRot = rs.headPitch * ((float)Math.PI / 180F);
         } else {

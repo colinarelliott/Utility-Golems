@@ -26,9 +26,9 @@ public class BambooGolemEntityRenderer extends UtilityGolemRenderer {
     public void submit(CopperGolemRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
         matrices.pushPose();
         
-        // 135.0F rotation correction to align the custom model with vanilla feature layers (eyes)
-        // This must be applied before calling super.submit to ensure all layers follow it.
-        matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(135.0F));
+        // 180.0F rotation correction to align the custom model with vanilla rendering orientation.
+        // This ensures the golem faces forward when walking.
+        matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F));
         
         // super.submit will render the body and any layers (like eyes) using our custom model
         super.submit(state, matrices, queue, cameraState);
