@@ -85,8 +85,14 @@ public class ConfigManager {
         public Map<String, GolemStats> golems = new HashMap<>();
 
         public void initDefaults() {
-            golems.put("lapis_golem", new GolemStats(20.0, 0.25, 32));
-            golems.put("redstone_golem", new GolemStats(5.0, 0.3));
+            GolemStats lapis = new GolemStats(20.0, 0.25, 32);
+            lapis.chestSearchRadius = 16;
+            golems.put("lapis_golem", lapis);
+            
+            GolemStats redstone = new GolemStats(5.0, 0.3);
+            redstone.workRadius = 16;
+            redstone.chestSearchRadius = 16;
+            golems.put("redstone_golem", redstone);
             
             GolemStats emerald = new GolemStats(30.0, 0.3, 2.0);
             emerald.followRange = 16.0;
@@ -95,10 +101,20 @@ public class ConfigManager {
             emerald.armorToughness = 1.0;
             emerald.attackSpeed = 1.0;
             emerald.attackKnockback = 0.2;
+            emerald.workRadius = 16;
+            emerald.chestSearchRadius = 16;
             golems.put("emerald_golem", emerald);
             
-            golems.put("gold_golem", new GolemStats(20.0, 0.3));
-            golems.put("amethyst_golem", new GolemStats(15.0, 0.3));
+            GolemStats gold = new GolemStats(20.0, 0.3);
+            gold.workRadius = 16;
+            gold.chestSearchRadius = 16;
+            golems.put("gold_golem", gold);
+
+            GolemStats amethyst = new GolemStats(15.0, 0.3);
+            amethyst.workRadius = 16;
+            amethyst.chestSearchRadius = 16;
+            golems.put("amethyst_golem", amethyst);
+
             GolemStats netherite = new GolemStats(80.0, 0.3, 0.5);
             netherite.workRadius = 32;
             netherite.chestSearchRadius = 32;
@@ -111,14 +127,20 @@ public class ConfigManager {
             ancient.chestSearchRadius = 32;
             golems.put("ancient_golem", ancient);
             
-            golems.put("furnace_golem", new GolemStats(40.0, 0.3, 0.5));
+            GolemStats furnace = new GolemStats(40.0, 0.3, 0.5);
+            furnace.workRadius = 16;
+            furnace.chestSearchRadius = 16;
+            golems.put("furnace_golem", furnace);
             
             GolemStats bamboo = new GolemStats(40.0, 0.3, 0.5);
             bamboo.workRadius = 8;
             bamboo.chestSearchRadius = 32;
             golems.put("bamboo_golem", bamboo);
             
-            golems.put("diamond_golem", new GolemStats(40.0, 0.2, 0.5));
+            GolemStats diamond = new GolemStats(40.0, 0.2, 0.5);
+            diamond.workRadius = 16;
+            diamond.chestSearchRadius = 16;
+            golems.put("diamond_golem", diamond);
             
             GolemStats sponge = new GolemStats(40.0, 0.3, 0.5);
             sponge.workRadius = 32;
@@ -130,20 +152,55 @@ public class ConfigManager {
             deepslate.chestSearchRadius = 32;
             golems.put("deepslate_golem", deepslate);
             
-            golems.put("jukebox_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("lamp_golem", new GolemStats(40.0, 0.3, 0.5));
+            GolemStats jukebox = new GolemStats(40.0, 0.3, 0.5);
+            jukebox.workRadius = 16;
+            jukebox.chestSearchRadius = 16;
+            golems.put("jukebox_golem", jukebox);
+
+            GolemStats lamp = new GolemStats(40.0, 0.3, 0.5);
+            lamp.workRadius = 16;
+            lamp.chestSearchRadius = 16;
+            golems.put("lamp_golem", lamp);
             
             GolemStats netherWart = new GolemStats(40.0, 0.3, 0.5);
             netherWart.workRadius = 32;
             netherWart.chestSearchRadius = 32;
             golems.put("nether_wart_golem", netherWart);
-            golems.put("smoker_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("blast_furnace_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("medic_golem", new GolemStats(40.0, 0.3, 0.5));
-            golems.put("cactus_golem", new GolemStats(20.0, 0.25, 1.0));
-            golems.put("hopper_golem", new GolemStats(20.0, 0.25, 1.0));
-            golems.put("honeycomb_golem", new GolemStats(20.0, 0.25));
-            golems.put("tinted_glass_golem", new GolemStats(20.0, 0.25));
+
+            GolemStats smoker = new GolemStats(40.0, 0.3, 0.5);
+            smoker.workRadius = 16;
+            smoker.chestSearchRadius = 16;
+            golems.put("smoker_golem", smoker);
+
+            GolemStats blastFurnace = new GolemStats(40.0, 0.3, 0.5);
+            blastFurnace.workRadius = 16;
+            blastFurnace.chestSearchRadius = 16;
+            golems.put("blast_furnace_golem", blastFurnace);
+
+            GolemStats medic = new GolemStats(40.0, 0.3, 0.5);
+            medic.workRadius = 16;
+            medic.chestSearchRadius = 16;
+            golems.put("medic_golem", medic);
+
+            GolemStats cactus = new GolemStats(20.0, 0.25, 1.0);
+            cactus.workRadius = 16;
+            cactus.chestSearchRadius = 16;
+            golems.put("cactus_golem", cactus);
+
+            GolemStats hopper = new GolemStats(20.0, 0.25, 1.0);
+            hopper.workRadius = 16;
+            hopper.chestSearchRadius = 16;
+            golems.put("hopper_golem", hopper);
+
+            GolemStats honeycomb = new GolemStats(20.0, 0.25);
+            honeycomb.workRadius = 16;
+            honeycomb.chestSearchRadius = 16;
+            golems.put("honeycomb_golem", honeycomb);
+
+            GolemStats tintedGlass = new GolemStats(20.0, 0.25);
+            tintedGlass.workRadius = 16;
+            tintedGlass.chestSearchRadius = 16;
+            golems.put("tinted_glass_golem", tintedGlass);
         }
     }
 
@@ -175,12 +232,22 @@ public class ConfigManager {
         boolean needsResave = false;
         GolemConfig defaults = new GolemConfig();
         defaults.initDefaults();
-        for (String key : defaults.golems.keySet()) {
-            if (!config.golems.containsKey(key)) {
-                config.golems.put(key, defaults.golems.get(key));
-                needsResave = true;
+        
+        // If config was loaded from file, we might need to fill in missing fields for existing golems
+        if (config != null) {
+            for (String key : defaults.golems.keySet()) {
+                if (!config.golems.containsKey(key)) {
+                    config.golems.put(key, defaults.golems.get(key));
+                    needsResave = true;
+                } else {
+                    // Even if the golem key exists, it might be missing fields added in later versions (like workRadius)
+                    // Since we've already loaded it into memory, Gson should have populated missing fields with 0 or class defaults.
+                    // By setting needsResave to true once, we ensure the file is updated with ALL current fields.
+                    needsResave = true;
+                }
             }
         }
+
         if (needsResave) {
             save();
         }
