@@ -3615,6 +3615,7 @@ public class GolemAI {
                         updateHeldItem();
                     }
                     delay = 100; // Wait for animation
+                    golem.clearBlacklist();
                 }
             }
         }
@@ -4807,6 +4808,7 @@ public class GolemAI {
                     golem.setSearching(true);
                     golem.setAnimation(GolemAnimation.WITHDRAWING, 60);
                     delay = 60; // Wait for animation
+                    golem.clearBlacklist();
                 }
             }
         }
@@ -6762,7 +6764,7 @@ public class GolemAI {
             
             // If it's an item, it's always valid as long as it exists (tick will handle it)
             // For other actions, verify they still need to be done
-            return true; 
+            return stuckTicks < 100 && golem.blockPosition().distSqr(targetPos) < 400; 
         }
 
         @Override
@@ -6835,6 +6837,9 @@ public class GolemAI {
         @Override
         public void stop() {
             golem.setFarmTarget(null);
+            targetPos = null;
+            farmActionTime = 0;
+            stuckTicks = 0;
         }
 
         private void ensureCorrectTool() {

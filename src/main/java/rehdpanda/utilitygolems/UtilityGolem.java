@@ -696,6 +696,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
             // Cleanup old chorus planting data every 1 minute
             if (this.level().getGameTime() % 1200 == 0) {
+                this.clearBlacklist();
                 long currentTime = this.level().getGameTime();
                 this.plantedChorusFlowers.entrySet().removeIf(entry -> (currentTime - entry.getValue()) > 4800); // 4 minutes
             }

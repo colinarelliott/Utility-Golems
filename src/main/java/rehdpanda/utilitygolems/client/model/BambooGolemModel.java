@@ -44,20 +44,20 @@ public class BambooGolemModel extends net.minecraft.client.model.animal.golem.Co
                 .texOffs(40, 43).addBox(-3.0F, -6.0F, 2.0F, 6.0F, 4.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 19.0F, 0.0F));
 
         body.addOrReplaceChild("head", CubeListBuilder.create().texOffs(4, 4).addBox(-4.0F, -5.0F, -3.0F, 8.0F, 5.0F, 6.0F, new CubeDeformation(0.0F))
-                .texOffs(56, 0).addBox(-1.0F, -2.0F, -4.0F, 2.0F, 3.0F, 2.0F, new CubeDeformation(0.0F))
-                .texOffs(38, 9).addBox(-2.0F, -9.0F, 1.0F, 2.0F, 4.0F, 1.0F, new CubeDeformation(-0.01F))
-                .texOffs(38, 8).addBox(2.0F, -9.0F, -2.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
-                .texOffs(38, 8).addBox(0.0F, -8.0F, -3.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
-                .texOffs(38, 8).addBox(1.0F, -7.0F, 1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
-                .texOffs(39, 9).addBox(-3.0F, -7.0F, -2.0F, 2.0F, 3.0F, 1.0F, new CubeDeformation(-0.01F)), PartPose.offset(0.0F, -6.0F, 0.0F));
+                .texOffs(56, 0).addBox(-1.0F, -2.0F, -5.0F, 2.0F, 3.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(38, 9).addBox(0.0F, -9.0F, 1.0F, 2.0F, 4.0F, 1.0F, new CubeDeformation(-0.01F))
+                .texOffs(38, 8).addBox(-3.0F, -9.0F, -2.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
+                .texOffs(38, 8).addBox(-1.0F, -8.0F, -3.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
+                .texOffs(38, 8).addBox(-2.0F, -7.0F, 1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.01F))
+                .texOffs(39, 9).addBox(1.0F, -7.0F, -2.0F, 2.0F, 3.0F, 1.0F, new CubeDeformation(-0.01F)), PartPose.offset(0.0F, -6.0F, 0.0F));
 
-        body.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(52, 18).addBox(0.0F, -1.0F, -1.0F, 2.0F, 10.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(4.0F, -6.0F, 0.0F));
+        body.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(52, 18).addBox(-2.0F, -1.0F, -1.0F, 2.0F, 10.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, -6.0F, 0.0F));
 
-        body.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(39, 18).addBox(-2.0F, -1.0F, -1.0F, 2.0F, 10.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, -6.0F, 0.0F));
+        body.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(39, 18).addBox(0.0F, -1.0F, -1.0F, 2.0F, 10.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(4.0F, -6.0F, 0.0F));
 
-        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(19, 29).addBox(0.9F, 0.0F, -1.0F, 2.0F, 5.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 19.0F, 0.0F));
+        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(19, 29).addBox(-2.9F, 0.0F, -1.0F, 2.0F, 5.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 19.0F, 0.0F));
 
-        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(3, 29).addBox(-2.9F, 0.0F, -0.99F, 2.0F, 5.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 19.0F, 0.0F));
+        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(3, 29).addBox(0.9F, 0.0F, -0.99F, 2.0F, 5.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 19.0F, 0.0F));
 
         return LayerDefinition.create(meshdefinition, 64, 64);
     }

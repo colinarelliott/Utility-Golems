@@ -48,27 +48,23 @@ public class NetheriteGolemModel extends net.minecraft.client.model.animal.golem
         // x = -4, y = 18 - 15 = 3, z = -2, w = 8, h = 9, d = 4
         PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create().texOffs(2, 14).addBox(-4.0F, -9.0F, -2.0F, 8.0F, 9.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 18.0F, 0.0F));
 
-        // Head: from: [-4, 14, -4], to: [4, 21, 4], offset: [0, 15, 0] (In Blockbench, but relative to body in Java)
-        // Relative to body's origin (18), head is at 15? No, let's see.
-        // In Blockbench, head pivot is [0, 12, 0].
-        // If body pivot is [0, 18, 0] in Java, and head is a child of body.
-        // Let's use PartPose.offset(0.0F, -9.0F, 0.0F) for the head relative to the top of the body.
+        // Head: Pivot at [0, 9, 0] relative to body origin [0, 18, 0]
         PartDefinition head = body.addOrReplaceChild("head", CubeListBuilder.create().texOffs(2, 2).addBox(-4.0F, -7.0F, -4.0F, 8.0F, 7.0F, 8.0F, new CubeDeformation(0.0F))
                 .texOffs(56, 0).addBox(-1.0F, -3.0F, -6.0F, 2.0F, 3.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, -9.0F, 0.0F));
 
         // Arms: relative to body
-        // Left Arm: (BB: -7 to -4) -> Java: 4 to 7
-        body.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(50, 16).addBox(0.0F, 0.0F, -2.0F, 3.0F, 10.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(4.0F, -9.0F, 0.0F));
+        // Left Arm: now on negative X (Java)
+        body.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(50, 16).addBox(-3.0F, 0.0F, -2.0F, 3.0F, 10.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, -9.0F, 0.0F));
 
-        // Right Arm: (BB: 4 to 7) -> Java: -7 to -4
-        body.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(36, 16).addBox(-3.0F, 0.0F, -2.0F, 3.0F, 10.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, -9.0F, 0.0F));
+        // Right Arm: now on positive X (Java)
+        body.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(36, 16).addBox(0.0F, 0.0F, -2.0F, 3.0F, 10.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(4.0F, -9.0F, 0.0F));
 
         // Legs: relative to root
-        // Left Leg (Positive X): texOffs(16, 26), BB: -3.9 to 0.1 -> Java: -0.1 to 3.9
-        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(16, 26).addBox(-0.1F, 0.0F, -2.0F, 4.0F, 6.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 18.0F, 0.0F));
+        // Left Leg: now on negative X
+        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(16, 26).addBox(-3.9F, 0.0F, -2.0F, 4.0F, 6.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 18.0F, 0.0F));
 
-        // Right Leg (Negative X): texOffs(0, 26), BB: -0.1 to 3.9 -> Java: -3.9 to 0.1
-        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(0, 26).addBox(-3.9F, 0.0F, -2.0F, 4.0F, 6.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 18.0F, 0.0F));
+        // Right Leg: now on positive X
+        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(0, 26).addBox(-0.1F, 0.0F, -2.0F, 4.0F, 6.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 18.0F, 0.0F));
 
         return LayerDefinition.create(meshdefinition, 64, 64);
     }
