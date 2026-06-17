@@ -228,7 +228,7 @@ public class SchematicLoader {
             case 18: return net.minecraft.world.level.block.Blocks.OAK_LEAVES;
             case 20: return net.minecraft.world.level.block.Blocks.GLASS;
             case 24: return net.minecraft.world.level.block.Blocks.SANDSTONE;
-            case 35: return net.minecraft.world.level.block.Blocks.WHITE_WOOL;
+            case 35: return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(net.minecraft.resources.Identifier.parse("white_wool"));
             case 41: return net.minecraft.world.level.block.Blocks.GOLD_BLOCK;
             case 42: return net.minecraft.world.level.block.Blocks.IRON_BLOCK;
             case 43: return net.minecraft.world.level.block.Blocks.STONE_SLAB;

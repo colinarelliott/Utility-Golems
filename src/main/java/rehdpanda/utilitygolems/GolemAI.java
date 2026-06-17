@@ -102,7 +102,7 @@ public class GolemAI {
                 || stack.is(net.minecraft.world.item.Items.HAY_BLOCK)
                 || stack.is(net.minecraft.world.item.Items.SEAGRASS)
                 || stack.is(net.minecraft.world.item.Items.BAMBOO)
-                || stack.is(net.minecraft.tags.ItemTags.FLOWERS)
+                || stack.is(net.minecraft.tags.ItemTags.BEE_FOOD)
                 || stack.is(net.minecraft.world.item.Items.WARPED_FUNGUS)
                 || stack.is(net.minecraft.world.item.Items.CRIMSON_FUNGUS)
                 || stack.is(net.minecraft.world.item.Items.SLIME_BALL)
@@ -5319,9 +5319,9 @@ public class GolemAI {
                 ItemStack tool = golem.getHeldItem();
                 // Ensure we have the right tool held or can swap to it
                 boolean needsPickaxe = state.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD) || state.is(net.minecraft.tags.BlockTags.BASE_STONE_NETHER)
-                        || state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
-                        || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
-                        || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES);
+                        || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("coal_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("iron_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("copper_ores")))
+                        || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("gold_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("diamond_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("emerald_ores")))
+                        || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("lapis_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("redstone_ores")));
                 boolean needsShovel = state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL) || state.is(net.minecraft.tags.BlockTags.DIRT) || state.is(net.minecraft.tags.BlockTags.SAND) || state.is(net.minecraft.world.level.block.Blocks.GRAVEL);
 
             if (needsPickaxe && !UtilityGolem.isPickaxe(tool)) {
@@ -5498,9 +5498,9 @@ public class GolemAI {
 
         private boolean isOre(BlockPos pos) {
             BlockState state = golem.level().getBlockState(pos);
-            if (!(state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
-                    || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
-                    || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES)
+            if (!(state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("coal_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("iron_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("copper_ores")))
+                    || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("gold_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("diamond_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("emerald_ores")))
+                    || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("lapis_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("redstone_ores")))
                     || state.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE)
                     || state.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS))) {
                 return false;
@@ -6186,9 +6186,9 @@ public class GolemAI {
                 score += EnchantmentHelper.getItemEnchantmentLevel(registry.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.EFFICIENCY), stack) * 10;
                 
                 BlockState state = serverLevel.getBlockState(target);
-                boolean isOre = state.is(net.minecraft.tags.BlockTags.COAL_ORES) || state.is(net.minecraft.tags.BlockTags.IRON_ORES) || state.is(net.minecraft.tags.BlockTags.COPPER_ORES)
-                        || state.is(net.minecraft.tags.BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockTags.DIAMOND_ORES) || state.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
-                        || state.is(net.minecraft.tags.BlockTags.LAPIS_ORES) || state.is(net.minecraft.tags.BlockTags.REDSTONE_ORES)
+                boolean isOre = state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("coal_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("iron_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("copper_ores")))
+                        || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("gold_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("diamond_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("emerald_ores")))
+                        || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("lapis_ores"))) || state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("redstone_ores")))
                         || state.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE) || state.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
                 
                 if (isOre) {
@@ -8633,7 +8633,7 @@ public class GolemAI {
                     BlockPos p = pos.offset(x, 0, z);
                     BlockState s = world.getBlockState(p);
                     // Check if it's a sapling or a log (tree already there)
-                    if (s.is(net.minecraft.tags.BlockTags.SAPLINGS) || s.is(net.minecraft.tags.BlockTags.LOGS)) {
+                    if (s.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("saplings"))) || s.is(net.minecraft.tags.BlockTags.LOGS)) {
                         return false;
                     }
                 }

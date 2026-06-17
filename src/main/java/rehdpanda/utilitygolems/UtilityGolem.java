@@ -28,6 +28,8 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
@@ -903,7 +905,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         if (input.is(Items.KELP)) return new ItemStack(Items.DRIED_KELP);
         if (input.is(Items.CLAY_BALL)) return new ItemStack(Items.BRICK);
         if (input.is(Items.CLAY)) return new ItemStack(Items.TERRACOTTA);
-        if (input.is(Items.CACTUS)) return new ItemStack(Items.GREEN_DYE);
+        if (input.is(Items.CACTUS)) return new ItemStack(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("green_dye")));
         if (input.is(Items.NETHERRACK)) return new ItemStack(Items.NETHER_BRICK);
         // Ores
         if (input.is(Items.ANCIENT_DEBRIS)) return new ItemStack(Items.NETHERITE_SCRAP);
@@ -919,7 +921,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         if (input.is(Items.NETHER_QUARTZ_ORE)) return new ItemStack(Items.QUARTZ);
         // Miscellaneous
         if (input.is(net.minecraft.tags.ItemTags.SAND)) return new ItemStack(Items.GLASS);
-        if (input.is(Items.SEA_PICKLE)) return new ItemStack(Items.LIME_DYE);
+        if (input.is(Items.SEA_PICKLE)) return new ItemStack(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("lime_dye")));
 
         return ItemStack.EMPTY;
     }
@@ -1870,7 +1872,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 // Apply knockback enchantment
                 int knockbackLevel = EnchantmentHelper.getItemEnchantmentLevel(world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.KNOCKBACK), heldItem);
                 if (knockbackLevel > 0) {
-                    livingTarget.knockback((float) knockbackLevel * 0.5f, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
+                    livingTarget.knockback((double) knockbackLevel * 0.5, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)), this.damageSources().mobAttack(this), 0.4f);
                     this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
                 }
 
@@ -1907,8 +1909,8 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         for (net.minecraft.world.entity.LivingEntity livingEntity : world.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, target.getBoundingBox().inflate(1.0, 0.25, 1.0), (e) -> {
             return e != this && e != target && !this.isAlliedTo(e) && this.canAttack(e) && (!(e instanceof net.minecraft.world.entity.decoration.ArmorStand) || !((net.minecraft.world.entity.decoration.ArmorStand)e).isMarker()) && this.distanceToSqr(e) < 9.0;
         })) {
-            livingEntity.knockback(0.4000000059604645, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)));
             DamageSource source = this.damageSources().mobAttack(this);
+            livingEntity.knockback(0.4000000059604645, Math.sin(this.getYRot() * (Math.PI / 180.0)), -Math.cos(this.getYRot() * (Math.PI / 180.0)), source, 0.4f);
             if (this.getOwnerUuid().isPresent()) {
                 Player owner = world.getPlayerInAnyDimension(this.getOwnerUuid().get());
                 if (owner != null) {
