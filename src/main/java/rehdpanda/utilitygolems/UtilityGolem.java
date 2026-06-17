@@ -1767,7 +1767,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.FloatGoal(this)));
         this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new net.minecraft.world.entity.ai.goal.OpenDoorGoal(this, true)));
-        this.goalSelector.addGoal(0, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
+        this.goalSelector.addGoal(5, new GolemAI.DebugGoalWrapper(this, new GolemAI.ClimbLadderGoal(this)));
 
         initGolemsGoals();
         

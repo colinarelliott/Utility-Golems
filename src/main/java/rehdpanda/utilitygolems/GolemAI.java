@@ -1409,17 +1409,20 @@ public class GolemAI {
             ladderPos = findNearbyLadder();
             if (ladderPos == null) return false;
 
+            // Only trigger if we are already stuck (not moving but have a path)
+            boolean isStuck = !golem.getNavigation().isDone() && golem.getDeltaMovement().horizontalDistanceSqr() < 0.001;
+
             // If we are already on a ladder, we can start/continue
             if (golem.level().getBlockState(golem.blockPosition()).is(net.minecraft.tags.BlockTags.CLIMBABLE)) {
                 return true;
             }
 
-            // Otherwise, only start if we have a target above us
+            // Otherwise, only start if we have a target above us AND we are stuck
             BlockPos target = getTargetPos();
-            if (target != null && target.getY() > golem.getY()) return true;
+            if (target != null && target.getY() > golem.getY() && isStuck) return true;
 
             // Or if we are already moving and stuck vertically near a ladder
-            if (!golem.getNavigation().isDone() && target != null) {
+            if (!golem.getNavigation().isDone() && target != null && isStuck) {
                 double dy = target.getY() - golem.getY();
                 if (dy > 1.0) return true;
             }
