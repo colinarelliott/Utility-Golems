@@ -59,7 +59,7 @@
   - Automates potion brewing when given a brewing stand and ingredients.
   - Deposits finished potions into nearby chests.
   - Fills water bottles with water when given glass bottles.
-- <code style="color : white">Medic Golem</code> (Healing)
+- <code style="color : white">Medic Golem</code> (Healing) (*crafted with Target block*)
   - Follows the player and automatically heals damaged golems when given a wrench.
   - Essential for maintaining your golem workforce and defenses.
 - <code style="color : green">Cactus Golem</code> (Item Trashing)
