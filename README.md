@@ -1,6 +1,6 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
-### A mod for Minecraft 1.21.11
+### A mod for Minecraft 26.2
 ![UG-PhotoDay-135](https://github.com/user-attachments/assets/7fb74960-526c-4a7e-bdd8-128d00ec8c7b)
 
 
