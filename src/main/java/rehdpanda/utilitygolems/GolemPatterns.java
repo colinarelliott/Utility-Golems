@@ -20,8 +20,8 @@ public class GolemPatterns {
     private static BlockPattern createGolemPattern(Block bottomBlock) {
         return BlockPatternBuilder.start()
                 .aisle("^", "B") // top to bottom: Pumpkin (^), Bottom block (B)
-                .where('B', cbp -> cbp.getState().getBlock() == bottomBlock)
-                .where('^', cbp -> cbp.getState().getBlock() == Blocks.CARVED_PUMPKIN)
+                .where('B', cbp -> cbp.getState().is(bottomBlock))
+                .where('^', cbp -> cbp.getState().is(Blocks.CARVED_PUMPKIN))
                 .build();
     }
 
@@ -67,29 +67,14 @@ public class GolemPatterns {
             net.minecraft.world.entity.player.Player player = world.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 5.0, false);
             Direction facing = player != null ? player.getDirection().getOpposite() : Direction.NORTH;
 
-            trySpawnGolem(serverLevel, pos, GolemType.LAPIS, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.REDSTONE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.EMERALD, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.GOLD, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.AMETHYST, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.NETHERITE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.ANCIENT, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.FURNACE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.BAMBOO, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.BAMBOO, facing, true);
-            trySpawnGolem(serverLevel, pos, GolemType.DIAMOND, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.SPONGE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.DEEPSLATE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.JUKEBOX, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.LAMP, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.SMOKER, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.BLAST_FURNACE, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.NETHER_WART, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.MEDIC, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.CACTUS, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.HONEYCOMB, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.HOPPER, facing, false);
-            trySpawnGolem(serverLevel, pos, GolemType.TINTED_GLASS, facing, false);
+            for (GolemType type : GolemType.values()) {
+                if (type == GolemType.BAMBOO) {
+                    trySpawnGolem(serverLevel, pos, type, facing, false);
+                    trySpawnGolem(serverLevel, pos, type, facing, true);
+                } else {
+                    trySpawnGolem(serverLevel, pos, type, facing, false);
+                }
+            }
         }
     }
 
@@ -123,6 +108,10 @@ public class GolemPatterns {
         BlockPattern pattern = createGolemPattern(bottomBlock);
 
         BlockPattern.BlockPatternMatch result = pattern.find(world, pos);
+        if (result == null) {
+            // Try one more time with pos.above() just in case find() is being picky about which block is the anchor
+            result = pattern.find(world, pos.above());
+        }
         if (result == null) return;
 
         // Spawn the golem at the pumpkin position
