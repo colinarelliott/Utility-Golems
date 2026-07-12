@@ -1,5 +1,9 @@
 package rehdpanda.utilitygolems;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -262,25 +266,18 @@ public class UGInit implements ModInitializer {
             }
         }
 
-        public static void sendToPlayer(Object player, Object payload) {
-            try {
-                Class<?> networkingClass = Class.forName("net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking");
-                findMethod(networkingClass, "send", 2).invoke(null, player, payload);
-            } catch (Exception e) { e.printStackTrace(); }
+        public static void sendToPlayer(net.minecraft.world.entity.player.Player player, CustomPacketPayload payload) {
+            if (player instanceof ServerPlayer serverPlayer) {
+                ServerPlayNetworking.send(serverPlayer, payload);
+            }
         }
 
         public static Collection<ServerPlayer> getTrackingPlayers(Entity entity) {
-            try {
-                Class<?> lookupClass = Class.forName("net.fabricmc.fabric.api.networking.v1.PlayerLookup");
-                return (Collection<ServerPlayer>) findMethod(lookupClass, "tracking", 1).invoke(null, entity);
-            } catch (Exception e) { e.printStackTrace(); return java.util.Collections.emptyList(); }
+            return PlayerLookup.tracking(entity);
         }
 
-        public static void registerAttributes(EntityType<? extends LivingEntity> type, Object attributes) {
-            try {
-                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry");
-                findMethod(registryClass, "register", 2).invoke(null, type, attributes);
-            } catch (Exception e) { e.printStackTrace(); }
+        public static void registerAttributes(EntityType<? extends LivingEntity> type, net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder attributes) {
+            FabricDefaultAttributeRegistry.register(type, attributes);
         }
 
         public static <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, net.minecraft.world.level.block.Block... blocks) {
