@@ -126,7 +126,7 @@ public class UGClient implements ClientModInitializer {
         UGInit.golemFinder = (world, id) -> (UtilityGolem) world.getEntity(UGInit.lastInteractedGolemId);
         
         ClientFabricBridge.registerScreen(UGInit.GOLEM_SCREEN_HANDLER_TYPE, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemInventoryMenu, GolemInventoryScreen>)((handler, inventory, title) -> new GolemInventoryScreen(handler, inventory, title)));
-        ClientFabricBridge.registerScreen(UGInit.GOLEM_FURNACE_HANDLER, (Object)(MenuScreens.ScreenConstructor<net.minecraft.world.inventory.FurnaceMenu, FurnaceScreen>)((handler, inventory, title) -> new FurnaceScreen(handler, inventory, title)));
+        ClientFabricBridge.registerScreen(UGInit.GOLEM_FURNACE_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemFurnaceMenu, GolemFurnaceScreen>)((handler, inventory, title) -> new GolemFurnaceScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.GOLEM_JUKEBOX_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemJukeboxMenu, GolemJukeboxScreen>)((handler, inventory, title) -> new GolemJukeboxScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.REDSTONE_GOLEM_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.RedstoneGolemMenu, RedstoneGolemScreen>)((handler, inventory, title) -> new RedstoneGolemScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.GOLEM_CHEST_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemChestMenu, GolemChestScreen>)((handler, inventory, title) -> new GolemChestScreen(handler, inventory, title)));

@@ -5289,6 +5289,8 @@ public class GolemAI {
         private int breakingTime;
         private int maxBreakingTime;
         private int searchCooldown = 0;
+        private int oreSearchCooldown = 0;
+        private int fluidCheckCooldown = 0;
         private boolean isAirTarget = false;
         private final List<Direction> failedDirections = new ArrayList<>();
 
@@ -5407,53 +5409,60 @@ public class GolemAI {
             int range = stats != null ? stats.workRadius : 12;
 
             // 1. Prioritize Visible Ores
-            int oreRange = range;
-            BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
-            double minOreDistSq = Double.MAX_VALUE;
-            BlockPos bestOre = null;
+            if (this.oreSearchCooldown > 0) {
+                this.oreSearchCooldown--;
+            } else {
+                int oreRange = range;
+                BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+                double minOreDistSq = Double.MAX_VALUE;
+                BlockPos bestOre = null;
 
-            for (int x = -oreRange; x <= oreRange; x++) {
-                for (int y = -oreRange; y <= oreRange; y++) {
-                    for (int z = -oreRange; z <= oreRange; z++) {
-                        mutable.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
-                        if (golem.isBlacklisted(mutable)) continue;
-                        
-                        boolean isOre = isOre(mutable);
-                        if (isOre && canDig(mutable)) {
-                            // Lapis golems should only prioritize ores that are not too far above them during staircase mining
-                            if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() > pos.getY() + 3) continue;
+                for (int x = -oreRange; x <= oreRange; x++) {
+                    for (int y = -oreRange; y <= oreRange; y++) {
+                        for (int z = -oreRange; z <= oreRange; z++) {
+                            mutable.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
+                            if (golem.isBlacklisted(mutable)) continue;
+                            
+                            boolean isOre = isOre(mutable);
+                            if (isOre && canDig(mutable)) {
+                                // Lapis golems should only prioritize ores that are not too far above them during staircase mining
+                                if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() > pos.getY() + 3) continue;
 
-                            if (chestPos == null || mutable.distToLowCornerSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
-                                // Prevent digging under feet
-                                if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() == pos.getY() - 1 && mutable.getX() == pos.getX() && mutable.getZ() == pos.getZ()) continue;
-                                
-                                double distSq = mutable.distSqr(pos);
-                                if (distSq < minOreDistSq) {
-                                    minOreDistSq = distSq;
-                                    bestOre = mutable.immutable();
+                                if (chestPos == null || mutable.distToLowCornerSqr(chestPos.getX(), chestPos.getY(), chestPos.getZ()) < 4096) {
+                                    // Prevent digging under feet
+                                    if (golem.getGolemType() == GolemType.LAPIS && mutable.getY() == pos.getY() - 1 && mutable.getX() == pos.getX() && mutable.getZ() == pos.getZ()) continue;
+                                    
+                                    double distSq = mutable.distSqr(pos);
+                                    if (distSq < minOreDistSq) {
+                                        minOreDistSq = distSq;
+                                        bestOre = mutable.immutable();
+                                    }
                                 }
-                            }
-                        } else if (golem.getGolemType() == GolemType.LAPIS && isOre) {
-                            // If it's an ore but we can't dig it (because it's hidden), check if we can dig the block above it
-                            BlockPos above = mutable.above();
-                            if (canDig(above)) {
-                                double distSq = above.distSqr(pos);
-                                if (distSq < minOreDistSq) {
-                                    minOreDistSq = distSq;
-                                    bestOre = above.immutable();
+                            } else if (golem.getGolemType() == GolemType.LAPIS && isOre) {
+                                // If it's an ore but we can't dig it (because it's hidden), check if we can dig the block above it
+                                BlockPos above = mutable.above();
+                                if (canDig(above)) {
+                                    double distSq = above.distSqr(pos);
+                                    if (distSq < minOreDistSq) {
+                                        minOreDistSq = distSq;
+                                        bestOre = above.immutable();
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (golem.getGolemType() == GolemType.LAPIS && bestOre != null) {
-                // Visibility check for ores is a bit expensive, but we want to make sure it's actually mineable
-                if (canDig(bestOre)) {
-                    golem.debugLog("DigBlockGoal: Found visible ore at " + bestOre.toShortString());
-                    return bestOre;
+                if (bestOre != null) {
+                    // Visibility check for ores is a bit expensive, but we want to make sure it's actually mineable
+                    if (canDig(bestOre)) {
+                        golem.debugLog("DigBlockGoal: Found visible ore at " + bestOre.toShortString());
+                        return bestOre;
+                    }
                 }
+                
+                // Add a cooldown if no ore is found or after a search to prevent searching every tick
+                this.oreSearchCooldown = 20 + golem.getRandom().nextInt(20);
             }
 
             // 2. Staircase/Tunnel Logic for Lapis
@@ -5474,6 +5483,7 @@ public class GolemAI {
             // 3. General digging for other types
             double minTargetDistSq = Double.MAX_VALUE;
             BlockPos bestTarget = null;
+            BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
 
             for (int x = -8; x <= 8; x++) {
                 for (int y = -range; y <= range; y++) {
@@ -5561,34 +5571,39 @@ public class GolemAI {
             };
 
             // Check if any block in our path is fluid (water/lava)
-            for (int d = 0; d <= directionalDist + 2; d++) {
-                BlockPos pathMiddle = (facing.getAxis() == net.minecraft.core.Direction.Axis.X)
-                        ? new BlockPos(startPos.getX() + facing.getStepX() * d, chestPos.getY() - d, lockedCoord)
-                        : new BlockPos(lockedCoord, chestPos.getY() - d, startPos.getZ() + facing.getStepZ() * d);
-                
-                for (int yOffset = 0; yOffset <= 2; yOffset++) {
-                    BlockPos p = pathMiddle.above(yOffset);
-                    if (p.getY() < -64) continue;
-                    BlockState state = golem.level().getBlockState(p);
-                    if (!state.getFluidState().isEmpty()) {
-                        golem.debugLog("Lapis: Path blocked by fluid at " + p.toShortString() + ". Retrying in new direction.");
-                        failedDirections.add(facing);
-                        Direction newFacing = null;
-                        for (Direction dir : Direction.values()) {
-                            if (!failedDirections.contains(dir) && dir != facing.getOpposite()) {
-                                newFacing = dir;
-                                break;
+            if (this.fluidCheckCooldown > 0) {
+                this.fluidCheckCooldown--;
+            } else {
+                for (int d = 0; d <= directionalDist + 2; d++) {
+                    BlockPos pathMiddle = (facing.getAxis() == net.minecraft.core.Direction.Axis.X)
+                            ? new BlockPos(startPos.getX() + facing.getStepX() * d, chestPos.getY() - d, lockedCoord)
+                            : new BlockPos(lockedCoord, chestPos.getY() - d, startPos.getZ() + facing.getStepZ() * d);
+                    
+                    for (int yOffset = 0; yOffset <= 2; yOffset++) {
+                        BlockPos p = pathMiddle.above(yOffset);
+                        if (p.getY() < -64) continue;
+                        BlockState state = golem.level().getBlockState(p);
+                        if (!state.getFluidState().isEmpty()) {
+                            golem.debugLog("Lapis: Path blocked by fluid at " + p.toShortString() + ". Retrying in new direction.");
+                            failedDirections.add(facing);
+                            Direction newFacing = null;
+                            for (Direction dir : Direction.values()) {
+                                if (!failedDirections.contains(dir) && dir != facing.getOpposite()) {
+                                    newFacing = dir;
+                                    break;
+                                }
                             }
+                            if (newFacing == null) {
+                                // If all directions failed, at least try another one or reset
+                                failedDirections.clear();
+                                newFacing = facing.getClockWise();
+                            }
+                            golem.setMiningDirection(newFacing);
+                            return null; // Stop this goal, it will restart in new direction next tick
                         }
-                        if (newFacing == null) {
-                            // If all directions failed, at least try another one or reset
-                            failedDirections.clear();
-                            newFacing = facing.getClockWise();
-                        }
-                        golem.setMiningDirection(newFacing);
-                        return null; // Stop this goal, it will restart in new direction next tick
                     }
                 }
+                this.fluidCheckCooldown = 40 + golem.getRandom().nextInt(40); // Check fluids every 2-4 seconds
             }
 
             // Target depth for the tunnel

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import rehdpanda.utilitygolems.GolemPatterns;
 
 @Mixin(CarvedPumpkinBlock.class)
-public class CarvedPumpkinMixin {
+public abstract class CarvedPumpkinMixin {
     @Inject(method = "onPlace", at = @At("TAIL"))
     private void onAdded(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify, CallbackInfo ci) {
         if (!oldState.is(state.getBlock())) {

@@ -24,6 +24,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.network.chat.Component;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -276,11 +277,8 @@ public class UGInit implements ModInitializer {
             } catch (Exception e) { e.printStackTrace(); return java.util.Collections.emptyList(); }
         }
 
-        public static void registerAttributes(EntityType<? extends LivingEntity> type, Object attributes) {
-            try {
-                Class<?> registryClass = Class.forName("net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry");
-                findMethod(registryClass, "register", 2).invoke(null, type, attributes);
-            } catch (Exception e) { e.printStackTrace(); }
+        public static void registerAttributes(EntityType<? extends LivingEntity> type, net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder attributes) {
+            net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(type, attributes);
         }
 
         public static <T extends BlockEntity> BlockEntityType<T> createBlockEntityType(BiFunction<BlockPos, BlockState, T> factory, net.minecraft.world.level.block.Block... blocks) {
@@ -300,17 +298,9 @@ public class UGInit implements ModInitializer {
 
         public static void registerCommand(TriConsumer<Object, Object, Object> handler) {
             try {
-                Class<?> callbackClass = Class.forName("net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback");
-                Object event = callbackClass.getField("EVENT").get(null);
-                Object proxy = Proxy.newProxyInstance(callbackClass.getClassLoader(), new Class[]{callbackClass}, (p, method, args) -> {
-                    if (method.getName().equals("register")) {
-                        handler.accept(args[0], args[1], args[2]);
-                    }
-                    return null;
+                CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+                    handler.accept(dispatcher, registryAccess, environment);
                 });
-                Method registerMethod = findMethod(event.getClass(), "register", 1);
-                registerMethod.setAccessible(true);
-                registerMethod.invoke(event, proxy);
             } catch (Exception e) { e.printStackTrace(); }
         }
 

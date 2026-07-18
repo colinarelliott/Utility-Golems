@@ -133,6 +133,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     private final List<RedstoneInteraction> redstoneProgram = new ArrayList<>();
     private int currentInteractionIndex = 0;
     private int redstoneTickCounter = 0;
+    private int chestSearchCooldown = 0;
 
     public List<RedstoneInteraction> getRedstoneProgram() {
         return redstoneProgram;
@@ -1681,6 +1682,12 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             }
         }
 
+        // Add a cooldown for chest searching to prevent lag
+        if (this.chestSearchCooldown > 0) {
+            this.chestSearchCooldown--;
+            return null;
+        }
+
         BlockPos pos = this.blockPosition();
         ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(this.getGolemType().getName());
         int range = stats != null ? stats.chestSearchRadius : 16;
@@ -1718,6 +1725,8 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 }
             }
         }
+        
+        this.chestSearchCooldown = 100 + this.random.nextInt(100); // 5-10 second cooldown if no chest found
         return null;
     }
 

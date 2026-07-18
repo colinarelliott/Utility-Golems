@@ -7,9 +7,10 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.ContainerData;
 
 public class GolemFurnaceMenu extends AbstractContainerMenu {
-    private final net.minecraft.world.inventory.ContainerData propertyDelegate;
+    private final ContainerData propertyDelegate;
     private final Container inventory;
     private final UtilityGolem golem;
 
@@ -24,7 +25,7 @@ public class GolemFurnaceMenu extends AbstractContainerMenu {
         return null;
     }
 
-    public GolemFurnaceMenu(int syncId, Inventory playerInventory, Container inventory, net.minecraft.world.inventory.ContainerData propertyDelegate, UtilityGolem golem) {
+    public GolemFurnaceMenu(int syncId, Inventory playerInventory, Container inventory, ContainerData propertyDelegate, UtilityGolem golem) {
         super(UGInit.GOLEM_FURNACE_HANDLER, syncId);
         this.inventory = inventory;
         this.propertyDelegate = propertyDelegate;
@@ -87,5 +88,23 @@ public class GolemFurnaceMenu extends AbstractContainerMenu {
 
     public UtilityGolem getGolem() {
         return golem;
+    }
+
+    public int getCookProgress() {
+        int i = this.propertyDelegate.get(2);
+        int j = this.propertyDelegate.get(3);
+        return j != 0 && i != 0 ? i * 24 / j : 0;
+    }
+
+    public int getBurnProgress() {
+        int i = this.propertyDelegate.get(1);
+        if (i == 0) {
+            i = 200;
+        }
+        return this.propertyDelegate.get(0) * 13 / i;
+    }
+
+    public boolean isLit() {
+        return this.propertyDelegate.get(0) > 0;
     }
 }
