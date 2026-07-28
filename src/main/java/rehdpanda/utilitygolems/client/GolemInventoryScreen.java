@@ -206,9 +206,9 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
 
     @Override
     public void extractContents(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        int x = (width - imageWidth) / 2;
-        int y = (height - imageHeight) / 2;
-        
+        int x = this.leftPos;
+        int y = this.topPos;
+
         UtilityGolem golem = menu.getGolem();
         if (golem != null && (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.DIAMOND || golem.getGolemType() == rehdpanda.utilitygolems.GolemType.EMERALD)) {
             // Draw top part (the 3x3 grid and label area): 0 to 71 from texture
@@ -239,20 +239,12 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        this.extractTransparentBackground(context);
+        // Only the overlays live here; the dim, the labels and the tooltip are all
+        // handled by the framework and AbstractContainerScreen.
         super.extractRenderState(context, mouseX, mouseY, delta);
-        
-        // Draw the container title
-        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
-        
-        // Draw the player inventory title
-        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
-        
+
         UtilityGolem golem = menu.getGolem();
         if (golem != null) {
-            // Draw label for held item
-            context.text(this.font, Component.literal("Holding"), this.leftPos + 125, this.topPos + 24, 0xFF404040, false);
-            
             // Draw the held item itself
             ItemStack heldItem = golem.getHeldItem();
             if (!heldItem.isEmpty()) {
@@ -266,10 +258,15 @@ public class GolemInventoryScreen extends AbstractContainerScreen<GolemInventory
             } else if (golem.getGolemType() == rehdpanda.utilitygolems.GolemType.TINTED_GLASS) {
                 drawTintedGlassUI(context, mouseX, mouseY, golem);
             }
-
         }
-        
-        this.extractTooltip(context, mouseX, mouseY);
+    }
+
+    @Override
+    protected void extractLabels(GuiGraphicsExtractor context, int mouseX, int mouseY) {
+        super.extractLabels(context, mouseX, mouseY);
+        if (menu.getGolem() != null) {
+            context.text(this.font, Component.literal("Holding"), 125, 24, 0xFF404040, false);
+        }
     }
 
     private void drawTintedGlassUI(GuiGraphicsExtractor context, int mouseX, int mouseY, UtilityGolem golem) {

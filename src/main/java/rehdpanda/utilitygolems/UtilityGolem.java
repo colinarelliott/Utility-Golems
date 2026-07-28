@@ -63,7 +63,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
     private static final EquipmentSlot HELD_ITEM_SLOT = EquipmentSlot.MAINHAND;
     private final SimpleContainer inventory = new SimpleContainer(9);
     private final SimpleContainer furnaceInventory = new SimpleContainer(3);
-    private final SimpleContainer jukeboxInventory = new SimpleContainer(1);
+    private final SimpleContainer jukeboxInventory = new SimpleContainer(GolemJukeboxMenu.PLAYLIST_SIZE);
     private final Set<BlockPos> blacklistedPositions = new HashSet<>();
     private int jukeboxCooldown = 0;
     private BlockPos jukeboxStartPos = null;
@@ -508,20 +508,7 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             }
 
             if (this.golemType == GolemType.JUKEBOX) {
-                BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.blockPosition();
-                this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
-                if (!this.currentlyPlayingStack.isEmpty()) {
-                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
-                    if (playable != null) {
-                        if (playable.song().isBound()) {
-                            stopMusicSound();
-                        }
-                    }
-                }
-
-                this.currentlyPlayingStack = ItemStack.EMPTY;
-                this.jukeboxCooldown = 0;
-                this.jukeboxStartPos = null;
+                this.stopJukebox();
             }
 
             // UtilityGolemEntity already drops what is in its POPPY_SLOT, but our golem
@@ -544,6 +531,13 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                 if (!stack.isEmpty()) {
                     this.spawnAtLocation((ServerLevel)this.level(), stack.copy());
                     this.furnaceInventory.setItem(i, ItemStack.EMPTY);
+                }
+            }
+            for (int i = 0; i < this.jukeboxInventory.getContainerSize(); i++) {
+                ItemStack stack = this.jukeboxInventory.getItem(i);
+                if (!stack.isEmpty()) {
+                    this.spawnAtLocation((ServerLevel)this.level(), stack.copy());
+                    this.jukeboxInventory.setItem(i, ItemStack.EMPTY);
                 }
             }
         }
@@ -636,39 +630,6 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
             }
         }
 
-        if (this.jukeboxCooldown > 0) {
-            this.jukeboxCooldown--;
-            if (this.jukeboxCooldown == 0 && !this.currentlyPlayingStack.isEmpty()) {
-                if (!this.level().isClientSide()) {
-                    BlockPos stopPos = this.jukeboxStartPos != null ? this.jukeboxStartPos : this.blockPosition();
-                    this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, stopPos, 0);
-                    
-                    // Stop the music sound if it was playing via playSound
-                    JukeboxPlayable playable = this.currentlyPlayingStack.get(DataComponents.JUKEBOX_PLAYABLE);
-                    if (playable != null) {
-                        if (playable.song().isBound()) {
-                            stopMusicSound();
-                        }
-                    }
-
-                    if (this.golemType == GolemType.JUKEBOX) {
-                        Player player = this.level().getNearestPlayer(this, 10.0D);
-                        if (player != null) {
-                            player.drop(this.currentlyPlayingStack.copy(), false);
-                        } else {
-                            this.level().addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), this.currentlyPlayingStack.copy()));
-                        }
-                        this.setHeldItem(ItemStack.EMPTY);
-                        this.setSearching(false);
-                    }
-                    this.currentlyPlayingStack = ItemStack.EMPTY;
-                    this.jukeboxStartPos = null;
-                }
-            }
-            if (!this.level().isClientSide() && this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
-                ((net.minecraft.server.level.ServerLevel)this.level()).sendParticles(ParticleTypes.NOTE, this.getRandomX(0.5D), this.getRandomY() + 0.5D, this.getRandomZ(0.5D), 1, 0, 0, 0, (double)this.getRandom().nextInt(24) / 24.0D);
-            }
-        }
         if (!this.level().isClientSide()) {
             // Update animation timer server-side
             int t = this.getEntityData().get(ANIMATION_TICKS);
@@ -979,8 +940,10 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         }
     }
 
-    public void stopJukebox() {
-        this.stopMusicSound();
+    /** Stops the spinning disc without touching the play/shuffle/repeat toggles. */
+    private void endCurrentTrack() {
+        // The level event stops exactly this golem's record. stopMusicSound() is deliberately
+        // not used here: it silences the whole RECORDS channel, including nearby jukeboxes.
         if (this.jukeboxStartPos != null) {
             this.level().levelEvent(null, LevelEvent.SOUND_STOP_JUKEBOX_SONG, this.jukeboxStartPos, 0);
         }
@@ -990,6 +953,12 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
         this.setHeldItem(ItemStack.EMPTY);
         this.setSearching(false);
         this.setAnimation(GolemAnimation.IDLE, 0);
+    }
+
+    public void stopJukebox() {
+        this.endCurrentTrack();
+        // Pressing play again restarts the playlist from the top.
+        this.currentJukeboxSlot = -1;
     }
 
     private void tickJukebox() {
@@ -1002,22 +971,17 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
         if (this.jukeboxCooldown > 0) {
             this.jukeboxCooldown--;
+            if (this.jukeboxCooldown % 20 == 0 && this.jukeboxCooldown > 0) {
+                ((ServerLevel)this.level()).sendParticles(ParticleTypes.NOTE, this.getRandomX(0.5D), this.getRandomY() + 0.5D, this.getRandomZ(0.5D), 1, 0, 0, 0, (double)this.getRandom().nextInt(24) / 24.0D);
+            }
             if (this.jukeboxCooldown == 0) {
-                this.stopMusicSound();
-                this.currentlyPlayingStack = ItemStack.EMPTY;
-                this.setHeldItem(ItemStack.EMPTY);
-                this.setSearching(false);
-                this.setAnimation(GolemAnimation.IDLE, 0);
-                
-                // If it was playing from playlist, try to play next
-                if (this.isJukeboxPlaying()) {
-                    playNextFromPlaylist();
-                }
+                this.endCurrentTrack();
+                playNextFromPlaylist();
             }
             return;
         }
 
-        if (this.isJukeboxPlaying() && this.currentlyPlayingStack.isEmpty()) {
+        if (this.currentlyPlayingStack.isEmpty()) {
             playNextFromPlaylist();
         }
     }
@@ -1069,8 +1033,9 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
                     
                     if (!this.level().isClientSide()) {
                         this.jukeboxStartPos = this.blockPosition();
+                        // The level event is what actually plays the record client-side (and shows the
+                        // "Now Playing" text); playing the sound again here would double up the audio.
                         this.level().levelEvent(null, net.minecraft.world.level.block.LevelEvent.SOUND_PLAY_JUKEBOX_SONG, this.jukeboxStartPos, net.minecraft.core.registries.BuiltInRegistries.ITEM.getId(this.currentlyPlayingStack.getItem()));
-                        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), song.soundEvent().value(), SoundSource.RECORDS, 3.0F, 1.0F);
                         this.setAnimation(GolemAnimation.PLAYING_MUSIC, this.jukeboxCooldown);
                     }
 
@@ -1641,6 +1606,30 @@ public class UtilityGolem extends CopperGolem implements InventoryCarrier {
 
     public BlockPos getChestPos() {
         return chestPos;
+    }
+
+    // Per-tick memo for FarmGoal's field scan. Several goals probe "is there farm work?"
+    // via a throwaway FarmGoal each tick, and the scan walks thousands of block states.
+    private int farmScanTick = -1;
+    private BlockPos farmScanResult = null;
+
+    public boolean hasFarmScanFor(int tick) {
+        return this.farmScanTick == tick;
+    }
+
+    public BlockPos getCachedFarmScan() {
+        return this.farmScanResult;
+    }
+
+    public void setCachedFarmScan(int tick, BlockPos pos) {
+        this.farmScanTick = tick;
+        this.farmScanResult = pos;
+    }
+
+    /** Call after changing the field, so the next query re-scans instead of reusing a stale hit. */
+    public void invalidateFarmScan() {
+        this.farmScanTick = -1;
+        this.farmScanResult = null;
     }
 
     public BlockPos getFarmTarget() {

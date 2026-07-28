@@ -36,12 +36,7 @@ public class GolemFurnaceScreen extends AbstractContainerScreen<GolemFurnaceMenu
         super.extractContents(context, mouseX, mouseY, delta);
     }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        this.extractTransparentBackground(context);
-        super.extractRenderState(context, mouseX, mouseY, delta);
-        context.text(this.font, this.title, this.leftPos + this.titleLabelX, this.topPos + this.titleLabelY, 0xFF404040, false);
-        context.text(this.font, this.playerInventoryTitle, this.leftPos + this.inventoryLabelX, this.topPos + this.inventoryLabelY, 0xFF404040, false);
-        this.extractTooltip(context, mouseX, mouseY);
-    }
+    // No extractRenderState override needed: the framework dims the background via
+    // extractBackground(), and AbstractContainerScreen already draws the labels
+    // (extractLabels) and the tooltip.
 }

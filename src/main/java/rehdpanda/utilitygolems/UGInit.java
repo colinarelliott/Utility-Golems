@@ -312,6 +312,39 @@ public class UGInit implements ModInitializer {
             }
             throw new RuntimeException("Method " + name + " with " + paramCount + " params not found in " + clazz.getName());
         }
+
+        /**
+         * Resolves a no-arg method against a *public* interface the object implements.
+         *
+         * <p>Reflecting straight off {@code target.getClass()} breaks for objects Fabric hands
+         * back from non-public implementation classes: the member is public but its declaring
+         * class is not accessible, so Method.invoke throws IllegalAccessException. Looking the
+         * method up on the exported interface and relying on virtual dispatch avoids that.
+         */
+        public static Method findAccessibleMethod(Object target, String name) {
+            for (Class<?> c = target.getClass(); c != null; c = c.getSuperclass()) {
+                for (Class<?> iface : c.getInterfaces()) {
+                    if (!java.lang.reflect.Modifier.isPublic(iface.getModifiers())) continue;
+                    try {
+                        return iface.getMethod(name);
+                    } catch (NoSuchMethodException ignored) {
+                        // keep looking
+                    }
+                }
+            }
+            try {
+                Method m = target.getClass().getMethod(name);
+                m.setAccessible(true);
+                return m;
+            } catch (Exception e) {
+                throw new RuntimeException("No accessible method " + name + " on " + target.getClass().getName(), e);
+            }
+        }
+    }
+
+    /** Pulls the server off a Fabric play-networking context. */
+    private static net.minecraft.server.MinecraftServer serverOf(Object context) throws Exception {
+        return (net.minecraft.server.MinecraftServer) FabricBridge.findAccessibleMethod(context, "server").invoke(context);
     }
 
     public static final MenuType<GolemInventoryMenu> GOLEM_SCREEN_HANDLER_TYPE =
@@ -370,8 +403,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(SelectBuyItemPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((SelectBuyItemPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem) {
@@ -383,8 +415,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(JukeboxActionPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((JukeboxActionPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem) {
@@ -406,8 +437,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(RedstoneActionPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((RedstoneActionPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem) {
@@ -426,8 +456,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(SyncRedstoneProgramPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((SyncRedstoneProgramPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem) {
@@ -439,8 +468,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(ClearCactusSlotPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((ClearCactusSlotPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem && golem.getGolemType() == GolemType.CACTUS) {
@@ -454,8 +482,7 @@ public class UGInit implements ModInitializer {
 
         FabricBridge.registerReceiver(SyncPatternPayload.ID, (payload, context) -> {
             try {
-                Method serverMethod = context.getClass().getMethod("server");
-                net.minecraft.server.MinecraftServer server = (net.minecraft.server.MinecraftServer) serverMethod.invoke(context);
+                net.minecraft.server.MinecraftServer server = serverOf(context);
                 server.execute(() -> {
                     Entity entity = findEntityById(server, ((SyncPatternPayload)payload).entityId());
                     if (entity instanceof UtilityGolem golem) {

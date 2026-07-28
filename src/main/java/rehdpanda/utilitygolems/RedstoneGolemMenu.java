@@ -9,6 +9,15 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class RedstoneGolemMenu extends AbstractContainerMenu {
+    // Layout shared with RedstoneGolemScreen so the slots and the background agree.
+    public static final int PANEL_WIDTH = 300;
+    /** Left edge of both slot grids, centred in the wide panel. */
+    public static final int SLOT_X = (PANEL_WIDTH - 9 * 18) / 2;
+    public static final int GOLEM_SLOT_Y = 18;
+    public static final int PLAYER_INVENTORY_Y = 182;
+    public static final int HOTBAR_Y = 242;
+    public static final int PANEL_HEIGHT = HOTBAR_Y + 24;
+
     private final Container inventory;
     private final UtilityGolem golem;
 
@@ -36,20 +45,18 @@ public class RedstoneGolemMenu extends AbstractContainerMenu {
 
         int i;
         int j;
-        for (i = 0; i < 1; ++i) {
-            for (j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inventory, j + i * 9, 8 + j * 18, 18 + i * 18));
-            }
+        for (j = 0; j < 9; ++j) {
+            this.addSlot(new Slot(inventory, j, SLOT_X + j * 18, GOLEM_SLOT_Y));
         }
 
         for (i = 0; i < 3; ++i) {
             for (j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 66 + i * 18));
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, SLOT_X + j * 18, PLAYER_INVENTORY_Y + i * 18));
             }
         }
 
         for (i = 0; i < 9; ++i) {
-            this.addSlot(new Slot(playerInventory, i, 8 + i * 18, 124));
+            this.addSlot(new Slot(playerInventory, i, SLOT_X + i * 18, HOTBAR_Y));
         }
     }
 

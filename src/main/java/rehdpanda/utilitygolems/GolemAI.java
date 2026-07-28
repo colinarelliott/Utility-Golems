@@ -148,8 +148,8 @@ public class GolemAI {
     }
     public static void initAmethystGoals(UtilityGolem golem) {
         golem.getGoalSelector().addGoal(1, new DebugGoalWrapper(golem, new TemptGoal(golem, 1.2D, Ingredient.of(net.minecraft.world.item.Items.WHEAT, net.minecraft.world.item.Items.CARROT, net.minecraft.world.item.Items.POTATO, net.minecraft.world.item.Items.BEETROOT, net.minecraft.world.item.Items.WHEAT_SEEDS, net.minecraft.world.item.Items.GOLDEN_APPLE, net.minecraft.world.item.Items.GOLDEN_CARROT), false)));
-        golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
-        golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
+        golem.getGoalSelector().addGoal(2, new DebugGoalWrapper(golem, new BreedAnimalsGoal(golem)));
+        golem.getGoalSelector().addGoal(3, new DebugGoalWrapper(golem, new WithdrawItemsGoal(golem)));
         golem.getGoalSelector().addGoal(4, new DebugGoalWrapper(golem, new PickupItemGoal(golem)));
         golem.getGoalSelector().addGoal(5, new DebugGoalWrapper(golem, new ReturnToChestGoal(golem)));
     }
@@ -3968,6 +3968,12 @@ public class GolemAI {
                 return false;
             }
             if (golem.getGolemType() == GolemType.AMETHYST) {
+                // Same stop condition canContinueToUse() uses. Without it canUse() keeps
+                // returning true while canContinueToUse() immediately returns false, so a
+                // stocked golem re-targets the chest every single tick.
+                if (hasEnoughBreedingItems() || isInventoryFull()) {
+                    return false;
+                }
                 chestPos = golem.getChestPos();
                 if (chestPos == null) {
                     chestPos = findNearbyChest();
@@ -6323,6 +6329,9 @@ public class GolemAI {
         private BlockPos targetPos;
         private int farmActionTime;
         private static final int MAX_FARM_ACTION_TIME = 20;
+        private static final int NO_TOOL_HARVEST_TIME = 40;
+        /** Half-width of the field the golem tends, measured from the water source. */
+        private static final int FIELD_RADIUS = 16;
 
         public FarmGoal(UtilityGolem golem) {
             this.golem = golem;
@@ -6342,11 +6351,10 @@ public class GolemAI {
             if (chestPos == null) return false;
 
             targetPos = findTargetPos();
-            if (targetPos != null) {
-                golem.setFarmTarget(targetPos);
-                return true;
-            }
-            return false;
+            // Note: deliberately does NOT call setFarmTarget. Several other goals probe
+            // "is there farm work?" through a throwaway FarmGoal, and claiming the target
+            // from a query would make nearby golems skip that block. start() claims it.
+            return targetPos != null;
         }
 
         private boolean canSee(BlockPos pos) {
@@ -6366,25 +6374,44 @@ public class GolemAI {
             return golem.findNearbyChest();
         }
 
+        /**
+         * The scan is expensive and several goals ask "is there farm work?" through a
+         * throwaway FarmGoal every tick, so the result is memoised per tick on the golem.
+         */
         private BlockPos findTargetPos() {
+            if (golem.hasFarmScanFor(golem.tickCount)) {
+                return golem.getCachedFarmScan();
+            }
+            BlockPos result = scanForTargetPos();
+            golem.setCachedFarmScan(golem.tickCount, result);
+            return result;
+        }
+
+        private BlockPos scanForTargetPos() {
             BlockPos chestPos = golem.getChestPos();
             if (chestPos == null) return null;
 
             ConfigManager.GolemStats stats = ConfigManager.getConfig().golems.get(golem.getGolemType().getName());
             int range = stats != null ? stats.workRadius : 16;
-            
-            // Search radius: 32 blocks (covers a large area).
-            // A standard 9x9 field has 81 blocks.
-            // We search for tasks within the range around the chest.
+
+            BlockPos waterPos = findWaterCenter(chestPos);
+
+            // Crops get planted in a FIELD_RADIUS box around the water source (see priority 4),
+            // which for the default bamboo workRadius of 8 reaches well outside the chest-centred
+            // harvest box. Harvesting has to search the same area or the golem tills and plants
+            // ground it will never come back to.
+            BlockPos fieldOrigin = waterPos != null ? waterPos : chestPos;
+            int harvestRange = Math.max(range, FIELD_RADIUS);
+
             List<BlockPos> otherGolemsTargets = getOtherGolemsTargets();
-            
+
             // Priority 1: Harvest mature crops
             for (int y = -3; y <= 3; y++) {
-                for (int x = -range; x <= range; x++) {
-                    for (int z = -range; z <= range; z++) {
-                        BlockPos p = chestPos.offset(x, y, z);
+                for (int x = -harvestRange; x <= harvestRange; x++) {
+                    for (int z = -harvestRange; z <= harvestRange; z++) {
+                        BlockPos p = fieldOrigin.offset(x, y, z);
                         if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
-                        if (shouldHarvest(p, null)) {
+                        if (shouldHarvest(p, waterPos)) {
                             // Check line of sight
                             if (canSee(p)) return p;
                         }
@@ -6425,7 +6452,6 @@ public class GolemAI {
             }
 
             // Priority 3: Water
-            BlockPos waterPos = findWaterCenter(chestPos);
             if (waterPos == null && hasWaterBucket()) {
                 BlockPos waterSpot = findPlaceForWater(chestPos);
                 if (waterSpot != null && !otherGolemsTargets.contains(waterSpot)) {
@@ -6435,10 +6461,11 @@ public class GolemAI {
 
             // Priority 4: Tilling and Planting (requires water)
             if (waterPos != null) {
-                // Focus on the 33x33 area around this water source (multiple fields if they are close)
+                // Focus on the area around this water source (multiple fields if they are close).
+                // Must stay in step with the harvest box above.
                 for (int y = -1; y <= 1; y++) {
-                    for (int x = -16; x <= 16; x++) {
-                        for (int z = -16; z <= 16; z++) {
+                    for (int x = -FIELD_RADIUS; x <= FIELD_RADIUS; x++) {
+                        for (int z = -FIELD_RADIUS; z <= FIELD_RADIUS; z++) {
                             BlockPos p = waterPos.offset(x, y, z);
                             if (p.equals(waterPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
@@ -6472,8 +6499,8 @@ public class GolemAI {
             } else if (!hasWaterBucket()) {
                 // Fallback: search around chest if no water bucket is available (e.g. user-made field)
                 for (int y = -3; y <= 3; y++) {
-                    for (int x = -16; x <= 16; x++) {
-                        for (int z = -16; z <= 16; z++) {
+                    for (int x = -FIELD_RADIUS; x <= FIELD_RADIUS; x++) {
+                        for (int z = -FIELD_RADIUS; z <= FIELD_RADIUS; z++) {
                             BlockPos p = chestPos.offset(x, y, z);
                             if (p.equals(chestPos) || golem.isBlacklisted(p) || otherGolemsTargets.contains(p)) continue;
 
@@ -6788,6 +6815,8 @@ public class GolemAI {
         @Override
         public void start() {
             farmActionTime = 0;
+            // Claim the block here rather than in canUse, so probe calls don't reserve it.
+            golem.setFarmTarget(targetPos);
             golem.setAnimation(GolemAnimation.FARMING, MAX_FARM_ACTION_TIME);
         }
 
@@ -6843,7 +6872,16 @@ public class GolemAI {
                     golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND); // might not work?
                 }
 
-                if (farmActionTime >= MAX_FARM_ACTION_TIME) {
+                int currentMaxTime = MAX_FARM_ACTION_TIME;
+                if (shouldHarvest(targetPos, findWaterCenter(golem.getChestPos()))) {
+                    BlockState state = golem.level().getBlockState(targetPos);
+                    boolean needsTool = state.getBlock() instanceof CropBlock || state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON);
+                    if (needsTool && golem.getHeldItem().isEmpty()) {
+                        currentMaxTime = NO_TOOL_HARVEST_TIME;
+                    }
+                }
+
+                if (farmActionTime >= currentMaxTime) {
                     performFarmAction();
                     farmActionTime = 0;
                     targetPos = findTargetPos();
@@ -6957,6 +6995,8 @@ public class GolemAI {
             Level world = golem.level();
             BlockState state = world.getBlockState(targetPos);
             BlockPos waterPos = findWaterCenter(golem.getChestPos());
+            // We are about to change the field, so any memoised scan is stale.
+            golem.invalidateFarmScan();
             
             // 0. Ensure we have the right tool if we are about to act
             if (shouldHarvest(targetPos, waterPos)) {
@@ -7043,12 +7083,7 @@ public class GolemAI {
 
                     // Check if we can actually harvest this (e.g. if we need a tool for pumpkin/melon but don't have one)
                     boolean needsAxe = state.is(net.minecraft.world.level.block.Blocks.PUMPKIN) || state.is(net.minecraft.world.level.block.Blocks.MELON);
-                    if (needsAxe && !hasAxe()) {
-                        targetPos = null;
-                        golem.setFarmTarget(null);
-                        return;
-                    }
-
+                    
                     net.minecraft.world.level.storage.loot.LootParams.Builder builder = new net.minecraft.world.level.storage.loot.LootParams.Builder(serverLevel)
                             .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(targetPos))
                             .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, golem.getHeldItem())

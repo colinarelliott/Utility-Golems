@@ -123,7 +123,7 @@ public class UGClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        UGInit.golemFinder = (world, id) -> (UtilityGolem) world.getEntity(UGInit.lastInteractedGolemId);
+        UGInit.golemFinder = (world, id) -> world.getEntity(UGInit.lastInteractedGolemId) instanceof UtilityGolem golem ? golem : null;
         
         ClientFabricBridge.registerScreen(UGInit.GOLEM_SCREEN_HANDLER_TYPE, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemInventoryMenu, GolemInventoryScreen>)((handler, inventory, title) -> new GolemInventoryScreen(handler, inventory, title)));
         ClientFabricBridge.registerScreen(UGInit.GOLEM_FURNACE_HANDLER, (Object)(MenuScreens.ScreenConstructor<rehdpanda.utilitygolems.GolemFurnaceMenu, GolemFurnaceScreen>)((handler, inventory, title) -> new GolemFurnaceScreen(handler, inventory, title)));
