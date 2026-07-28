@@ -1,17 +1,13 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
+
 ### A mod for Minecraft 26.2
 ![UG-PhotoDay-135](https://github.com/user-attachments/assets/7fb74960-526c-4a7e-bdd8-128d00ec8c7b)
 
-
 #### Image Legend
 - Left to Right, Row 1: Nether Wart, Redstone, Honeycomb, Gold, Stripped Bamboo, Sponge, Emerald, Cactus, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic
+- Left to Right, Row 2: Spawn Eggs, Hopper, Jukebox, Ancient, Deepslate, Netherite, Furnace, Blast Furnace, Smoker, Lamp, Medic (+ Wrench), Tinted Glass
 
-
-#### Image Legend
-- Left to Right, Row 1: Nether Wart, Redstone, Gold, Stripped Bamboo, Sponge, Emerald, Bamboo, Diamond, Lapis, Amethyst
-- Left to Right, Row 2: (item) Wrench, Ancient, Deepslate, Netherite, Furnace, Jukebox, Lamp, (item) Golem Spawn Egg (15 varieties)
 #### Adds additional golems on top of the copper golem with various uses. So far:
 - <code style="color : blue">Lapis Golem</code> (Digging)
   - Give the lapis golem a pickaxe and/or a shovel and it will dig then deposit items in a chest.
@@ -64,7 +60,7 @@
   - Automates potion brewing when given a brewing stand and ingredients.
   - Deposits finished potions into nearby chests.
   - Fills water bottles with water when given glass bottles.
-- <code style="color : white">Medic Golem</code> (Healing)
+- <code style="color : white">Medic Golem</code> (Healing) (*crafted with Target block*)
   - Follows the player and automatically heals damaged golems when given a wrench.
   - Essential for maintaining your golem workforce and defenses.
 - <code style="color : green">Cactus Golem</code> (Item Trashing)
