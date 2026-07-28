@@ -6,6 +6,14 @@
 name: build
 on: [pull_request, push]
 
+# Superseded pull request runs are pointless; let a new push cancel them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -14,17 +22,25 @@ jobs:
         uses: actions/checkout@v4
       - name: validate gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
+      # Must match build.gradle: options.release = 25 and source/targetCompatibility = 25.
+      # A JDK below 25 cannot compile this at all.
       - name: setup jdk
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'microsoft'
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
+          java-version: '25'
+          distribution: 'temurin'
+      # Caches ~/.gradle, where Loom keeps the remapped Minecraft artifacts. Without it
+      # every run re-downloads and re-remaps the game.
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: build
-        run: ./gradlew build
+        run: ./gradlew build --stacktrace
+      - name: read mod version
+        id: mod
+        run: echo "version=$(grep '^mod_version=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Artifacts
+          name: utility-golems-${{ steps.mod.outputs.version }}
           path: build/libs/
+          if-no-files-found: error
