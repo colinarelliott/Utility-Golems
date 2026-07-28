@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "H": "minecraft:hopper",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "H",
+    "C",
+    "H"
+  ],
+  "result": {
+    "id": "utility-golems:hopper_golem_chest",
+    "count": 1
+  }
+}

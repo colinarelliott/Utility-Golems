@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:nether_wart",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "MMM",
+    "MCM",
+    "MMM"
+  ],
+  "result": {
+    "id": "utility-golems:nether_wart_golem_chest",
+    "count": 1
+  }
+}

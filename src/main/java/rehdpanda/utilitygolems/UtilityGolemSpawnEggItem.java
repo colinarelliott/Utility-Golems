@@ -1,20 +1,17 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Item.Properties;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
 
 /**
  * Simple spawn-egg-like item that spawns a UtilityGolem of the associated GolemType when used on a block.
@@ -24,35 +21,38 @@ import net.minecraft.world.World;
 public class UtilityGolemSpawnEggItem extends Item {
     private final GolemType golemType;
 
-    public UtilityGolemSpawnEggItem(Settings settings, GolemType golemType) {
+    public UtilityGolemSpawnEggItem(Properties settings, GolemType golemType) {
         super(settings);
         this.golemType = golemType;
     }
 
     @Override
-    public ActionResult useOnBlock(ItemUsageContext context) {
-        World world = context.getWorld();
-        if (world.isClient()) return ActionResult.SUCCESS;
+    public InteractionResult useOn(UseOnContext context) {
+        Level world = context.getLevel();
+        if (world.isClientSide()) return InteractionResult.SUCCESS;
 
-        BlockPos pos = context.getBlockPos();
-        Direction face = context.getSide();
-        BlockPos spawnPos = pos.offset(face);
+        BlockPos pos = context.getClickedPos();
+        Direction face = context.getClickedFace();
+        BlockPos spawnPos = pos.relative(face);
 
         EntityType<UtilityGolem> entityType = UGInit.GOLEM_TYPES.get(golemType);
-        if (entityType == null) return ActionResult.PASS;
+        if (entityType == null) return InteractionResult.PASS;
 
         UtilityGolem golem = new UtilityGolem(entityType, world, golemType);
-        golem.refreshPositionAndAngles(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.random.nextFloat() * 360.0F, 0.0F);
-        boolean spawned = world.spawnEntity(golem);
-        if (spawned) {
-            PlayerEntity player = context.getPlayer();
-            ItemStack stack = context.getStack();
-            if (player == null || !player.isCreative()) {
-                stack.decrement(1);
-            }
-            world.playSound(null, spawnPos, SoundEvents.ENTITY_IRON_GOLEM_REPAIR, SoundCategory.PLAYERS, 0.5f, 1.0f);
-            return ActionResult.SUCCESS;
+        Player player = context.getPlayer();
+        if (player != null) {
+            golem.setOwnerUuid(player.getUUID());
         }
-        return ActionResult.PASS;
+        golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, world.getRandom().nextFloat() * 360.0F, 0.0F);
+        boolean spawned = world.addFreshEntity(golem);
+        if (spawned) {
+            ItemStack stack = context.getItemInHand();
+            if (player == null || !player.isCreative()) {
+                stack.shrink(1);
+            }
+            world.playSound(null, spawnPos, SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 0.5f, 1.0f);
+            return InteractionResult.SUCCESS;
+        }
+        return InteractionResult.PASS;
     }
 }

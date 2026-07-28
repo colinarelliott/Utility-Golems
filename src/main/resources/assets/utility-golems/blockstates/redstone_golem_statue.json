@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "utility-golems:block/redstone_golem_statue" },
+    "facing=south": { "model": "utility-golems:block/redstone_golem_statue", "y": 180 },
+    "facing=east": { "model": "utility-golems:block/redstone_golem_statue", "y": 90 },
+    "facing=west": { "model": "utility-golems:block/redstone_golem_statue", "y": 270 }
+  }
+}

@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "جوک بکس کا صندوق",
   "block.utility-golems.nether_wart_golem_chest": "نیدر وارٹ کا صندوق",
   "block.utility-golems.honeycomb_golem_chest": "چھتے کا صندوق",
+  "block.utility-golems.hopper_golem_chest": "ہوپر کا صندوق",
   "container.utility-golems.lapis_golem_chest_double": "لاجورد کا بڑا صندوق",
   "container.utility-golems.redstone_golem_chest_double": "ریڈ اسٹون کا بڑا صندوق",
   "container.utility-golems.emerald_golem_chest_double": "زمرد کا بڑا صندوق",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "جوک بکس کا بڑا صندوق",
   "container.utility-golems.nether_wart_golem_chest_double": "نیدر وارٹ کا بڑا صندوق",
   "container.utility-golems.honeycomb_golem_chest_double": "چھتے کا بڑا صندوق",
+  "container.utility-golems.hopper_golem_chest_double": "ہوپر کا بڑا صندوق",
   "item.utility-golems.lapis_golem_chest": "لاجورد کا صندوق",
   "item.utility-golems.redstone_golem_chest": "ریڈ اسٹون کا صندوق",
   "item.utility-golems.emerald_golem_chest": "زمرد کا صندوق",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "جوک بکس کا صندوق",
   "item.utility-golems.nether_wart_golem_chest": "نیدر وارٹ کا صندوق",
   "item.utility-golems.honeycomb_golem_chest": "چھتے کا صندوق",
+  "item.utility-golems.hopper_golem_chest": "ہوپر کا صندوق",
   "item.utility-golems.wrench": "رینچ",
   "item.utility-golems.wrench.description": "خراب گولم کی مرمت کے لیے استعمال کیا جاتا ہے",
   "item.utility-golems.lapis_golem_spawn_egg": "لاجورد گولم کا سپون ایگ",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "میڈک گولم کا سپون ایگ",
   "item.utility-golems.cactus_golem_spawn_egg": "ناگفنی گولم کا سپون ایگ",
   "item.utility-golems.honeycomb_golem_spawn_egg": "چھتے گولم کا سپون ایگ",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "ٹنٹڈ گلاس گولم کا سپون ایگ",
   "item.utility-golems.lapis_chest": "لاجورد کا صندوق",
   "item.utility-golems.redstone_chest": "ریڈ اسٹون کا صندوق",
   "item.utility-golems.emerald_chest": "زمرد کا صندوق",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "میڈک گولم",
   "entity.utility-golems.cactus_golem": "ناگفنی گولم",
   "entity.utility-golems.honeycomb_golem": "چھتے گولم",
+  "entity.utility-golems.hopper_golem": "ہوپر گولم",
+  "entity.utility-golems.tinted_glass_golem": "ٹنٹڈ گلاس گولم",
   "gui.utility-golems.clear_selection": "انتخاب صاف کریں",
-  "gui.utility-golems.golem_dead": "گولم مر گیا ہے! اسے دوبارہ زندہ کرنے کے لئے کدو رکھیں۔"
+  "gui.utility-golems.golem_dead": "گولم مر گیا ہے! اسے دوبارہ زندہ کرنے کے لئے کدو رکھیں۔",
+  "gui.utility-golems.held_item_tooltip": "پکڑی ہوئی چیز: اسے واپس حاصل کرنے کے لیے گولم پر شفٹ + دائیں کلک کریں"
 }

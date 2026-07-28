@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "唱片机箱子",
   "block.utility-golems.nether_wart_golem_chest": "下界疣箱子",
   "block.utility-golems.honeycomb_golem_chest": "蜜脾箱子",
+  "block.utility-golems.hopper_golem_chest": "漏斗箱子",
   "container.utility-golems.lapis_golem_chest_double": "青金石大箱子",
   "container.utility-golems.redstone_golem_chest_double": "红石大箱子",
   "container.utility-golems.emerald_golem_chest_double": "绿宝石大箱子",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "唱片机大箱子",
   "container.utility-golems.nether_wart_golem_chest_double": "下界疣大箱子",
   "container.utility-golems.honeycomb_golem_chest_double": "蜜脾大箱子",
+  "container.utility-golems.hopper_golem_chest_double": "漏斗大箱子",
   "item.utility-golems.lapis_golem_chest": "青金石箱子",
   "item.utility-golems.redstone_golem_chest": "红石箱子",
   "item.utility-golems.emerald_golem_chest": "绿宝石箱子",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "唱片机箱子",
   "item.utility-golems.nether_wart_golem_chest": "下界疣箱子",
   "item.utility-golems.honeycomb_golem_chest": "蜜脾箱子",
+  "item.utility-golems.hopper_golem_chest": "漏斗箱子",
   "item.utility-golems.wrench": "扳手",
   "item.utility-golems.wrench.description": "用于修复损坏的傀儡",
   "item.utility-golems.lapis_golem_spawn_egg": "青金石傀儡刷怪蛋",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "医疗傀儡刷怪蛋",
   "item.utility-golems.cactus_golem_spawn_egg": "仙人掌傀儡刷怪蛋",
   "item.utility-golems.honeycomb_golem_spawn_egg": "蜜脾傀儡刷怪蛋",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "遮光玻璃傀儡刷怪蛋",
   "item.utility-golems.lapis_chest": "青金石箱子",
   "item.utility-golems.redstone_chest": "红石箱子",
   "item.utility-golems.emerald_chest": "绿宝石箱子",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "医疗傀儡",
   "entity.utility-golems.cactus_golem": "仙人掌傀儡",
   "entity.utility-golems.honeycomb_golem": "蜜脾傀儡",
+  "entity.utility-golems.hopper_golem": "漏斗傀儡",
+  "entity.utility-golems.tinted_glass_golem": "遮光玻璃傀儡",
   "gui.utility-golems.clear_selection": "清除购买选择",
-  "gui.utility-golems.golem_dead": "傀儡已死亡！放置南瓜以使其重生。"
+  "gui.utility-golems.golem_dead": "傀儡已死亡！放置南瓜以使其重生。",
+  "gui.utility-golems.held_item_tooltip": "手持物品：Shift + 右键点击傀儡以取回"
 }

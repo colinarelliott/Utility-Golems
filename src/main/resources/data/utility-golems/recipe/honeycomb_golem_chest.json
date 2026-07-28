@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:honeycomb",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "MMM",
+    "MCM",
+    "MMM"
+  ],
+  "result": {
+    "id": "utility-golems:honeycomb_golem_chest",
+    "count": 1
+  }
+}

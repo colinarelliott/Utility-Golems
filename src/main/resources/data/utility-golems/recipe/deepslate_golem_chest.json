@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:cobbled_deepslate",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "MMM",
+    "MCM",
+    "MMM"
+  ],
+  "result": {
+    "id": "utility-golems:deepslate_golem_chest",
+    "count": 1
+  }
+}

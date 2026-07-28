@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "ज्यूकबॉक्स संदूक",
   "block.utility-golems.nether_wart_golem_chest": "नेदर वार्ट संदूक",
   "block.utility-golems.honeycomb_golem_chest": "मधुकोश संदूक",
+  "block.utility-golems.hopper_golem_chest": "हॉपर संदूक",
   "container.utility-golems.lapis_golem_chest_double": "लैपिस बड़ा संदूक",
   "container.utility-golems.redstone_golem_chest_double": "रेडस्टोन बड़ा संदूक",
   "container.utility-golems.emerald_golem_chest_double": "पन्ना बड़ा संदूक",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "ज्यूकबॉक्स बड़ा संदूक",
   "container.utility-golems.nether_wart_golem_chest_double": "नेदर वार्ट बड़ा संदूक",
   "container.utility-golems.honeycomb_golem_chest_double": "मधुकोश बड़ा संदूक",
+  "container.utility-golems.hopper_golem_chest_double": "हॉपर बड़ा संदूक",
   "item.utility-golems.lapis_golem_chest": "लैपिस संदूक",
   "item.utility-golems.redstone_golem_chest": "रेडस्टोन संदूक",
   "item.utility-golems.emerald_golem_chest": "पन्ना संदूक",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "ज्यूकबॉक्स संदूक",
   "item.utility-golems.nether_wart_golem_chest": "नेदर वार्ट संदूक",
   "item.utility-golems.honeycomb_golem_chest": "मधुकोश संदूक",
+  "item.utility-golems.hopper_golem_chest": "हॉपर संदूक",
   "item.utility-golems.wrench": "रिंच",
   "item.utility-golems.wrench.description": "क्षतिग्रस्त गोलेम की मरम्मत के लिए उपयोग किया जाता है",
   "item.utility-golems.lapis_golem_spawn_egg": "लैपिस गोलेम स्पॉन एग",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "मेडिक गोलेम स्पॉन एग",
   "item.utility-golems.cactus_golem_spawn_egg": "नागफनी गोलेम स्पॉन एग",
   "item.utility-golems.honeycomb_golem_spawn_egg": "मधुकोश गोलेम स्पॉन एग",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "टिंटेड ग्लास गोलेम स्पॉन एग",
   "item.utility-golems.lapis_chest": "लैपिस संदूक",
   "item.utility-golems.redstone_chest": "रेडस्टोन संदूक",
   "item.utility-golems.emerald_chest": "पन्ना संदूक",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "मेडिक गोलेम",
   "entity.utility-golems.cactus_golem": "नागफनी गोलेम",
   "entity.utility-golems.honeycomb_golem": "मधुकोश गोलेम",
+  "entity.utility-golems.hopper_golem": "हॉपर गोलेम",
+  "entity.utility-golems.tinted_glass_golem": "टिंटेड ग्लास गोलेम",
   "gui.utility-golems.clear_selection": "चयन साफ़ करें",
-  "gui.utility-golems.golem_dead": "गोलेम मर चुका है! पुनर्जीवित करने के लिए एक कद्दू रखें।"
+  "gui.utility-golems.golem_dead": "गोलेम मर चुका है! पुनर्जीवित करने के लिए एक कद्दू रखें।",
+  "gui.utility-golems.held_item_tooltip": "पकड़ी गई वस्तु: पुनः प्राप्त करने के लिए शिफ्ट + राइट क्लिक करें"
 }

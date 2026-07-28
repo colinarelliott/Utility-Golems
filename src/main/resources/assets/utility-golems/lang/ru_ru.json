@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "Сундук-проигрыватель",
   "block.utility-golems.nether_wart_golem_chest": "Сундук с наростом Нижнего мира",
   "block.utility-golems.honeycomb_golem_chest": "Сундук с сотами",
+  "block.utility-golems.hopper_golem_chest": "Сундук-воронка",
   "container.utility-golems.lapis_golem_chest_double": "Большой лазуритовый сундук",
   "container.utility-golems.redstone_golem_chest_double": "Большой редстоуновый сундук",
   "container.utility-golems.emerald_golem_chest_double": "Большой изумрудный сундук",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "Большой сундук-проигрыватель",
   "container.utility-golems.nether_wart_golem_chest_double": "Большой сундук с наростом Нижнего мира",
   "container.utility-golems.honeycomb_golem_chest_double": "Большой сундук с сотами",
+  "container.utility-golems.hopper_golem_chest_double": "Большой сундук-воронка",
   "item.utility-golems.lapis_golem_chest": "Лазуритовый сундук",
   "item.utility-golems.redstone_golem_chest": "Редстоуновый сундук",
   "item.utility-golems.emerald_golem_chest": "Изумрудный сундук",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "Сундук-проигрыватель",
   "item.utility-golems.nether_wart_golem_chest": "Сундук с наростом Нижнего мира",
   "item.utility-golems.honeycomb_golem_chest": "Сундук с сотами",
+  "item.utility-golems.hopper_golem_chest": "Сундук-воронка",
   "item.utility-golems.wrench": "Гаечный ключ",
   "item.utility-golems.wrench.description": "Используется для починки повреждённых големов",
   "item.utility-golems.lapis_golem_spawn_egg": "Яйцо призыва лазуритового голема",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "Яйцо призыва голема-медика",
   "item.utility-golems.cactus_golem_spawn_egg": "Яйцо призыва кактусового голема",
   "item.utility-golems.honeycomb_golem_spawn_egg": "Яйцо призыва медового голема",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "Яйцо призыва тонированного голема",
   "item.utility-golems.lapis_chest": "Лазуритовый сундук",
   "item.utility-golems.redstone_chest": "Редстоуновый сундук",
   "item.utility-golems.emerald_chest": "Изумрудный сундук",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "Голем-медик",
   "entity.utility-golems.cactus_golem": "Кактусовый голем",
   "entity.utility-golems.honeycomb_golem": "Медовый голем",
+  "entity.utility-golems.hopper_golem": "Голем-воронка",
+  "entity.utility-golems.tinted_glass_golem": "Тонированный голем",
   "gui.utility-golems.clear_selection": "Очистить выбор покупки",
-  "gui.utility-golems.golem_dead": "Голем мертв! Поставьте тыкву, чтобы оживить его."
+  "gui.utility-golems.golem_dead": "Голем мертв! Поставьте тыкву, чтобы оживить его.",
+  "gui.utility-golems.held_item_tooltip": "Удерживаемый предмет: Shift + ПКМ по голему, чтобы забрать"
 }

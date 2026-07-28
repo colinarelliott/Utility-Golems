@@ -1,6 +1,7 @@
 # Utility Golems
 ## "Gotta Gol 'Em All!"
-### A mod for Minecraft 1.21.11
+
+### A mod for Minecraft 26.2
 ![UG-PhotoDay-135](https://github.com/user-attachments/assets/7fb74960-526c-4a7e-bdd8-128d00ec8c7b)
 
 #### Image Legend
@@ -79,6 +80,13 @@
   - Collects nearby XP orbs, displays amount in inventory.
   - Takes glass bottles and fills them with XP, producing "Bottle O' Enchanting"
   - Useful for mob farms and enchanting automation.
+
+### Golem Chests
+- Most golems will spawn with a chest associated. These chests fulfill various purposes.
+- Each chest has a crafting recipe that is composed of a chest surrounded by the base material used to make the block.
+- For example, a diamond chest will save you one diamond if you craft it with the chest.
+- Hopper chests are crafted with a hopper on top and below the chest.
+- [View all chest recipes](https://github.com/colinarelliott/Utility-Golems/wiki/Crafting-Recipes#chests)
 
 ### Adds a wrench item which heals golems
 <img width="183" height="104" alt="Golem Wrench Crafting Recipe" src="https://github.com/user-attachments/assets/d9be85ce-094b-46c0-aa13-9ff1c00b8962" />

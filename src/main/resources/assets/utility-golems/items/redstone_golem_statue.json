@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "utility-golems:block/redstone_golem_statue"
+  }
+}

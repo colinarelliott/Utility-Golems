@@ -1,6 +1,6 @@
 package rehdpanda.utilitygolems;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public enum BuildPattern {
     NONE("None"),
@@ -19,7 +19,7 @@ public enum BuildPattern {
         return displayName;
     }
 
-    public Text getText() {
-        return Text.literal(displayName);
+    public Component getComponent() {
+        return Component.literal(displayName);
     }
 }

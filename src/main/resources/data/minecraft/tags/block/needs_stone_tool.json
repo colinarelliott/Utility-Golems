@@ -3,6 +3,8 @@
     "utility-golems:lapis_golem_chest",
     "utility-golems:amethyst_golem_chest",
     "utility-golems:deepslate_golem_chest",
-    "utility-golems:nether_wart_golem_chest"
+    "utility-golems:nether_wart_golem_chest",
+    "utility-golems:honeycomb_golem_chest",
+    "utility-golems:hopper_golem_chest"
   ]
 }

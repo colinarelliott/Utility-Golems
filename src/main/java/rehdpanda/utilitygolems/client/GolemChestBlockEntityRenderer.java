@@ -1,24 +1,22 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.block.enums.ChestType;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.block.entity.BlockEntityRenderer;
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
-import net.minecraft.client.render.block.entity.model.ChestBlockModel;
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
-import net.minecraft.client.render.command.ModelCommandRenderer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.model.EntityModelLayers;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.model.object.chest.ChestModel;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.resources.Identifier;
+import com.mojang.math.Axis;
+import net.minecraft.world.phys.Vec3;
 import rehdpanda.utilitygolems.GolemChestBlockEntity;
 import rehdpanda.utilitygolems.GolemType;
-import rehdpanda.utilitygolems.UGInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,24 +25,24 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
     private static final Map<GolemType, Identifier> SINGLE_TEXTURES = new HashMap<>();
     private static final Map<GolemType, Identifier> LEFT_TEXTURES = new HashMap<>();
     private static final Map<GolemType, Identifier> RIGHT_TEXTURES = new HashMap<>();
-    private final ChestBlockModel singleModel;
-    private final ChestBlockModel leftModel;
-    private final ChestBlockModel rightModel;
-    private final BlockEntityRendererFactory.Context ctx;
+    private final ChestModel singleModel;
+    private final ChestModel leftModel;
+    private final ChestModel rightModel;
+    private final BlockEntityRendererProvider.Context ctx;
 
     static {
         for (GolemType type : GolemType.values()) {
-            SINGLE_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
-            LEFT_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
-            RIGHT_TEXTURES.put(type, Identifier.of("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
+            SINGLE_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest.png"));
+            LEFT_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_left.png"));
+            RIGHT_TEXTURES.put(type, Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/" + type.getName() + "_chest_right.png"));
         }
     }
 
-    public GolemChestBlockEntityRenderer(BlockEntityRendererFactory.Context ctx) {
+    public GolemChestBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {
         this.ctx = ctx;
-        this.singleModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.CHEST));
-        this.leftModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.DOUBLE_CHEST_LEFT));
-        this.rightModel = new ChestBlockModel(ctx.getLayerModelPart(EntityModelLayers.DOUBLE_CHEST_RIGHT));
+        this.singleModel = new ChestModel(ctx.bakeLayer(ModelLayers.CHEST));
+        this.leftModel = new ChestModel(ctx.bakeLayer(ModelLayers.DOUBLE_CHEST_LEFT));
+        this.rightModel = new ChestModel(ctx.bakeLayer(ModelLayers.DOUBLE_CHEST_RIGHT));
     }
 
     @Override
@@ -53,20 +51,20 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
     }
 
     @Override
-    public void updateRenderState(GolemChestBlockEntity entity, GolemChestBlockEntityRenderState state, float tickProgress, Vec3d cameraPos, ModelCommandRenderer.CrumblingOverlayCommand crumblingOverlay) {
-        BlockEntityRenderState.updateBlockEntityRenderState(entity, state, crumblingOverlay);
-        state.yaw = entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.FACING).getPositiveHorizontalDegrees();
-        state.animationProgress = entity.getAnimationProgress(tickProgress);
+    public void extractRenderState(GolemChestBlockEntity entity, GolemChestBlockEntityRenderState state, float tickProgress, Vec3 cameraPos, ModelFeatureRenderer.CrumblingOverlay crumblingOverlay) {
+        BlockEntityRenderState.extractBase(entity, state, crumblingOverlay);
+        state.yaw = entity.getBlockState().getValue(rehdpanda.utilitygolems.GolemChestBlock.FACING).toYRot();
+        state.animationProgress = entity.getOpenNess(tickProgress);
         state.golemType = entity.getGolemType();
-        state.chestType = entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.CHEST_TYPE);
-        state.isStripped = entity.getCachedState().contains(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED) && entity.getCachedState().get(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED);
+        state.chestType = entity.getBlockState().getValue(rehdpanda.utilitygolems.GolemChestBlock.CHEST_TYPE);
+        state.isStripped = entity.getBlockState().hasProperty(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED) && entity.getBlockState().getValue(rehdpanda.utilitygolems.GolemChestBlock.STRIPPED);
     }
 
     @Override
-    public void render(GolemChestBlockEntityRenderState state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState) {
-        matrices.push();
+    public void submit(GolemChestBlockEntityRenderState state, PoseStack matrices, SubmitNodeCollector queue, CameraRenderState cameraState) {
+        matrices.pushPose();
         matrices.translate(0.5, 0.5, 0.5);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.yaw));
+        matrices.mulPose(Axis.YP.rotationDegrees(-state.yaw));
         matrices.translate(-0.5, -0.5, -0.5);
 
         float progress = state.animationProgress;
@@ -75,23 +73,23 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
 
         Identifier identifier = switch (state.chestType) {
             case SINGLE -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest.png")
                     : SINGLE_TEXTURES.get(state.golemType);
             case LEFT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_left.png")
                     : LEFT_TEXTURES.get(state.golemType);
             case RIGHT -> state.isStripped && state.golemType == GolemType.BAMBOO 
-                    ? Identifier.of("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
+                    ? Identifier.fromNamespaceAndPath("utility-golems", "textures/entity/chest/stripped_bamboo_golem_chest_right.png")
                     : RIGHT_TEXTURES.get(state.golemType);
         };
         if (identifier == null) {
             identifier = SINGLE_TEXTURES.values().iterator().next();
         }
-        RenderLayer renderLayer = state.golemType == GolemType.TINTED_GLASS 
-                ? RenderLayers.entityTranslucent(identifier) 
-                : RenderLayers.entityCutout(identifier);
+        RenderType renderLayer = state.golemType == GolemType.TINTED_GLASS
+                ? RenderTypes.entityTranslucent(identifier)
+                : RenderTypes.entityCutout(identifier);
 
-        ChestBlockModel model = switch (state.chestType) {
+        ChestModel model = switch (state.chestType) {
             case SINGLE -> this.singleModel;
             case LEFT -> this.leftModel;
             case RIGHT -> this.rightModel;
@@ -102,13 +100,13 @@ public class GolemChestBlockEntityRenderer implements BlockEntityRenderer<GolemC
                 progress,
                 matrices,
                 renderLayer,
-                state.lightmapCoordinates,
-                OverlayTexture.DEFAULT_UV,
+                state.lightCoords,
+                OverlayTexture.NO_OVERLAY,
                 -1, // tintedColor
                 null, // sprite
                 0, // outlineColor
-                state.crumblingOverlay // crumblingOverlay
+                state.breakProgress // crumblingOverlay
         );
-        matrices.pop();
+        matrices.popPose();
     }
 }

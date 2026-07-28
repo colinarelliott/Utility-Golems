@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "Baú de jukebox",
   "block.utility-golems.nether_wart_golem_chest": "Baú de fungo do Nether",
   "block.utility-golems.honeycomb_golem_chest": "Baú de favo de mel",
+  "block.utility-golems.hopper_golem_chest": "Baú de funil",
   "container.utility-golems.lapis_golem_chest_double": "Baú duplo de lapislázuli",
   "container.utility-golems.redstone_golem_chest_double": "Baú duplo de redstone",
   "container.utility-golems.emerald_golem_chest_double": "Baú duplo de esmeralda",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "Baú duplo de jukebox",
   "container.utility-golems.nether_wart_golem_chest_double": "Baú duplo de fungo do Nether",
   "container.utility-golems.honeycomb_golem_chest_double": "Baú duplo de favo de mel",
+  "container.utility-golems.hopper_golem_chest_double": "Baú duplo de funil",
   "item.utility-golems.lapis_golem_chest": "Baú de lapislázuli",
   "item.utility-golems.redstone_golem_chest": "Baú de redstone",
   "item.utility-golems.emerald_golem_chest": "Baú de esmeralda",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "Baú de jukebox",
   "item.utility-golems.nether_wart_golem_chest": "Baú de fungo do Nether",
   "item.utility-golems.honeycomb_golem_chest": "Baú de favo de mel",
+  "item.utility-golems.hopper_golem_chest": "Baú de funil",
   "item.utility-golems.wrench": "Chave inglesa",
   "item.utility-golems.wrench.description": "Usado para reparar golems danificados",
   "item.utility-golems.lapis_golem_spawn_egg": "Ovo invocador de golem de lapislázuli",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "Ovo invocador de golem médico",
   "item.utility-golems.cactus_golem_spawn_egg": "Ovo invocador de golem de cacto",
   "item.utility-golems.honeycomb_golem_spawn_egg": "Ovo invocador de golem de favo de mel",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "Ovo invocador de golem de vidro fumê",
   "item.utility-golems.lapis_chest": "Baú de lapislázuli",
   "item.utility-golems.redstone_chest": "Baú de redstone",
   "item.utility-golems.emerald_chest": "Baú de esmeralda",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "Golem médico",
   "entity.utility-golems.cactus_golem": "Golem de cacto",
   "entity.utility-golems.honeycomb_golem": "Golem de favo de mel",
+  "entity.utility-golems.hopper_golem": "Golem de funil",
+  "entity.utility-golems.tinted_glass_golem": "Golem de vidro fumê",
   "gui.utility-golems.clear_selection": "Limpar seleção de compra",
-  "gui.utility-golems.golem_dead": "O golem está morto! Coloque uma abóbora para renascê-lo."
+  "gui.utility-golems.golem_dead": "O golem está morto! Coloque uma abóbora para renascê-lo.",
+  "gui.utility-golems.held_item_tooltip": "Item na mão: Shift + clique direito no golem para recuperar"
 }

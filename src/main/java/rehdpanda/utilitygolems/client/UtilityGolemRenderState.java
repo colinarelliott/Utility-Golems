@@ -1,9 +1,10 @@
 package rehdpanda.utilitygolems.client;
 
-import net.minecraft.client.render.entity.state.CopperGolemEntityRenderState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.renderer.entity.state.CopperGolemRenderState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
 
-public class UtilityGolemRenderState extends CopperGolemEntityRenderState {
+public class UtilityGolemRenderState extends CopperGolemRenderState {
     public BlockPos chestPos;
     public BlockPos aiTarget;
     public boolean isDebug;
@@ -12,6 +13,9 @@ public class UtilityGolemRenderState extends CopperGolemEntityRenderState {
     public boolean isSmelting;
     public boolean isTinted;
     public float yawDegrees;
+    public float headYaw;
+    public float headPitch;
+    public ItemStack mainHandItem = ItemStack.EMPTY;
 
     // Animation state copied from entity each frame
     public int animationId;

@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "Cofre de tocadiscos",
   "block.utility-golems.nether_wart_golem_chest": "Cofre de verruga del Nether",
   "block.utility-golems.honeycomb_golem_chest": "Cofre de panal",
+  "block.utility-golems.hopper_golem_chest": "Cofre de tolva",
   "container.utility-golems.lapis_golem_chest_double": "Cofre doble de lapislázuli",
   "container.utility-golems.redstone_golem_chest_double": "Cofre doble de redstone",
   "container.utility-golems.emerald_golem_chest_double": "Cofre doble de esmeralda",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "Cofre doble de tocadiscos",
   "container.utility-golems.nether_wart_golem_chest_double": "Cofre doble de verruga del Nether",
   "container.utility-golems.honeycomb_golem_chest_double": "Cofre doble de panal",
+  "container.utility-golems.hopper_golem_chest_double": "Cofre doble de tolva",
   "item.utility-golems.lapis_golem_chest": "Cofre de lapislázuli",
   "item.utility-golems.redstone_golem_chest": "Cofre de redstone",
   "item.utility-golems.emerald_golem_chest": "Cofre de esmeralda",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "Cofre de tocadiscos",
   "item.utility-golems.nether_wart_golem_chest": "Cofre de verruga del Nether",
   "item.utility-golems.honeycomb_golem_chest": "Cofre de panal",
+  "item.utility-golems.hopper_golem_chest": "Cofre de tolva",
   "item.utility-golems.wrench": "Llave inglesa",
   "item.utility-golems.wrench.description": "Se utiliza para reparar gólems dañados",
   "item.utility-golems.lapis_golem_spawn_egg": "Huevo generador de gólem de lapislázuli",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "Huevo generador de gólem médico",
   "item.utility-golems.cactus_golem_spawn_egg": "Huevo generador de gólem de cactus",
   "item.utility-golems.honeycomb_golem_spawn_egg": "Huevo generador de gólem de panal",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "Huevo generador de gólem de cristal tintado",
   "item.utility-golems.lapis_chest": "Cofre de lapislázuli",
   "item.utility-golems.redstone_chest": "Cofre de redstone",
   "item.utility-golems.emerald_chest": "Cofre de esmeralda",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "Gólem médico",
   "entity.utility-golems.cactus_golem": "Gólem de cactus",
   "entity.utility-golems.honeycomb_golem": "Gólem de panal",
+  "entity.utility-golems.hopper_golem": "Gólem de tolva",
+  "entity.utility-golems.tinted_glass_golem": "Gólem de cristal tintado",
   "gui.utility-golems.clear_selection": "Limpiar selección de compra",
-  "gui.utility-golems.golem_dead": "¡El gólem ha muerto! Coloca una calabaza para revivirlo."
+  "gui.utility-golems.golem_dead": "¡El gólem ha muerto! Coloca una calabaza para revivirlo.",
+  "gui.utility-golems.held_item_tooltip": "Objeto en mano: Shift + clic derecho al gólem para recuperar"
 }

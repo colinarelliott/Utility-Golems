@@ -14,6 +14,7 @@
   "block.utility-golems.jukebox_golem_chest": "জুকবক্স সিন্দুক",
   "block.utility-golems.nether_wart_golem_chest": "নেদার ওয়ার্ট সিন্দুক",
   "block.utility-golems.honeycomb_golem_chest": "মৌচাক সিন্দুক",
+  "block.utility-golems.hopper_golem_chest": "হপার সিন্দুক",
   "container.utility-golems.lapis_golem_chest_double": "ল্যাপিস বড় সিন্দুক",
   "container.utility-golems.redstone_golem_chest_double": "রেডস্টোন বড় সিন্দুক",
   "container.utility-golems.emerald_golem_chest_double": "পান্না বড় সিন্দুক",
@@ -29,6 +30,7 @@
   "container.utility-golems.jukebox_golem_chest_double": "জুকবক্স বড় সিন্দুক",
   "container.utility-golems.nether_wart_golem_chest_double": "নেদার ওয়ার্ট বড় সিন্দুক",
   "container.utility-golems.honeycomb_golem_chest_double": "মৌচাক বড় সিন্দুক",
+  "container.utility-golems.hopper_golem_chest_double": "হপার বড় সিন্দুক",
   "item.utility-golems.lapis_golem_chest": "ল্যাপিস সিন্দুক",
   "item.utility-golems.redstone_golem_chest": "রেডস্টোন সিন্দুক",
   "item.utility-golems.emerald_golem_chest": "পান্না সিন্দুক",
@@ -44,6 +46,7 @@
   "item.utility-golems.jukebox_golem_chest": "জুকবক্স সিন্দুক",
   "item.utility-golems.nether_wart_golem_chest": "নেদার ওয়ার্ট সিন্দুক",
   "item.utility-golems.honeycomb_golem_chest": "মৌচাক সিন্দুক",
+  "item.utility-golems.hopper_golem_chest": "হপার সিন্দুক",
   "item.utility-golems.wrench": "রেঞ্চ",
   "item.utility-golems.wrench.description": "ক্ষতিগ্রস্ত গোলেম মেরামতের জন্য ব্যবহৃত হয়",
   "item.utility-golems.lapis_golem_spawn_egg": "ল্যাপিস গোলেম স্পন এগ",
@@ -66,6 +69,7 @@
   "item.utility-golems.medic_golem_spawn_egg": "মেডিক গোলেম স্পন এগ",
   "item.utility-golems.cactus_golem_spawn_egg": "ক্যাকটাস গোলেম স্পন এগ",
   "item.utility-golems.honeycomb_golem_spawn_egg": "মৌচাক গোলেম স্পন এগ",
+  "item.utility-golems.tinted_glass_golem_spawn_egg": "টিন্টেড গ্লাস গোলেম স্পন এগ",
   "item.utility-golems.lapis_chest": "ল্যাপিস সিন্দুক",
   "item.utility-golems.redstone_chest": "রেডস্টোন সিন্দুক",
   "item.utility-golems.emerald_chest": "পান্না সিন্দুক",
@@ -92,6 +96,9 @@
   "entity.utility-golems.medic_golem": "মেডিক গোলেম",
   "entity.utility-golems.cactus_golem": "ক্যাকটাস গোলেম",
   "entity.utility-golems.honeycomb_golem": "মৌচাক গোলেম",
+  "entity.utility-golems.hopper_golem": "হপার গোলেম",
+  "entity.utility-golems.tinted_glass_golem": "টিন্টেড গ্লাস গোলেম",
   "gui.utility-golems.clear_selection": "ক্রয় নির্বাচন মুছুন",
-  "gui.utility-golems.golem_dead": "গোলম মৃত! পুনরায় জীবিত করতে একটি কুমড়া রাখুন।"
+  "gui.utility-golems.golem_dead": "গোলম মৃত! পুনরায় জীবিত করতে একটি কুমড়া রাখুন。",
+  "gui.utility-golems.held_item_tooltip": "হাতে থাকা আইটেম: পুনরুদ্ধার করতে গোলমকে শিফট + রাইট ক্লিক করুন"
 }

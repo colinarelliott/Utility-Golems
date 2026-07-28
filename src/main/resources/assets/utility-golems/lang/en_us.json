@@ -1,6 +1,7 @@
 {
   "block.utility-golems.lapis_golem_chest": "Lapis Chest",
   "block.utility-golems.redstone_golem_chest": "Redstone Chest",
+  "block.utility-golems.redstone_golem_statue": "Redstone Golem Statue",
   "block.utility-golems.emerald_golem_chest": "Emerald Chest",
   "block.utility-golems.gold_golem_chest": "Gold Chest",
   "block.utility-golems.amethyst_golem_chest": "Amethyst Chest",
@@ -34,6 +35,7 @@
  
   "item.utility-golems.lapis_golem_chest": "Lapis Chest",
   "item.utility-golems.redstone_golem_chest": "Redstone Chest",
+  "item.utility-golems.redstone_golem_statue": "Redstone Golem Statue",
   "item.utility-golems.emerald_golem_chest": "Emerald Chest",
   "item.utility-golems.gold_golem_chest": "Gold Chest",
   "item.utility-golems.amethyst_golem_chest": "Amethyst Chest",
@@ -103,5 +105,6 @@
   "entity.utility-golems.hopper_golem": "Hopper Golem",
   "entity.utility-golems.tinted_glass_golem": "Tinted Glass Golem",
   "gui.utility-golems.clear_selection": "Clear Buy Selection",
-  "gui.utility-golems.golem_dead": "Golem is dead! Place a pumpkin to respawn."
+  "gui.utility-golems.golem_dead": "Golem is dead! Place a pumpkin to respawn.",
+  "gui.utility-golems.held_item_tooltip": "Held Item: Shift + right click golem to retrieve"
 }
